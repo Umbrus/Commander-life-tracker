@@ -72,6 +72,14 @@ if (savedPlayerName) {
   playerNameInput.value = savedPlayerName;
 }
 
+function triggerHaptic(pattern) {
+  if ("vibrate" in navigator) {
+    try {
+      navigator.vibrate(pattern);
+    } catch {}
+  }
+}
+
 // --- STARTING LIFE PRESET SELECTORS (Lobby & New Game Modal) ---
 document.querySelectorAll("#lobbyLifeSelector .preset-btn").forEach((btn) => {
   btn.onclick = () => {
@@ -145,6 +153,7 @@ function renderPinnedExtraCounters() {
   grid.querySelectorAll(".extra-btn").forEach((btn) => {
     btn.onclick = () => {
       if (!currentPodCode || !currentUser) return;
+      triggerHaptic(12);
       const key = btn.dataset.key;
       const delta = parseInt(btn.dataset.delta, 10);
       const nextVal = Math.max(0, (myExtraCounters[key] || 0) + delta);
@@ -245,6 +254,7 @@ historyModal.onclick = (e) => {
 
 // --- BUILT-IN DICE & COIN ROLLER MODAL ---
 function rollDie(type) {
+  triggerHaptic(15);
   const labelEl = document.getElementById("diceTypeLabel");
   const resultEl = document.getElementById("diceBigResult");
   let label = "";
@@ -438,7 +448,7 @@ function renderInviteQR(code) {
     text: inviteUrl,
     width: 140,
     height: 140,
-    colorDark: "#090b0e",
+    colorDark: "#070606",
     colorLight: "#ffffff"
   });
 
@@ -464,7 +474,6 @@ document.getElementById("inlineHideQrBtn").onclick = toggleQrDrawer;
 // --- LEAVE POD (Auto-transfers host ownership if owner leaves) ---
 document.getElementById("leavePodBtn").onclick = async () => {
   if (currentPodCode && currentUser && latestPodData) {
-    const players = latestPodData.players || {};
     const remainingUids = getOrderedPlayerUids(latestPodData).filter((uid) => uid !== currentUser.uid);
 
     if (latestPodData.hostUid === currentUser.uid && remainingUids.length > 0) {
@@ -504,8 +513,27 @@ async function setFirstPlayer(targetUid) {
   });
 }
 
+async function rollRandomFirstPlayer() {
+  if (!currentPodCode || !latestPodData || latestPodData.hostUid !== currentUser.uid) return null;
+  const orderedUids = getOrderedPlayerUids(latestPodData);
+  if (orderedUids.length === 0) return null;
+  triggerHaptic([15, 25, 15]);
+  const winnerUid = orderedUids[Math.floor(Math.random() * orderedUids.length)];
+  await setFirstPlayer(winnerUid);
+  return latestPodData.players?.[winnerUid]?.name || "Player";
+}
+
+// Host Pre-Game Setup Card Quick Buttons
+document.getElementById("quickRollStartBtn").onclick = async () => {
+  await rollRandomFirstPlayer();
+};
+document.getElementById("quickSeatOrderBtn").onclick = () => {
+  openFirstPlayerModal();
+};
+
 document.getElementById("passTurnBtn").onclick = async () => {
   if (!currentPodCode || !latestPodData) return;
+  triggerHaptic(15);
   const orderedUids = getOrderedPlayerUids(latestPodData);
   if (orderedUids.length === 0) return;
 
@@ -582,16 +610,14 @@ function renderFirstPlayerModal() {
   });
 
   document.getElementById("rollDiceBtn").onclick = async () => {
-    if (orderedUids.length === 0) return;
-    const winnerUid = orderedUids[Math.floor(Math.random() * orderedUids.length)];
-    const winnerName = players[winnerUid].name;
+    const winnerName = await rollRandomFirstPlayer();
+    if (!winnerName) return;
     const resultBox = document.getElementById("diceResultBox");
     resultBox.textContent = `🎲 ${winnerName} goes first!`;
     resultBox.classList.remove("hidden");
-    await setFirstPlayer(winnerUid);
     setTimeout(() => {
       document.getElementById("firstPlayerModal").classList.add("hidden");
-    }, 1100);
+    }, 950);
   };
 }
 
@@ -755,7 +781,6 @@ function renderOpponentModal() {
     setMonarch(inspectedOpponentUid);
   };
 
-  // Show "Make Pod Owner" button only if you are the current host
   const transferBtn = document.getElementById("modalTransferHostBtn");
   transferBtn.classList.toggle("hidden", !isHost);
   transferBtn.onclick = async () => {
@@ -843,6 +868,7 @@ function changeMyLife(amount, note = "") {
 
 function changePoison(delta) {
   if (!currentPodCode || !currentUser) return;
+  triggerHaptic(12);
   myPoison = Math.max(0, myPoison + delta);
   update(ref(db, `pods/${currentPodCode}/players/${currentUser.uid}`), {
     poison: myPoison
@@ -851,6 +877,7 @@ function changePoison(delta) {
 
 function changeTax(delta) {
   if (!currentPodCode || !currentUser) return;
+  triggerHaptic(12);
   myTax = Math.max(0, myTax + delta);
   update(ref(db, `pods/${currentPodCode}/players/${currentUser.uid}`), {
     tax: myTax
@@ -865,6 +892,7 @@ function changeCommanderDamage(dmgKey, sourceUid, slotLabel, delta) {
 
   if (actualChange === 0) return;
 
+  triggerHaptic(nextDmg >= 21 ? [30, 40, 30] : 15);
   myCommanderDamage[dmgKey] = nextDmg;
   const attackerName = latestPodData?.players?.[sourceUid]?.name || "Commander";
   const labelSuffix = slotLabel ? ` (${slotLabel})` : "";
@@ -890,6 +918,7 @@ function bindLifeTapZone(element, step) {
     didHold = false;
     holdTimer = setTimeout(() => {
       didHold = true;
+      triggerHaptic([20, 30, 20]);
       changeMyLife(step * 5);
     }, 450);
   };
@@ -898,6 +927,7 @@ function bindLifeTapZone(element, step) {
     e.preventDefault();
     clearTimeout(holdTimer);
     if (!didHold) {
+      triggerHaptic(12);
       changeMyLife(step);
     }
   };
@@ -995,9 +1025,13 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
     document.getElementById("openFirstPlayerBtn").classList.toggle("hidden", !isHost);
     document.getElementById("newGameBtn").classList.toggle("hidden", !isHost);
 
+    // Show Host Pre-Game Turn Setup Card only when Host AND game turns haven't started yet
+    const gameHasStarted = Boolean(activeTurnUid && players[activeTurnUid]);
+    document.getElementById("hostStartBanner").classList.toggle("hidden", !(isHost && !gameHasStarted));
+
     // Update Turn Tracker Banner & Clockwise Order Strip
     const turnBanner = document.getElementById("turnBanner");
-    if (activeTurnUid && players[activeTurnUid]) {
+    if (gameHasStarted) {
       turnBanner.classList.remove("hidden");
       const isMyTurn = activeTurnUid === currentUser.uid;
       turnBanner.classList.toggle("my-turn", isMyTurn);

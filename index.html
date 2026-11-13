@@ -3,13 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#090b0e" />
+  <meta name="theme-color" content="#070606" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Commander Pod Tracker</title>
+  <title>CommandSync — Commander Pod Tracker</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" type="image/svg+xml" href="images/icon.svg" />
   <link rel="apple-touch-icon" href="images/icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -22,15 +25,15 @@
     <div id="lobbyView" class="lobby-wrapper">
       <div class="lobby-hero">
         <div class="hero-emblem" aria-hidden="true">
-          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="12 2 21 7 21 17 12 22 3 17 3 7 12 2"></polygon>
             <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
             <line x1="12" y1="22.08" x2="12" y2="12"></line>
           </svg>
         </div>
-        <div class="brand-mark">COMMANDER POD</div>
-        <h1>Tabletop Life Tracker</h1>
-        <p class="subtitle">Real-time synced life, commander damage &amp; turns across every phone at the table.</p>
+        <div class="brand-mark">COMMANDER TABLETOP COMPANION</div>
+        <h1 class="brand-title">CommandSync</h1>
+        <p class="subtitle">Real-time synced life, commander damage &amp; turns across every device in the pod.</p>
 
         <div id="statusBox" class="conn-pill">
           <span class="conn-dot"></span>
@@ -40,8 +43,8 @@
 
       <div id="lobbyForm" class="lobby-card hidden">
         <div class="input-group">
-          <label for="playerNameInput" class="input-label">Your Display Name</label>
-          <input id="playerNameInput" type="text" maxlength="18" placeholder="e.g. Nathan" autocomplete="off" />
+          <label for="playerNameInput" class="input-label">Planeswalker Name</label>
+          <input id="playerNameInput" type="text" maxlength="18" placeholder="e.g. Gideon" autocomplete="off" />
         </div>
 
         <div id="standardCreateSection">
@@ -73,7 +76,7 @@
 
       <div class="lobby-footer">
         <button id="openHowItWorksBtn" type="button" class="link-btn">
-          <span>?</span> How does this work?
+          <span>?</span> How does CommandSync work?
         </button>
       </div>
     </div>
@@ -83,7 +86,7 @@
       <header class="top-bar">
         <div class="pod-pill">
           <span class="pod-dot"></span>
-          POD <span id="displayRoomCode">----</span>
+          <span>POD <strong id="displayRoomCode" class="pod-code-serif">----</strong></span>
           <span id="hostCrownTag" class="host-tag hidden">HOST</span>
         </div>
 
@@ -91,14 +94,14 @@
           <button id="menuToggleBtn" class="hamburger-btn" aria-label="Pod Menu">☰</button>
 
           <div id="podDropdownMenu" class="dropdown-menu hidden">
-            <div class="menu-section-title">Your Tile Color</div>
+            <div class="menu-section-title">Your Card Frame</div>
             <div id="colorSwatchRow" class="swatch-row">
-              <button type="button" class="swatch-btn" data-theme="blue" title="Blue"></button>
-              <button type="button" class="swatch-btn" data-theme="red" title="Red"></button>
-              <button type="button" class="swatch-btn" data-theme="green" title="Green"></button>
-              <button type="button" class="swatch-btn" data-theme="gold" title="Gold"></button>
-              <button type="button" class="swatch-btn" data-theme="purple" title="Purple"></button>
-              <button type="button" class="swatch-btn" data-theme="slate" title="Obsidian"></button>
+              <button type="button" class="swatch-btn" data-theme="blue" title="Azorius Blue"></button>
+              <button type="button" class="swatch-btn" data-theme="red" title="Rakdos Crimson"></button>
+              <button type="button" class="swatch-btn" data-theme="green" title="Golgari Emerald"></button>
+              <button type="button" class="swatch-btn" data-theme="gold" title="Boros Gold"></button>
+              <button type="button" class="swatch-btn" data-theme="purple" title="Dimir Violet"></button>
+              <button type="button" class="swatch-btn" data-theme="slate" title="Eldrazi Obsidian"></button>
             </div>
 
             <div class="menu-divider"></div>
@@ -119,10 +122,22 @@
       <!-- Collapsible QR Invite Drawer -->
       <div id="qrDrawer" class="qr-drawer">
         <div id="qrBox" class="qr-wrapper"></div>
-        <div class="invite-hint">Scan with any phone camera to join</div>
+        <div class="invite-hint">Scan with any phone camera to join this pod</div>
         <div style="display: flex; justify-content: center; gap: 8px;">
           <button id="copyLinkBtn" class="btn-secondary btn-small">Copy Link</button>
           <button id="inlineHideQrBtn" class="btn-secondary btn-small">Hide QR</button>
+        </div>
+      </div>
+
+      <!-- HOST PRE-GAME TURN ORDER SETUP CARD (Visible only before Turn 1 starts) -->
+      <div id="hostStartBanner" class="host-start-card hidden">
+        <div class="host-start-text">
+          <div class="host-start-title">Ready to Begin?</div>
+          <div class="host-start-sub">Roll randomly or arrange clockwise table seating</div>
+        </div>
+        <div class="host-start-actions">
+          <button id="quickRollStartBtn" type="button" class="btn-primary btn-small">🎲 Roll 1st</button>
+          <button id="quickSeatOrderBtn" type="button" class="btn-secondary btn-small">🧭 Seat Order</button>
         </div>
       </div>
 
@@ -145,6 +160,7 @@
 
       <!-- Your Hero Life Counter -->
       <div id="heroTracker" class="hero-tracker theme-blue">
+        <div class="hero-inner-frame"></div>
         <div id="heroPlayerName" class="hero-label">You</div>
         <div id="heroLifeDisplay" class="hero-life-display">40</div>
         <div id="deltaBadge" class="delta-badge"></div>
@@ -290,7 +306,7 @@
   <div id="howItWorksModal" class="modal-backdrop hidden">
     <div class="modal-card guide-modal">
       <div class="modal-header">
-        <h2>How Commander Pod Works</h2>
+        <h2>How CommandSync Works</h2>
         <button id="closeHowItWorksBtn" class="btn-secondary btn-small">✕</button>
       </div>
 
@@ -321,7 +337,7 @@
       </div>
 
       <div class="guide-tip">
-        <strong>Pro Tip:</strong> Add this page to your phone's Home Screen (<em>Share → Add to Home Screen</em> or Chrome <em>Install App</em>) for full-screen play without browser bars.
+        <strong>Pro Tip:</strong> Add CommandSync to your phone's Home Screen (<em>Share → Add to Home Screen</em> or Chrome <em>Install App</em>) for full-screen play without browser bars.
       </div>
 
       <button id="gotItBtn" class="btn-primary" style="margin-top: 14px; margin-bottom: 0;">Got It</button>
