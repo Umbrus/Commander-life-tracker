@@ -23,6 +23,9 @@ const playerNameInput = document.getElementById("playerNameInput");
 
 let currentUser = null;
 let currentPodCode = null;
+let latestPodData = null;
+let inspectedOpponentUid = null;
+
 let myCurrentLife = 40;
 let myPoison = 0;
 let myTax = 0;
@@ -158,6 +161,101 @@ document.getElementById("leavePodBtn").onclick = () => {
   window.location.href = window.location.origin + window.location.pathname;
 };
 
+// --- HOST-ONLY: NEW GAME RESET ---
+document.getElementById("newGameBtn").onclick = async () => {
+  if (!currentPodCode || !latestPodData || latestPodData.hostUid !== currentUser.uid) return;
+  if (!confirm("Start a New Game? This resets everyone to 40 life and clears all counters.")) return;
+
+  const players = latestPodData.players || {};
+  const resetUpdates = {
+    monarchUid: null
+  };
+
+  Object.entries(players).forEach(([uid, p]) => {
+    resetUpdates[`players/${uid}`] = {
+      name: p.name,
+      life: 40,
+      poison: 0,
+      tax: 0,
+      commanderDamage: null
+    };
+  });
+
+  await update(ref(db, `pods/${currentPodCode}`), resetUpdates);
+};
+
+// --- MONARCH CONTROL ---
+function setMonarch(targetUid) {
+  if (!currentPodCode) return;
+  update(ref(db, `pods/${currentPodCode}`), {
+    monarchUid: targetUid
+  });
+}
+
+document.getElementById("becomeMonarchBtn").onclick = () => {
+  if (!currentUser) return;
+  const isAlreadyMonarch = latestPodData?.monarchUid === currentUser.uid;
+  setMonarch(isAlreadyMonarch ? null : currentUser.uid);
+};
+
+// --- OPPONENT INSPECTOR MODAL ---
+function openOpponentModal(uid) {
+  inspectedOpponentUid = uid;
+  renderOpponentModal();
+  document.getElementById("inspectModal").classList.remove("hidden");
+}
+
+function renderOpponentModal() {
+  if (!inspectedOpponentUid || !latestPodData?.players?.[inspectedOpponentUid]) return;
+
+  const players = latestPodData.players;
+  const target = players[inspectedOpponentUid];
+  const isMonarch = latestPodData.monarchUid === inspectedOpponentUid;
+
+  document.getElementById("modalPlayerName").textContent = `${isMonarch ? "👑 " : ""}${target.name}`;
+  document.getElementById("modalLifeVal").textContent = target.life ?? 40;
+  document.getElementById("modalPoisonVal").textContent = target.poison ?? 0;
+  document.getElementById("modalTaxVal").textContent = `+${target.tax ?? 0}`;
+
+  const cmdrList = document.getElementById("modalCmdrList");
+  cmdrList.innerHTML = "";
+  const takenMap = target.commanderDamage || {};
+  let hasEntries = false;
+
+  Object.entries(players).forEach(([otherUid, otherPlayer]) => {
+    if (otherUid === inspectedOpponentUid) return;
+    hasEntries = true;
+    const dmg = takenMap[otherUid] || 0;
+    const row = document.createElement("div");
+    row.className = "cmdr-dmg-row";
+    row.innerHTML = `
+      <div class="cmdr-source-name">From ${otherPlayer.name}</div>
+      <div class="cmdr-dmg-val ${dmg >= 21 ? "lethal" : ""}">${dmg}</div>
+    `;
+    cmdrList.appendChild(row);
+  });
+
+  if (!hasEntries) {
+    cmdrList.innerHTML = `<div class="empty-hint">No other players in pod</div>`;
+  }
+
+  document.getElementById("modalMakeMonarchBtn").onclick = () => {
+    setMonarch(inspectedOpponentUid);
+  };
+}
+
+document.getElementById("closeModalBtn").onclick = () => {
+  inspectedOpponentUid = null;
+  document.getElementById("inspectModal").classList.add("hidden");
+};
+
+document.getElementById("inspectModal").onclick = (e) => {
+  if (e.target.id === "inspectModal") {
+    inspectedOpponentUid = null;
+    document.getElementById("inspectModal").classList.add("hidden");
+  }
+};
+
 // --- LIFE, POISON, TAX & COMMANDER DAMAGE UPDATERS ---
 function changeMyLife(amount) {
   if (!currentPodCode || !currentUser) return;
@@ -208,7 +306,6 @@ function changeCommanderDamage(sourceUid, delta) {
   if (actualChange === 0) return;
 
   myCommanderDamage[sourceUid] = nextDmg;
-  // Commander combat damage also subtracts from (or restores) your life total
   changeMyLife(-actualChange);
 
   update(ref(db, `pods/${currentPodCode}/players/${currentUser.uid}/commanderDamage`), {
@@ -267,7 +364,10 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
       return false;
     }
   } else {
-    await set(podRef, { createdAt: Date.now() });
+    await set(podRef, {
+      createdAt: Date.now(),
+      hostUid: currentUser.uid
+    });
   }
 
   currentPodCode = code;
@@ -296,7 +396,6 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
   podView.classList.remove("hidden");
 
   document.getElementById("displayRoomCode").textContent = code;
-  document.getElementById("heroPlayerName").textContent = `${name} (You)`;
   renderInviteQR(code);
   enableWakeLock();
 
@@ -305,11 +404,21 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
     document.getElementById("toggleQrBtn").textContent = "Show QR";
   }
 
-  onValue(ref(db, `pods/${code}/players`), (snapshot) => {
-    const players = snapshot.val() || {};
+  // Listen to the entire pod node so we get players, hostUid, and monarchUid together
+  onValue(podRef, (snapshot) => {
+    const podData = snapshot.val();
+    if (!podData) return;
+
+    latestPodData = podData;
+    const players = podData.players || {};
+    const monarchUid = podData.monarchUid || null;
+    const isHost = podData.hostUid === currentUser.uid;
+
+    // Show New Game button only to the Pod Owner
+    document.getElementById("newGameBtn").classList.toggle("hidden", !isHost);
+
     const opponentsGrid = document.getElementById("opponentsGrid");
     const cmdrDamageList = document.getElementById("cmdrDamageList");
-
     opponentsGrid.innerHTML = "";
     cmdrDamageList.innerHTML = "";
 
@@ -320,12 +429,18 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
       myTax = me.tax ?? 0;
       myCommanderDamage = me.commanderDamage || {};
 
+      const iAmMonarch = monarchUid === currentUser.uid;
+      document.getElementById("heroPlayerName").textContent = `${iAmMonarch ? "👑 " : ""}${me.name} (You)`;
+      document.getElementById("heroTracker").classList.toggle("is-monarch", iAmMonarch);
+
+      const monarchBtn = document.getElementById("becomeMonarchBtn");
+      monarchBtn.classList.toggle("active-monarch", iAmMonarch);
+      monarchBtn.textContent = iAmMonarch ? "👑 You Are the Monarch" : "👑 Become the Monarch";
+
       document.getElementById("heroLifeDisplay").textContent = myCurrentLife;
       document.getElementById("poisonDisplay").textContent = myPoison;
       document.getElementById("taxDisplay").textContent = `+${myTax}`;
-
-      const poisonBox = document.getElementById("poisonBox");
-      poisonBox.classList.toggle("lethal-poison", myPoison >= 10);
+      document.getElementById("poisonBox").classList.toggle("lethal-poison", myPoison >= 10);
     }
 
     let opponentCount = 0;
@@ -334,18 +449,16 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
       if (uid === currentUser.uid) return;
       opponentCount++;
 
-      // 1. Render Opponent Overview Card at the top
-      const poisonBadge = p.poison > 0 ? `☠ ${p.poison}` : "";
+      const oppIsMonarch = monarchUid === uid;
       const card = document.createElement("div");
-      card.className = "opponent-card";
+      card.className = `opponent-card ${oppIsMonarch ? "is-monarch" : ""}`;
       card.innerHTML = `
-        <div class="opponent-name">${p.name}</div>
+        <div class="opponent-name">${oppIsMonarch ? "👑 " : ""}${p.name}</div>
         <div class="opponent-life ${p.life <= 0 ? "dead" : ""}">${p.life}</div>
-        <div class="opponent-badges">${poisonBadge}</div>
       `;
+      card.onclick = () => openOpponentModal(uid);
       opponentsGrid.appendChild(card);
 
-      // 2. Render Commander Damage Row for this opponent's commander
       const dmgTaken = myCommanderDamage[uid] || 0;
       const dmgRow = document.createElement("div");
       dmgRow.className = "cmdr-dmg-row";
@@ -368,6 +481,11 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
           changeCommanderDamage(btn.dataset.uid, parseInt(btn.dataset.delta, 10));
         };
       });
+    }
+
+    // Keep the modal live if it's currently open
+    if (inspectedOpponentUid) {
+      renderOpponentModal();
     }
   });
 

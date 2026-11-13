@@ -31,6 +31,7 @@
       <div class="pod-header">
         <div class="pod-badge">POD: <span id="displayRoomCode">----</span></div>
         <div class="header-actions">
+          <button id="newGameBtn" class="btn-warning btn-small hidden">New Game</button>
           <button id="toggleQrBtn" class="btn-secondary btn-small">Hide QR</button>
           <button id="leavePodBtn" class="btn-danger btn-small">Leave</button>
         </div>
@@ -43,11 +44,12 @@
         <button id="copyLinkBtn" class="btn-secondary btn-small">Copy Link</button>
       </div>
 
-      <!-- Live Opponents Row -->
+      <!-- Live Opponents Row (Tap any card to inspect their stats) -->
+      <div class="tap-hint">Tap an opponent to view their poison &amp; commander damage</div>
       <div id="opponentsGrid" class="opponents-grid"></div>
 
       <!-- Your Hero Life Counter -->
-      <div class="hero-tracker">
+      <div id="heroTracker" class="hero-tracker">
         <div id="heroPlayerName" class="hero-label">You</div>
         <div id="heroLifeDisplay" class="hero-life-display">40</div>
         <div id="deltaBadge" class="delta-badge"></div>
@@ -57,6 +59,9 @@
           <div id="plusZone" class="tap-zone right">+</div>
         </div>
       </div>
+
+      <!-- Monarch Toggle Button -->
+      <button id="becomeMonarchBtn" class="btn-monarch">👑 Become the Monarch</button>
 
       <!-- Personal Counters: Poison & Commander Tax -->
       <div class="counters-row">
@@ -88,6 +93,38 @@
       </div>
 
       <div id="wakeStatus" class="wake-status">Screen Wake Lock: Checking...</div>
+    </div>
+  </div>
+
+  <!-- OPPONENT INSPECTOR MODAL -->
+  <div id="inspectModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="modalPlayerName">Player Stats</h2>
+        <button id="closeModalBtn" class="btn-secondary btn-small">✕</button>
+      </div>
+
+      <div class="modal-stats-row">
+        <div class="modal-stat-box">
+          <div class="counter-title">Life</div>
+          <div id="modalLifeVal" class="modal-big-num">40</div>
+        </div>
+        <div class="modal-stat-box">
+          <div class="counter-title">Poison</div>
+          <div id="modalPoisonVal" class="modal-big-num">0</div>
+        </div>
+        <div class="modal-stat-box">
+          <div class="counter-title">Tax</div>
+          <div id="modalTaxVal" class="modal-big-num">+0</div>
+        </div>
+      </div>
+
+      <div class="section-label" style="margin-top: 12px;">Commander Damage Taken</div>
+      <div id="modalCmdrList" class="cmdr-dmg-list"></div>
+
+      <button id="modalMakeMonarchBtn" class="btn-monarch" style="margin-top: 14px; margin-bottom: 0;">
+        👑 Give Monarch to Player
+      </button>
     </div>
   </div>
 
