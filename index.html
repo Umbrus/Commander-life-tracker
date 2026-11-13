@@ -3,63 +3,138 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#090b0e" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Commander Pod Tracker</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="images/icon.svg" />
+  <link rel="apple-touch-icon" href="images/icon.svg" />
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 
-  <div class="card">
-    <div id="statusBox" class="status">Connecting to Firebase...</div>
+  <div class="app-shell">
+    <div id="offlineBanner" class="offline-banner hidden">⚠️ Offline — waiting to reconnect...</div>
 
-    <!-- LOBBY SCREEN -->
-    <div id="lobbyView" class="hidden">
-      <h1>Commander Pod Tracker</h1>
-      <input id="playerNameInput" type="text" placeholder="Your Name (e.g. Nathan)" />
+    <!-- LOBBY / JOIN SCREEN -->
+    <div id="lobbyView" class="lobby-wrapper">
+      <div class="lobby-hero">
+        <div class="hero-emblem" aria-hidden="true">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 21 7 21 17 12 22 3 17 3 7 12 2"></polygon>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+        </div>
+        <div class="brand-mark">COMMANDER POD</div>
+        <h1>Tabletop Life Tracker</h1>
+        <p class="subtitle">Real-time synced life, commander damage &amp; turns across every phone at the table.</p>
 
-      <div id="standardCreateSection">
-        <button id="createPodBtn" class="btn-primary">Create New Pod</button>
-        <hr style="border-color:#2a2f3a; margin: 16px 0;">
+        <div id="statusBox" class="conn-pill">
+          <span class="conn-dot"></span>
+          <span id="statusText">Connecting to pod network...</span>
+        </div>
       </div>
 
-      <input id="roomCodeInput" type="text" maxlength="4" placeholder="4-Letter Code (e.g. SOL9)" style="text-transform:uppercase;" />
-      <button id="joinPodBtn" class="btn-secondary">Join Existing Pod</button>
+      <div id="lobbyForm" class="lobby-card hidden">
+        <div class="input-group">
+          <label for="playerNameInput" class="input-label">Your Display Name</label>
+          <input id="playerNameInput" type="text" maxlength="18" placeholder="e.g. Nathan" autocomplete="off" />
+        </div>
+
+        <div id="standardCreateSection">
+          <button id="createPodBtn" class="btn-primary btn-hero">
+            <span>＋ Create New Pod</span>
+            <small>Generate a 4-letter code &amp; QR invite</small>
+          </button>
+
+          <div class="divider"><span>OR JOIN AN ACTIVE POD</span></div>
+        </div>
+
+        <div class="input-group">
+          <label for="roomCodeInput" class="input-label">4-Letter Pod Code</label>
+          <div class="join-row">
+            <input id="roomCodeInput" class="code-input" type="text" maxlength="4" placeholder="SOL9" autocomplete="off" />
+            <button id="joinPodBtn" class="btn-secondary join-submit-btn">Join Pod</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="lobby-footer">
+        <button id="openHowItWorksBtn" type="button" class="link-btn">
+          <span>?</span> How does this work?
+        </button>
+      </div>
     </div>
 
     <!-- ACTIVE TABLE SCREEN -->
-    <div id="podView" class="hidden">
-      <div class="pod-header">
-        <div class="pod-badge">POD: <span id="displayRoomCode">----</span></div>
-        <div class="header-actions">
-          <button id="openFirstPlayerBtn" class="btn-primary btn-small hidden">1st Player</button>
-          <button id="newGameBtn" class="btn-warning btn-small hidden">New Game</button>
-          <button id="toggleQrBtn" class="btn-secondary btn-small">Hide QR</button>
-          <button id="leavePodBtn" class="btn-danger btn-small">Leave</button>
+    <div id="podView" class="pod-container hidden">
+      <header class="top-bar">
+        <div class="pod-pill">
+          <span class="pod-dot"></span>
+          POD <span id="displayRoomCode">----</span>
         </div>
-      </div>
+
+        <div class="menu-wrapper">
+          <button id="menuToggleBtn" class="hamburger-btn" aria-label="Pod Menu">☰</button>
+
+          <div id="podDropdownMenu" class="dropdown-menu hidden">
+            <div class="menu-section-title">Your Tile Color</div>
+            <div id="colorSwatchRow" class="swatch-row">
+              <button type="button" class="swatch-btn" data-theme="blue" title="Blue"></button>
+              <button type="button" class="swatch-btn" data-theme="red" title="Red"></button>
+              <button type="button" class="swatch-btn" data-theme="green" title="Green"></button>
+              <button type="button" class="swatch-btn" data-theme="gold" title="Gold"></button>
+              <button type="button" class="swatch-btn" data-theme="purple" title="Purple"></button>
+              <button type="button" class="swatch-btn" data-theme="slate" title="Obsidian"></button>
+            </div>
+
+            <div class="menu-divider"></div>
+            <button id="togglePartnerBtn" class="menu-item">🤝 Partner Commander: OFF</button>
+            <button id="openCountersBtn" class="menu-item">⚡ Extra Counters (Energy/Rad)</button>
+            <button id="openDiceRollerBtn" class="menu-item">🎲 Dice &amp; Coin Roller</button>
+            <button id="openHistoryBtn" class="menu-item">📜 Life History Log</button>
+            <button id="becomeMonarchBtn" class="menu-item">👑 Claim the Monarch</button>
+            <button id="toggleQrBtn" class="menu-item">📱 Hide QR Invite</button>
+            <button id="openFirstPlayerBtn" class="menu-item hidden">🧭 Turn Order &amp; 1st Player</button>
+            <button id="newGameBtn" class="menu-item warning hidden">↻ Start New Game</button>
+            <div class="menu-divider"></div>
+            <button id="leavePodBtn" class="menu-item danger">✕ Leave Pod</button>
+          </div>
+        </div>
+      </header>
 
       <!-- Collapsible QR Invite Drawer -->
       <div id="qrDrawer" class="qr-drawer">
         <div id="qrBox" class="qr-wrapper"></div>
-        <div class="invite-hint">Scan to join • Tap "Hide QR" once everyone is in</div>
-        <button id="copyLinkBtn" class="btn-secondary btn-small">Copy Link</button>
+        <div class="invite-hint">Scan with any phone camera to join</div>
+        <div style="display: flex; justify-content: center; gap: 8px;">
+          <button id="copyLinkBtn" class="btn-secondary btn-small">Copy Link</button>
+          <button id="inlineHideQrBtn" class="btn-secondary btn-small">Hide QR</button>
+        </div>
       </div>
 
-      <!-- Turn Tracker Banner -->
+      <!-- Turn Tracker Banner + Clockwise Seat Order Strip -->
       <div id="turnBanner" class="turn-banner hidden">
-        <div class="turn-info">
-          <span id="turnNumberLabel" class="turn-pill">TURN 1</span>
-          <span id="activePlayerLabel" class="active-turn-name">Nathan's Turn</span>
+        <div class="turn-top-row">
+          <div class="turn-info">
+            <span id="turnNumberLabel" class="turn-pill">TURN 1</span>
+            <span id="activePlayerLabel" class="active-turn-name">Nathan's Turn</span>
+          </div>
+          <button id="passTurnBtn" class="btn-primary btn-small hidden">Pass Turn →</button>
         </div>
-        <button id="passTurnBtn" class="btn-primary btn-small hidden">Pass Turn →</button>
+        <div id="turnOrderStrip" class="turn-order-strip"></div>
       </div>
 
       <!-- Live Opponents Row -->
-      <div class="tap-hint">Tap an opponent to view their poison &amp; commander damage</div>
-      <div id="opponentsGrid" class="opponents-grid"></div>
+      <div id="opponentsSection" class="opponents-section">
+        <div id="opponentsGrid" class="opponents-grid"></div>
+      </div>
 
       <!-- Your Hero Life Counter -->
-      <div id="heroTracker" class="hero-tracker">
+      <div id="heroTracker" class="hero-tracker theme-blue">
         <div id="heroPlayerName" class="hero-label">You</div>
         <div id="heroLifeDisplay" class="hero-life-display">40</div>
         <div id="deltaBadge" class="delta-badge"></div>
@@ -70,10 +145,7 @@
         </div>
       </div>
 
-      <!-- Monarch Toggle Button -->
-      <button id="becomeMonarchBtn" class="btn-monarch">👑 Become the Monarch</button>
-
-      <!-- Personal Counters: Poison & Commander Tax -->
+      <!-- Primary Personal Counters: Poison & Commander Tax -->
       <div class="counters-row">
         <div id="poisonBox" class="counter-pill">
           <div class="counter-title">Poison</div>
@@ -94,15 +166,136 @@
         </div>
       </div>
 
+      <!-- Pinned Optional Deck Counters (Energy, Experience, Storm, Rad) -->
+      <div id="extraCountersGrid" class="extra-counters-grid hidden"></div>
+
       <!-- Commander Damage Taken From Each Opponent -->
       <div class="cmdr-dmg-section">
-        <div class="section-label">Commander Damage Taken</div>
+        <div class="section-header-row">
+          <div class="section-label" style="margin:0;">Commander Damage Taken</div>
+          <button id="quickCountersBtn" type="button" class="chip-action-btn">+ Counters</button>
+        </div>
         <div id="cmdrDamageList" class="cmdr-dmg-list">
           <div class="empty-hint">Waiting for opponents to join...</div>
         </div>
       </div>
 
       <div id="wakeStatus" class="wake-status">Screen Wake Lock: Checking...</div>
+    </div>
+  </div>
+
+  <!-- EXTRA COUNTERS PICKER MODAL -->
+  <div id="extraCountersModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Optional Deck Counters</h2>
+        <button id="closeCountersModalBtn" class="btn-secondary btn-small">✕</button>
+      </div>
+      <p class="modal-sub">Pin counters used by your deck to your main screen:</p>
+
+      <div class="counter-toggle-list">
+        <button type="button" class="toggle-counter-row" data-counter="energy">
+          <span>⚡ Energy Counters</span>
+          <span id="badge-energy" class="toggle-state">OFF</span>
+        </button>
+        <button type="button" class="toggle-counter-row" data-counter="experience">
+          <span>🎓 Experience Counters</span>
+          <span id="badge-experience" class="toggle-state">OFF</span>
+        </button>
+        <button type="button" class="toggle-counter-row" data-counter="storm">
+          <span>🌪️ Storm Count</span>
+          <span id="badge-storm" class="toggle-state">OFF</span>
+        </button>
+        <button type="button" class="toggle-counter-row" data-counter="rad">
+          <span>☢️ Rad Counters</span>
+          <span id="badge-rad" class="toggle-state">OFF</span>
+        </button>
+      </div>
+
+      <button id="doneCountersBtn" class="btn-primary" style="margin-top: 14px; margin-bottom: 0;">Done</button>
+    </div>
+  </div>
+
+  <!-- LIFE HISTORY LOG MODAL -->
+  <div id="historyModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Pod Life History</h2>
+        <button id="closeHistoryBtn" class="btn-secondary btn-small">✕</button>
+      </div>
+      <div id="historyList" class="history-list">
+        <div class="empty-hint">No life changes recorded yet.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DICE & COIN ROLLER MODAL -->
+  <div id="diceModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Dice &amp; Coin Roller</h2>
+        <button id="closeDiceBtn" class="btn-secondary btn-small">✕</button>
+      </div>
+
+      <div class="dice-stage">
+        <div id="diceTypeLabel" class="dice-type-label">Tap a die or coin below</div>
+        <div id="diceBigResult" class="dice-big-result">—</div>
+      </div>
+
+      <div class="dice-grid">
+        <button type="button" class="die-btn" data-die="coin">🪙 Coin</button>
+        <button type="button" class="die-btn" data-die="4">d4</button>
+        <button type="button" class="die-btn" data-die="6">d6</button>
+        <button type="button" class="die-btn" data-die="8">d8</button>
+        <button type="button" class="die-btn" data-die="10">d10</button>
+        <button type="button" class="die-btn" data-die="12">d12</button>
+        <button type="button" class="die-btn" data-die="20">d20</button>
+        <button type="button" class="die-btn" data-die="planar">⬡ Planar</button>
+      </div>
+
+      <div id="recentRollsBar" class="recent-rolls-bar"></div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS MODAL -->
+  <div id="howItWorksModal" class="modal-backdrop hidden">
+    <div class="modal-card guide-modal">
+      <div class="modal-header">
+        <h2>How Commander Pod Works</h2>
+        <button id="closeHowItWorksBtn" class="btn-secondary btn-small">✕</button>
+      </div>
+
+      <div class="guide-steps">
+        <div class="guide-step">
+          <div class="step-badge">1</div>
+          <div class="step-body">
+            <h3>Start or Scan Into a Pod</h3>
+            <p>One player taps <strong>Create New Pod</strong> to generate a 4-letter room code and scannable QR code. Everyone else scans the QR with their phone camera—no accounts or downloads required.</p>
+          </div>
+        </div>
+
+        <div class="guide-step">
+          <div class="step-badge">2</div>
+          <div class="step-body">
+            <h3>Track on Your Own Phone</h3>
+            <p>Tap the left or right half of your life card for <strong>−1 / +1</strong>, or <strong>press &amp; hold</strong> for <strong>−5 / +5</strong>. Adding Commander Damage automatically deducts from your life total and syncs to every screen in real time.</p>
+          </div>
+        </div>
+
+        <div class="guide-step">
+          <div class="step-badge">3</div>
+          <div class="step-body">
+            <h3>Partner Commanders &amp; Table Tools</h3>
+            <p>Enable <strong>Partner Commander</strong> in the <strong>☰</strong> menu to split your commander damage into two separate tracks for opponents, or pin Energy, Experience, Storm, and Rad counters.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="guide-tip">
+        <strong>Pro Tip:</strong> Add this page to your phone's Home Screen (<em>Share → Add to Home Screen</em> or Chrome <em>Install App</em>) for full-screen play without browser bars.
+      </div>
+
+      <button id="gotItBtn" class="btn-primary" style="margin-top: 14px; margin-bottom: 0;">Got It</button>
     </div>
   </div>
 
@@ -129,7 +322,9 @@
         </div>
       </div>
 
-      <div class="section-label" style="margin-top: 12px;">Commander Damage Taken</div>
+      <div id="modalExtraCounters" class="modal-extra-strip hidden"></div>
+
+      <div class="section-label" style="margin-top: 14px;">Commander Damage Taken</div>
       <div id="modalCmdrList" class="cmdr-dmg-list"></div>
 
       <button id="modalMakeMonarchBtn" class="btn-monarch" style="margin-top: 14px; margin-bottom: 0;">
@@ -138,18 +333,21 @@
     </div>
   </div>
 
-  <!-- HOST STARTING PLAYER PICKER / DICE MODAL -->
+  <!-- HOST TURN ORDER & FIRST PLAYER MODAL -->
   <div id="firstPlayerModal" class="modal-backdrop hidden">
     <div class="modal-card">
       <div class="modal-header">
-        <h2>Choose Who Goes First</h2>
+        <h2>Turn Order &amp; 1st Player</h2>
         <button id="closeFirstPlayerBtn" class="btn-secondary btn-small">✕</button>
       </div>
 
       <button id="rollDiceBtn" class="btn-primary">🎲 Roll Random First Player</button>
       <div id="diceResultBox" class="dice-result hidden"></div>
 
-      <div class="section-label" style="margin-top: 14px;">Or Tap Player (Table Dice Roll)</div>
+      <div class="section-label" style="margin-top: 14px;">
+        1. Arrange Clockwise Seating (↑ / ↓)<br/>
+        2. Tap "Starts" for Who Goes First
+      </div>
       <div id="manualFirstPlayerList" class="manual-pick-list"></div>
     </div>
   </div>

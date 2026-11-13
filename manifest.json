@@ -1,0 +1,19 @@
+{
+  "name": "Commander Pod Tracker",
+  "short_name": "Pod Tracker",
+  "description": "Real-time synced MTG Commander life, commander damage, and turn tracker.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#090b0e",
+  "theme_color": "#090b0e",
+  "icons": [
+    {
+      "src": "./images/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
