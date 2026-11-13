@@ -161,19 +161,108 @@ document.getElementById("leavePodBtn").onclick = () => {
   window.location.href = window.location.origin + window.location.pathname;
 };
 
+// --- TURN ORDER HELPERS ---
+function getOrderedPlayerUids(playersObj) {
+  return Object.entries(playersObj || {})
+    .sort((a, b) => (a[1].joinedAt || 0) - (b[1].joinedAt || 0))
+    .map(([uid]) => uid);
+}
+
+async function setFirstPlayer(targetUid) {
+  if (!currentPodCode || !latestPodData || latestPodData.hostUid !== currentUser.uid) return;
+  await update(ref(db, `pods/${currentPodCode}`), {
+    firstPlayerUid: targetUid,
+    activeTurnUid: targetUid,
+    turnNumber: 1
+  });
+}
+
+document.getElementById("passTurnBtn").onclick = async () => {
+  if (!currentPodCode || !latestPodData) return;
+  const players = latestPodData.players || {};
+  const orderedUids = getOrderedPlayerUids(players);
+  if (orderedUids.length === 0) return;
+
+  const currentIdx = orderedUids.indexOf(latestPodData.activeTurnUid);
+  const nextIdx = (currentIdx + 1) % orderedUids.length;
+  const nextUid = orderedUids[nextIdx];
+
+  // Increment turn counter whenever turn loops back to the starting player
+  const isNewRound = nextUid === latestPodData.firstPlayerUid;
+  const nextTurnNumber = (latestPodData.turnNumber || 1) + (isNewRound ? 1 : 0);
+
+  await update(ref(db, `pods/${currentPodCode}`), {
+    activeTurnUid: nextUid,
+    turnNumber: nextTurnNumber
+  });
+};
+
+// --- HOST-ONLY: FIRST PLAYER PICKER & DICE ROLL MODAL ---
+function openFirstPlayerModal() {
+  if (!latestPodData || latestPodData.hostUid !== currentUser.uid) return;
+  const players = latestPodData.players || {};
+  const orderedUids = getOrderedPlayerUids(players);
+
+  const list = document.getElementById("manualFirstPlayerList");
+  const resultBox = document.getElementById("diceResultBox");
+  resultBox.classList.add("hidden");
+  list.innerHTML = "";
+
+  orderedUids.forEach((uid) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn-secondary";
+    btn.style.marginBottom = "0";
+    btn.textContent = `${players[uid].name}${uid === currentUser.uid ? " (You)" : ""}`;
+    btn.onclick = async () => {
+      await setFirstPlayer(uid);
+      document.getElementById("firstPlayerModal").classList.add("hidden");
+    };
+    list.appendChild(btn);
+  });
+
+  document.getElementById("rollDiceBtn").onclick = async () => {
+    if (orderedUids.length === 0) return;
+    const winnerUid = orderedUids[Math.floor(Math.random() * orderedUids.length)];
+    const winnerName = players[winnerUid].name;
+    resultBox.textContent = `🎲 ${winnerName} goes first!`;
+    resultBox.classList.remove("hidden");
+    await setFirstPlayer(winnerUid);
+    setTimeout(() => {
+      document.getElementById("firstPlayerModal").classList.add("hidden");
+    }, 1100);
+  };
+
+  document.getElementById("firstPlayerModal").classList.remove("hidden");
+}
+
+document.getElementById("openFirstPlayerBtn").onclick = openFirstPlayerModal;
+document.getElementById("closeFirstPlayerBtn").onclick = () => {
+  document.getElementById("firstPlayerModal").classList.add("hidden");
+};
+document.getElementById("firstPlayerModal").onclick = (e) => {
+  if (e.target.id === "firstPlayerModal") {
+    document.getElementById("firstPlayerModal").classList.add("hidden");
+  }
+};
+
 // --- HOST-ONLY: NEW GAME RESET ---
 document.getElementById("newGameBtn").onclick = async () => {
   if (!currentPodCode || !latestPodData || latestPodData.hostUid !== currentUser.uid) return;
-  if (!confirm("Start a New Game? This resets everyone to 40 life and clears all counters.")) return;
+  if (!confirm("Start a New Game? This resets everyone to 40 life and clears all counters & turns.")) return;
 
   const players = latestPodData.players || {};
   const resetUpdates = {
-    monarchUid: null
+    monarchUid: null,
+    firstPlayerUid: null,
+    activeTurnUid: null,
+    turnNumber: null
   };
 
   Object.entries(players).forEach(([uid, p]) => {
     resetUpdates[`players/${uid}`] = {
       name: p.name,
+      joinedAt: p.joinedAt || Date.now(),
       life: 40,
       poison: 0,
       tax: 0,
@@ -377,6 +466,7 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
   if (!existingPlayerSnap.exists()) {
     await set(playerRef, {
       name: name,
+      joinedAt: Date.now(),
       life: 40,
       poison: 0,
       tax: 0
@@ -411,9 +501,30 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
     latestPodData = podData;
     const players = podData.players || {};
     const monarchUid = podData.monarchUid || null;
+    const activeTurnUid = podData.activeTurnUid || null;
+    const turnNumber = podData.turnNumber || 1;
     const isHost = podData.hostUid === currentUser.uid;
 
+    // Show Host-only controls
+    document.getElementById("openFirstPlayerBtn").classList.toggle("hidden", !isHost);
     document.getElementById("newGameBtn").classList.toggle("hidden", !isHost);
+
+    // Update Turn Tracker Banner
+    const turnBanner = document.getElementById("turnBanner");
+    if (activeTurnUid && players[activeTurnUid]) {
+      turnBanner.classList.remove("hidden");
+      const isMyTurn = activeTurnUid === currentUser.uid;
+      turnBanner.classList.toggle("my-turn", isMyTurn);
+      document.getElementById("turnNumberLabel").textContent = `TURN ${turnNumber}`;
+      document.getElementById("activePlayerLabel").textContent = isMyTurn
+        ? "Your Turn!"
+        : `${players[activeTurnUid].name}'s Turn`;
+
+      // Allow the active player or the host to pass the turn
+      document.getElementById("passTurnBtn").classList.toggle("hidden", !(isMyTurn || isHost));
+    } else {
+      turnBanner.classList.add("hidden");
+    }
 
     const opponentsGrid = document.getElementById("opponentsGrid");
     const cmdrDamageList = document.getElementById("cmdrDamageList");
@@ -448,18 +559,17 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
       opponentCount++;
 
       const oppIsMonarch = monarchUid === uid;
+      const oppIsActiveTurn = activeTurnUid === uid;
 
-      // Subtle compact badges for Poison and highest Commander Damage taken
       const badges = [];
       if (p.poison > 0) badges.push(`☠${p.poison}`);
       const cmdrValues = Object.values(p.commanderDamage || {});
       const maxCmdr = cmdrValues.length > 0 ? Math.max(...cmdrValues) : 0;
       if (maxCmdr > 0) badges.push(`⚔${maxCmdr}`);
 
-      // Use a native <button> for reliable mobile tap handling
       const card = document.createElement("button");
       card.type = "button";
-      card.className = `opponent-card ${oppIsMonarch ? "is-monarch" : ""}`;
+      card.className = `opponent-card ${oppIsMonarch ? "is-monarch" : ""} ${oppIsActiveTurn ? "is-active-turn" : ""}`;
       card.innerHTML = `
         <div class="opponent-name">${oppIsMonarch ? "👑 " : ""}${p.name}</div>
         <div class="opponent-life ${p.life <= 0 ? "dead" : ""}">${p.life}</div>

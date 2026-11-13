@@ -31,6 +31,7 @@
       <div class="pod-header">
         <div class="pod-badge">POD: <span id="displayRoomCode">----</span></div>
         <div class="header-actions">
+          <button id="openFirstPlayerBtn" class="btn-primary btn-small hidden">1st Player</button>
           <button id="newGameBtn" class="btn-warning btn-small hidden">New Game</button>
           <button id="toggleQrBtn" class="btn-secondary btn-small">Hide QR</button>
           <button id="leavePodBtn" class="btn-danger btn-small">Leave</button>
@@ -44,7 +45,16 @@
         <button id="copyLinkBtn" class="btn-secondary btn-small">Copy Link</button>
       </div>
 
-      <!-- Live Opponents Row (Tap any card to inspect their stats) -->
+      <!-- Turn Tracker Banner -->
+      <div id="turnBanner" class="turn-banner hidden">
+        <div class="turn-info">
+          <span id="turnNumberLabel" class="turn-pill">TURN 1</span>
+          <span id="activePlayerLabel" class="active-turn-name">Nathan's Turn</span>
+        </div>
+        <button id="passTurnBtn" class="btn-primary btn-small hidden">Pass Turn →</button>
+      </div>
+
+      <!-- Live Opponents Row -->
       <div class="tap-hint">Tap an opponent to view their poison &amp; commander damage</div>
       <div id="opponentsGrid" class="opponents-grid"></div>
 
@@ -125,6 +135,22 @@
       <button id="modalMakeMonarchBtn" class="btn-monarch" style="margin-top: 14px; margin-bottom: 0;">
         👑 Give Monarch to Player
       </button>
+    </div>
+  </div>
+
+  <!-- HOST STARTING PLAYER PICKER / DICE MODAL -->
+  <div id="firstPlayerModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Choose Who Goes First</h2>
+        <button id="closeFirstPlayerBtn" class="btn-secondary btn-small">✕</button>
+      </div>
+
+      <button id="rollDiceBtn" class="btn-primary">🎲 Roll Random First Player</button>
+      <div id="diceResultBox" class="dice-result hidden"></div>
+
+      <div class="section-label" style="margin-top: 14px;">Or Tap Player (Table Dice Roll)</div>
+      <div id="manualFirstPlayerList" class="manual-pick-list"></div>
     </div>
   </div>
 

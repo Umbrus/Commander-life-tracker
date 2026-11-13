@@ -74,7 +74,7 @@ button:active { transform: scale(0.97); }
 .btn-secondary { background: #2c3340; color: #e2e8f0; }
 .btn-warning { background: #92400e; color: #fef3c7; }
 .btn-danger { background: #7f1d1d; color: #fecaca; }
-.btn-small { padding: 8px 10px; font-size: 0.78rem; width: auto; margin: 0; }
+.btn-small { padding: 7px 9px; font-size: 0.74rem; width: auto; margin: 0; }
 .hidden { display: none !important; }
 
 /* MONARCH BUTTON & STATES */
@@ -97,17 +97,63 @@ button:active { transform: scale(0.97); }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 6px;
   margin-bottom: 12px;
 }
 .pod-badge {
-  font-size: 0.95rem;
-  letter-spacing: 1.2px;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
   color: #38bdf8;
   font-weight: 800;
+  white-space: nowrap;
 }
 .header-actions {
   display: flex;
-  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+/* TURN TRACKER BANNER */
+.turn-banner {
+  background: #142238;
+  border: 1px solid #2563eb;
+  border-radius: 12px;
+  padding: 9px 12px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.turn-banner.my-turn {
+  background: linear-gradient(135deg, #172e52, #1e3a8a);
+  border-color: #60a5fa;
+  box-shadow: 0 0 14px rgba(59, 130, 246, 0.25);
+}
+.turn-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+}
+.turn-pill {
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 3px 7px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.active-turn-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #f8fafc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* COLLAPSIBLE QR DRAWER */
@@ -139,7 +185,7 @@ button:active { transform: scale(0.97); }
   margin-bottom: 6px;
 }
 
-/* OTHER PLAYERS GRID (Rendered as native buttons for instant mobile touch) */
+/* OTHER PLAYERS GRID */
 .opponents-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
@@ -161,6 +207,9 @@ button:active { transform: scale(0.97); }
 .opponent-card.is-monarch {
   border-color: #eab308;
   background: #1c1912;
+}
+.opponent-card.is-active-turn {
+  box-shadow: inset 0 0 0 2px #38bdf8;
 }
 .opponent-name {
   font-size: 0.8rem;
@@ -353,7 +402,7 @@ button:active { transform: scale(0.97); }
   text-align: center;
 }
 
-/* OPPONENT INSPECTOR MODAL */
+/* MODALS */
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -381,7 +430,7 @@ button:active { transform: scale(0.97); }
 }
 .modal-header h2 {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   color: #f8fafc;
 }
 .modal-stats-row {
@@ -399,4 +448,19 @@ button:active { transform: scale(0.97); }
 .modal-big-num {
   font-size: 1.4rem;
   font-weight: 800;
+}
+.dice-result {
+  background: #123323;
+  border: 1px solid #22c55e;
+  color: #4ade80;
+  padding: 10px;
+  border-radius: 10px;
+  font-weight: 700;
+  text-align: center;
+  margin-top: 6px;
+}
+.manual-pick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
