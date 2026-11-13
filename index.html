@@ -32,6 +32,7 @@
         <div class="pod-badge">POD: <span id="displayRoomCode">----</span></div>
         <div class="header-actions">
           <button id="toggleQrBtn" class="btn-secondary btn-small">Hide QR</button>
+          <button id="leavePodBtn" class="btn-danger btn-small">Leave</button>
         </div>
       </div>
 
@@ -54,6 +55,35 @@
         <div class="tap-zones">
           <div id="minusZone" class="tap-zone left">−</div>
           <div id="plusZone" class="tap-zone right">+</div>
+        </div>
+      </div>
+
+      <!-- Personal Counters: Poison & Commander Tax -->
+      <div class="counters-row">
+        <div id="poisonBox" class="counter-pill">
+          <div class="counter-title">Poison</div>
+          <div class="counter-controls">
+            <button id="poisonMinusBtn" class="mini-btn">−</button>
+            <span id="poisonDisplay" class="counter-val">0</span>
+            <button id="poisonPlusBtn" class="mini-btn">+</button>
+          </div>
+        </div>
+
+        <div class="counter-pill">
+          <div class="counter-title">Cmdr Tax</div>
+          <div class="counter-controls">
+            <button id="taxMinusBtn" class="mini-btn">−</button>
+            <span id="taxDisplay" class="counter-val">+0</span>
+            <button id="taxPlusBtn" class="mini-btn">+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Commander Damage Taken From Each Opponent -->
+      <div class="cmdr-dmg-section">
+        <div class="section-label">Commander Damage Taken</div>
+        <div id="cmdrDamageList" class="cmdr-dmg-list">
+          <div class="empty-hint">Waiting for opponents to join...</div>
         </div>
       </div>
 

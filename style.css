@@ -1,7 +1,7 @@
 * {
   box-sizing: border-box;
   font-family: system-ui, -apple-system, sans-serif;
-  user-select: none; /* Prevents accidental text highlighting when tapping fast */
+  user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -71,6 +71,7 @@ button:active { transform: scale(0.97); }
 
 .btn-primary { background: #3b82f6; color: #fff; }
 .btn-secondary { background: #2c3340; color: #e2e8f0; }
+.btn-danger { background: #7f1d1d; color: #fecaca; }
 .btn-small { padding: 8px 12px; font-size: 0.8rem; width: auto; margin: 0; }
 .hidden { display: none !important; }
 
@@ -117,9 +118,9 @@ button:active { transform: scale(0.97); }
 /* OTHER PLAYERS GRID */
 .opponents-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 .opponent-card {
   background: #12151a;
@@ -134,7 +135,7 @@ button:active { transform: scale(0.97); }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 .opponent-life {
   font-size: 1.5rem;
@@ -142,6 +143,12 @@ button:active { transform: scale(0.97); }
   color: #f8fafc;
 }
 .opponent-life.dead { color: #ef4444; text-decoration: line-through; }
+.opponent-badges {
+  font-size: 0.72rem;
+  color: #4ade80;
+  margin-top: 2px;
+  min-height: 14px;
+}
 
 /* HERO (YOUR) LIFE TRACKER */
 .hero-tracker {
@@ -150,7 +157,7 @@ button:active { transform: scale(0.97); }
   border: 2px solid #3b82f6;
   border-radius: 20px;
   overflow: hidden;
-  height: 230px;
+  height: 200px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -159,7 +166,7 @@ button:active { transform: scale(0.97); }
 .hero-label {
   position: relative;
   z-index: 2;
-  padding-top: 12px;
+  padding-top: 10px;
   font-size: 0.9rem;
   font-weight: 700;
   color: #93c5fd;
@@ -169,7 +176,7 @@ button:active { transform: scale(0.97); }
 .hero-life-display {
   position: relative;
   z-index: 2;
-  font-size: 5rem;
+  font-size: 4.6rem;
   font-weight: 900;
   text-align: center;
   line-height: 1;
@@ -178,11 +185,11 @@ button:active { transform: scale(0.97); }
 .delta-badge {
   position: relative;
   z-index: 2;
-  height: 24px;
-  font-size: 1rem;
+  height: 22px;
+  font-size: 0.95rem;
   font-weight: 800;
   text-align: center;
-  padding-bottom: 10px;
+  padding-bottom: 8px;
   pointer-events: none;
 }
 .delta-plus { color: #4ade80; }
@@ -208,6 +215,96 @@ button:active { transform: scale(0.97); }
 .tap-zone.left { justify-content: flex-start; border-right: 1px solid rgba(255,255,255,0.06); }
 .tap-zone.right { justify-content: flex-end; }
 .tap-zone:active { background: rgba(255, 255, 255, 0.08); color: rgba(255, 255, 255, 0.7); }
+
+/* POISON & COMMANDER TAX ROW */
+.counters-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.counter-pill {
+  background: #12151a;
+  border: 1px solid #262b36;
+  border-radius: 12px;
+  padding: 10px;
+  text-align: center;
+}
+.counter-pill.lethal-poison {
+  border-color: #22c55e;
+  background: #0f291a;
+}
+.counter-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+.counter-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.counter-val {
+  font-size: 1.3rem;
+  font-weight: 800;
+  min-width: 34px;
+}
+.mini-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  margin: 0;
+  border-radius: 8px;
+  background: #262c38;
+  color: #f1f5f9;
+  font-size: 1.2rem;
+}
+
+/* COMMANDER DAMAGE SECTION */
+.cmdr-dmg-section {
+  background: #12151a;
+  border: 1px solid #262b36;
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.section-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #94a3b8;
+  margin-bottom: 8px;
+  text-align: center;
+}
+.empty-hint {
+  font-size: 0.8rem;
+  color: #64748b;
+  text-align: center;
+  padding: 6px 0;
+}
+.cmdr-dmg-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 4px;
+  border-bottom: 1px solid #1e232d;
+}
+.cmdr-dmg-row:last-child { border-bottom: none; }
+.cmdr-source-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+.cmdr-dmg-val {
+  font-size: 1.25rem;
+  font-weight: 800;
+  min-width: 32px;
+  text-align: center;
+}
+.cmdr-dmg-val.lethal { color: #ef4444; }
 
 .wake-status {
   font-size: 0.75rem;
