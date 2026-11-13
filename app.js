@@ -404,7 +404,6 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
     document.getElementById("toggleQrBtn").textContent = "Show QR";
   }
 
-  // Listen to the entire pod node so we get players, hostUid, and monarchUid together
   onValue(podRef, (snapshot) => {
     const podData = snapshot.val();
     if (!podData) return;
@@ -414,7 +413,6 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
     const monarchUid = podData.monarchUid || null;
     const isHost = podData.hostUid === currentUser.uid;
 
-    // Show New Game button only to the Pod Owner
     document.getElementById("newGameBtn").classList.toggle("hidden", !isHost);
 
     const opponentsGrid = document.getElementById("opponentsGrid");
@@ -450,13 +448,24 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
       opponentCount++;
 
       const oppIsMonarch = monarchUid === uid;
-      const card = document.createElement("div");
+
+      // Subtle compact badges for Poison and highest Commander Damage taken
+      const badges = [];
+      if (p.poison > 0) badges.push(`☠${p.poison}`);
+      const cmdrValues = Object.values(p.commanderDamage || {});
+      const maxCmdr = cmdrValues.length > 0 ? Math.max(...cmdrValues) : 0;
+      if (maxCmdr > 0) badges.push(`⚔${maxCmdr}`);
+
+      // Use a native <button> for reliable mobile tap handling
+      const card = document.createElement("button");
+      card.type = "button";
       card.className = `opponent-card ${oppIsMonarch ? "is-monarch" : ""}`;
       card.innerHTML = `
         <div class="opponent-name">${oppIsMonarch ? "👑 " : ""}${p.name}</div>
         <div class="opponent-life ${p.life <= 0 ? "dead" : ""}">${p.life}</div>
+        <div class="opponent-badges">${badges.join(" • ")}</div>
       `;
-      card.onclick = () => openOpponentModal(uid);
+      card.addEventListener("click", () => openOpponentModal(uid));
       opponentsGrid.appendChild(card);
 
       const dmgTaken = myCommanderDamage[uid] || 0;
@@ -483,7 +492,6 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
       });
     }
 
-    // Keep the modal live if it's currently open
     if (inspectedOpponentUid) {
       renderOpponentModal();
     }

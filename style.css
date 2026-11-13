@@ -3,6 +3,7 @@
   font-family: system-ui, -apple-system, sans-serif;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 body {
@@ -138,7 +139,7 @@ button:active { transform: scale(0.97); }
   margin-bottom: 6px;
 }
 
-/* OTHER PLAYERS GRID */
+/* OTHER PLAYERS GRID (Rendered as native buttons for instant mobile touch) */
 .opponents-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
@@ -150,11 +151,13 @@ button:active { transform: scale(0.97); }
   border: 1px solid #262b36;
   border-radius: 12px;
   padding: 10px 8px;
+  margin: 0;
   text-align: center;
   cursor: pointer;
-  transition: border-color 0.15s ease, transform 0.06s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
-.opponent-card:active { transform: scale(0.96); }
 .opponent-card.is-monarch {
   border-color: #eab308;
   background: #1c1912;
@@ -166,14 +169,22 @@ button:active { transform: scale(0.97); }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
   margin-bottom: 2px;
 }
 .opponent-life {
   font-size: 1.55rem;
   font-weight: 800;
   color: #f8fafc;
+  line-height: 1.1;
 }
 .opponent-life.dead { color: #ef4444; text-decoration: line-through; }
+.opponent-badges {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  margin-top: 3px;
+  min-height: 14px;
+}
 
 /* HERO (YOUR) LIFE TRACKER */
 .hero-tracker {
@@ -346,7 +357,7 @@ button:active { transform: scale(0.97); }
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, 0.78);
   display: flex;
   align-items: center;
   justify-content: center;
