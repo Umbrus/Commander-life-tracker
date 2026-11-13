@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Commander Pod Sync Test</title>
+  <style>
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body {
+      margin: 0; background: #121417; color: #f1f5f9;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 20px; text-align: center;
+    }
+    .card {
+      background: #1e2229; border: 1px solid #2e3440; border-radius: 16px;
+      padding: 24px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    }
+    h1 { margin: 0 0 8px; font-size: 1.4rem; }
+    .status { font-size: 0.85rem; padding: 8px; border-radius: 8px; margin-bottom: 20px; background: #262b33; color: #94a3b8; }
+    .status.ok { background: #143626; color: #4ade80; }
+    .status.err { background: #3b1818; color: #f87171; word-break: break-word; }
+    input {
+      width: 100%; padding: 14px; margin-bottom: 12px; border-radius: 10px;
+      border: 1px solid #3b4252; background: #121417; color: #fff;
+      font-size: 1rem; text-align: center; text-transform: uppercase;
+    }
+    button {
+      width: 100%; padding: 14px; border: none; border-radius: 10px;
+      font-size: 1rem; font-weight: 700; cursor: pointer; margin-bottom: 10px;
+    }
+    .btn-primary { background: #3b82f6; color: white; }
+    .btn-secondary { background: #334155; color: white; }
+    .hidden { display: none; }
+    .pod-badge { font-size: 1.1rem; letter-spacing: 2px; color: #38bdf8; font-weight: 800; margin-bottom: 16px; }
+    .player-row {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #121417; padding: 14px 16px; border-radius: 12px; margin-bottom: 10px;
+    }
+    .player-name { font-weight: 600; text-align: left; }
+    .life-controls { display: flex; align-items: center; gap: 12px; }
+    .life-btn {
+      width: 44px; height: 44px; margin: 0; border-radius: 10px;
+      font-size: 1.4rem; background: #2e3440; color: #fff;
+    }
+    .life-total { font-size: 1.8rem; font-weight: 800; min-width: 48px; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>Commander Sync Test</h1>
+    <div id="statusBox" class="status">Connecting to Firebase...</div>
+
+    <!-- LOBBY SCREEN -->
+    <div id="lobbyView" class="hidden">
+      <input id="playerNameInput" type="text" placeholder="Your Name (e.g. Nathan)" style="text-transform:none;" />
+      <button id="createPodBtn" class="btn-primary">Create New Pod</button>
+      <hr style="border-color:#2e3440; margin: 16px 0;">
+      <input id="roomCodeInput" type="text" maxlength="4" placeholder="4-Letter Code (e.g. SOL9)" />
+      <button id="joinPodBtn" class="btn-secondary">Join Existing Pod</button>
+    </div>
+
+    <!-- POD SCREEN -->
+    <div id="podView" class="hidden">
+      <div class="pod-badge">POD CODE: <span id="displayRoomCode">----</span></div>
+      <div id="playersList"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import { getDatabase, ref, set, get, update, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+
+    // =========================================================
+    // PASTE YOUR FIREBASE CONFIG VALUES BELOW
+    // =========================================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyCh_fJv3mMlQQ2teHyryAxtd0x_mCmMzTU",
+      authDomain: "commander-life-tracker-6938f.firebaseapp.com",
+      databaseURL: "https://commander-life-tracker-6938f-default-rtdb.firebaseio.com",
+      projectId: "commander-life-tracker-6938f",
+      storageBucket: "commander-life-tracker-6938f.firebasestorage.app",
+      messagingSenderId: "989326008841",
+      appId: "1:989326008841:web:13b9a36110891cebcf0ed8"
+    };
+    // =========================================================
+
+    const statusBox = document.getElementById("statusBox");
+    const lobbyView = document.getElementById("lobbyView");
+    const podView = document.getElementById("podView");
+    let currentUser = null;
+
+    try {
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getDatabase(app);
+
+      signInAnonymously(auth)
+        .then((cred) => {
+          currentUser = cred.user;
+          statusBox.textContent = "Connected! Ready to create or join a pod.";
+          statusBox.className = "status ok";
+          lobbyView.classList.remove("hidden");
+        })
+        .catch((err) => {
+          statusBox.textContent = "Auth Error: " + err.message;
+          statusBox.className = "status err";
+        });
+
+      function generateCode() {
+        const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        let code = "";
+        for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+        return code;
+      }
+
+      async function enterPod(code, isNew) {
+        const name = document.getElementById("playerNameInput").value.trim() || "Player";
+        const podRef = ref(db, `pods/${code}`);
+
+        if (!isNew) {
+          const snap = await get(podRef);
+          if (!snap.exists()) {
+            alert("Pod not found! Check the 4-letter code.");
+            return;
+          }
+        } else {
+          await set(podRef, { createdAt: Date.now() });
+        }
+
+        const playerRef = ref(db, `pods/${code}/players/${currentUser.uid}`);
+        await set(playerRef, { name: name, life: 40 });
+
+        lobbyView.classList.add("hidden");
+        podView.classList.remove("hidden");
+        document.getElementById("displayRoomCode").textContent = code;
+
+        // Listen for real-time updates across all devices
+        onValue(ref(db, `pods/${code}/players`), (snapshot) => {
+          const players = snapshot.val() || {};
+          const list = document.getElementById("playersList");
+          list.innerHTML = "";
+
+          Object.entries(players).forEach(([uid, p]) => {
+            const row = document.createElement("div");
+            row.className = "player-row";
+            row.innerHTML = `
+              <div class="player-name">${p.name}</div>
+              <div class="life-controls">
+                <button class="life-btn" data-uid="${uid}" data-delta="-1">-</button>
+                <div class="life-total">${p.life}</div>
+                <button class="life-btn" data-uid="${uid}" data-delta="1">+</button>
+              </div>
+            `;
+            list.appendChild(row);
+          });
+
+          list.querySelectorAll(".life-btn").forEach((btn) => {
+            btn.onclick = () => {
+              const targetUid = btn.dataset.uid;
+              const delta = parseInt(btn.dataset.delta, 10);
+              const currentLife = players[targetUid].life;
+              update(ref(db, `pods/${code}/players/${targetUid}`), {
+                life: currentLife + delta
+              });
+            };
+          });
+        });
+      }
+
+      document.getElementById("createPodBtn").onclick = () => enterPod(generateCode(), true);
+      document.getElementById("joinPodBtn").onclick = () => {
+        const code = document.getElementById("roomCodeInput").value.trim().toUpperCase();
+        if (code.length === 4) enterPod(code, false);
+      };
+
+    } catch (e) {
+      statusBox.textContent = "Config Error: " + e.message;
+      statusBox.className = "status err";
+    }
+  </script>
+</body>
+</html>
