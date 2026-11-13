@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-import { getDatabase, ref, set, get, push, update, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+import { getDatabase, ref, set, get, push, update, remove, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCh_fJv3mMlQQ2teHyryAxtd0x_mCmMzTU",
@@ -37,12 +37,16 @@ const howItWorksModal = document.getElementById("howItWorksModal");
 const historyModal = document.getElementById("historyModal");
 const diceModal = document.getElementById("diceModal");
 const extraCountersModal = document.getElementById("extraCountersModal");
+const newGameModal = document.getElementById("newGameModal");
 const offlineBanner = document.getElementById("offlineBanner");
 
 let currentUser = null;
 let currentPodCode = null;
 let latestPodData = null;
 let inspectedOpponentUid = null;
+
+let selectedLobbyStartingLife = 40;
+let selectedNewGameLife = 40;
 
 let myCurrentLife = 40;
 let myPoison = 0;
@@ -67,6 +71,25 @@ const savedPlayerName = localStorage.getItem(SAVED_NAME_KEY);
 if (savedPlayerName) {
   playerNameInput.value = savedPlayerName;
 }
+
+// --- STARTING LIFE PRESET SELECTORS (Lobby & New Game Modal) ---
+document.querySelectorAll("#lobbyLifeSelector .preset-btn").forEach((btn) => {
+  btn.onclick = () => {
+    selectedLobbyStartingLife = parseInt(btn.dataset.life, 10);
+    document.querySelectorAll("#lobbyLifeSelector .preset-btn").forEach((b) => {
+      b.classList.toggle("selected", b === btn);
+    });
+  };
+});
+
+document.querySelectorAll("#newGameLifeSelector .preset-btn").forEach((btn) => {
+  btn.onclick = () => {
+    selectedNewGameLife = parseInt(btn.dataset.life, 10);
+    document.querySelectorAll("#newGameLifeSelector .preset-btn").forEach((b) => {
+      b.classList.toggle("selected", b === btn);
+    });
+  };
+});
 
 // --- HOW IT WORKS MODAL ---
 document.getElementById("openHowItWorksBtn").onclick = () => {
@@ -438,7 +461,20 @@ function toggleQrDrawer() {
 document.getElementById("toggleQrBtn").onclick = toggleQrDrawer;
 document.getElementById("inlineHideQrBtn").onclick = toggleQrDrawer;
 
-document.getElementById("leavePodBtn").onclick = () => {
+// --- LEAVE POD (Auto-transfers host ownership if owner leaves) ---
+document.getElementById("leavePodBtn").onclick = async () => {
+  if (currentPodCode && currentUser && latestPodData) {
+    const players = latestPodData.players || {};
+    const remainingUids = getOrderedPlayerUids(latestPodData).filter((uid) => uid !== currentUser.uid);
+
+    if (latestPodData.hostUid === currentUser.uid && remainingUids.length > 0) {
+      await update(ref(db, `pods/${currentPodCode}`), {
+        hostUid: remainingUids[0]
+      });
+    }
+    await remove(ref(db, `pods/${currentPodCode}/players/${currentUser.uid}`));
+  }
+
   clearSession();
   window.location.href = window.location.origin + window.location.pathname;
 };
@@ -576,14 +612,29 @@ document.getElementById("firstPlayerModal").onclick = (e) => {
   }
 };
 
-// --- HOST-ONLY: NEW GAME RESET ---
-document.getElementById("newGameBtn").onclick = async () => {
+// --- HOST-ONLY: NEW GAME MODAL WITH STARTING LIFE SELECTOR ---
+document.getElementById("newGameBtn").onclick = () => {
   dropdownMenu.classList.add("hidden");
   if (!currentPodCode || !latestPodData || latestPodData.hostUid !== currentUser.uid) return;
-  if (!confirm("Start a New Game? This resets everyone to 40 life and clears all counters, turns & history.")) return;
+
+  selectedNewGameLife = latestPodData.startingLife || 40;
+  document.querySelectorAll("#newGameLifeSelector .preset-btn").forEach((btn) => {
+    btn.classList.toggle("selected", parseInt(btn.dataset.life, 10) === selectedNewGameLife);
+  });
+  newGameModal.classList.remove("hidden");
+};
+
+document.getElementById("closeNewGameModalBtn").onclick = () => newGameModal.classList.add("hidden");
+newGameModal.onclick = (e) => {
+  if (e.target === newGameModal) newGameModal.classList.add("hidden");
+};
+
+document.getElementById("confirmNewGameBtn").onclick = async () => {
+  if (!currentPodCode || !latestPodData || latestPodData.hostUid !== currentUser.uid) return;
 
   const players = latestPodData.players || {};
   const resetUpdates = {
+    startingLife: selectedNewGameLife,
     monarchUid: null,
     firstPlayerUid: null,
     activeTurnUid: null,
@@ -598,7 +649,7 @@ document.getElementById("newGameBtn").onclick = async () => {
       hasPartner: Boolean(p.hasPartner),
       pinnedCounters: Array.isArray(p.pinnedCounters) ? p.pinnedCounters : [],
       joinedAt: p.joinedAt || Date.now(),
-      life: 40,
+      life: selectedNewGameLife,
       poison: 0,
       tax: 0,
       extraCounters: { energy: 0, experience: 0, storm: 0, rad: 0 },
@@ -607,6 +658,7 @@ document.getElementById("newGameBtn").onclick = async () => {
   });
 
   await update(ref(db, `pods/${currentPodCode}`), resetUpdates);
+  newGameModal.classList.add("hidden");
 };
 
 // --- MONARCH CONTROL ---
@@ -624,7 +676,7 @@ document.getElementById("becomeMonarchBtn").onclick = () => {
   setMonarch(isAlreadyMonarch ? null : currentUser.uid);
 };
 
-// --- OPPONENT INSPECTOR MODAL ---
+// --- OPPONENT INSPECTOR MODAL (Includes Host Transfer) ---
 function openOpponentModal(uid) {
   inspectedOpponentUid = uid;
   renderOpponentModal();
@@ -637,9 +689,10 @@ function renderOpponentModal() {
   const players = latestPodData.players;
   const target = players[inspectedOpponentUid];
   const isMonarch = latestPodData.monarchUid === inspectedOpponentUid;
+  const isHost = latestPodData.hostUid === currentUser.uid;
 
   document.getElementById("modalPlayerName").textContent = `${isMonarch ? "👑 " : ""}${target.name}`;
-  document.getElementById("modalLifeVal").textContent = target.life ?? 40;
+  document.getElementById("modalLifeVal").textContent = target.life ?? (latestPodData.startingLife || 40);
   document.getElementById("modalPoisonVal").textContent = target.poison ?? 0;
   document.getElementById("modalTaxVal").textContent = `+${target.tax ?? 0}`;
 
@@ -700,6 +753,18 @@ function renderOpponentModal() {
 
   document.getElementById("modalMakeMonarchBtn").onclick = () => {
     setMonarch(inspectedOpponentUid);
+  };
+
+  // Show "Make Pod Owner" button only if you are the current host
+  const transferBtn = document.getElementById("modalTransferHostBtn");
+  transferBtn.classList.toggle("hidden", !isHost);
+  transferBtn.onclick = async () => {
+    if (!confirm(`Transfer Pod Ownership to ${target.name}?`)) return;
+    await update(ref(db, `pods/${currentPodCode}`), {
+      hostUid: inspectedOpponentUid
+    });
+    inspectedOpponentUid = null;
+    document.getElementById("inspectModal").classList.add("hidden");
   };
 }
 
@@ -853,6 +918,8 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
   const name = playerNameInput.value.trim() || "Player";
   const podRef = ref(db, `pods/${code}`);
 
+  let podStartingLife = selectedLobbyStartingLife;
+
   if (!isNew) {
     const snap = await get(podRef);
     if (!snap.exists()) {
@@ -860,10 +927,12 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
       if (!isAutoRejoin) alert("Pod not found! Check the 4-letter code.");
       return false;
     }
+    podStartingLife = snap.val().startingLife || 40;
   } else {
     await set(podRef, {
       createdAt: Date.now(),
-      hostUid: currentUser.uid
+      hostUid: currentUser.uid,
+      startingLife: selectedLobbyStartingLife
     });
   }
 
@@ -878,14 +947,14 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
       hasPartner: false,
       pinnedCounters: [],
       joinedAt: Date.now(),
-      life: 40,
+      life: podStartingLife,
       poison: 0,
       tax: 0,
       extraCounters: { energy: 0, experience: 0, storm: 0, rad: 0 }
     });
   } else {
     const existing = existingPlayerSnap.val();
-    myCurrentLife = existing.life ?? 40;
+    myCurrentLife = existing.life ?? podStartingLife;
     myPoison = existing.poison ?? 0;
     myTax = existing.tax ?? 0;
     myHasPartner = Boolean(existing.hasPartner);
@@ -920,7 +989,9 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
     const activeTurnUid = podData.activeTurnUid || null;
     const turnNumber = podData.turnNumber || 1;
     const isHost = podData.hostUid === currentUser.uid;
+    const activeStartLife = podData.startingLife || 40;
 
+    document.getElementById("hostCrownTag").classList.toggle("hidden", !isHost);
     document.getElementById("openFirstPlayerBtn").classList.toggle("hidden", !isHost);
     document.getElementById("newGameBtn").classList.toggle("hidden", !isHost);
 
@@ -968,7 +1039,7 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
 
     const me = players[currentUser.uid];
     if (me) {
-      myCurrentLife = me.life ?? 40;
+      myCurrentLife = me.life ?? activeStartLife;
       myPoison = me.poison ?? 0;
       myTax = me.tax ?? 0;
       myHasPartner = Boolean(me.hasPartner);
@@ -1007,9 +1078,11 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
 
       const oppIsMonarch = monarchUid === uid;
       const oppIsActiveTurn = activeTurnUid === uid;
+      const oppIsHost = podData.hostUid === uid;
       const oppTheme = VALID_THEMES.includes(p.theme) ? p.theme : "blue";
 
       const badges = [];
+      if (oppIsHost) badges.push("Host");
       if (p.poison > 0) badges.push(`☠${p.poison}`);
       const cmdrValues = Object.values(p.commanderDamage || {});
       const maxCmdr = cmdrValues.length > 0 ? Math.max(...cmdrValues) : 0;

@@ -45,6 +45,15 @@
         </div>
 
         <div id="standardCreateSection">
+          <div class="input-group">
+            <label class="input-label">Starting Life Total</label>
+            <div id="lobbyLifeSelector" class="life-preset-row">
+              <button type="button" class="preset-btn" data-life="20">20<span>Standard</span></button>
+              <button type="button" class="preset-btn" data-life="30">30<span>Brawl / 2HG</span></button>
+              <button type="button" class="preset-btn selected" data-life="40">40<span>Commander</span></button>
+            </div>
+          </div>
+
           <button id="createPodBtn" class="btn-primary btn-hero">
             <span>＋ Create New Pod</span>
             <small>Generate a 4-letter code &amp; QR invite</small>
@@ -75,6 +84,7 @@
         <div class="pod-pill">
           <span class="pod-dot"></span>
           POD <span id="displayRoomCode">----</span>
+          <span id="hostCrownTag" class="host-tag hidden">HOST</span>
         </div>
 
         <div class="menu-wrapper">
@@ -184,6 +194,25 @@
     </div>
   </div>
 
+  <!-- NEW GAME & STARTING LIFE MODAL (Host Only) -->
+  <div id="newGameModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Start New Game</h2>
+        <button id="closeNewGameModalBtn" class="btn-secondary btn-small">✕</button>
+      </div>
+      <p class="modal-sub">Choose starting life and reset all players, counters, turns, and history:</p>
+
+      <div id="newGameLifeSelector" class="life-preset-row" style="margin-bottom: 16px;">
+        <button type="button" class="preset-btn" data-life="20">20<span>Standard</span></button>
+        <button type="button" class="preset-btn" data-life="30">30<span>Brawl / 2HG</span></button>
+        <button type="button" class="preset-btn selected" data-life="40">40<span>Commander</span></button>
+      </div>
+
+      <button id="confirmNewGameBtn" class="btn-primary" style="margin-bottom: 0;">↻ Reset Table &amp; Start</button>
+    </div>
+  </div>
+
   <!-- EXTRA COUNTERS PICKER MODAL -->
   <div id="extraCountersModal" class="modal-backdrop hidden">
     <div class="modal-card">
@@ -270,7 +299,7 @@
           <div class="step-badge">1</div>
           <div class="step-body">
             <h3>Start or Scan Into a Pod</h3>
-            <p>One player taps <strong>Create New Pod</strong> to generate a 4-letter room code and scannable QR code. Everyone else scans the QR with their phone camera—no accounts or downloads required.</p>
+            <p>Choose your starting life (<strong>20, 30, or 40</strong>) and tap <strong>Create New Pod</strong> to generate a 4-letter code and scannable QR invite. Everyone else scans to join—no accounts required.</p>
           </div>
         </div>
 
@@ -285,8 +314,8 @@
         <div class="guide-step">
           <div class="step-badge">3</div>
           <div class="step-body">
-            <h3>Partner Commanders &amp; Table Tools</h3>
-            <p>Enable <strong>Partner Commander</strong> in the <strong>☰</strong> menu to split your commander damage into two separate tracks for opponents, or pin Energy, Experience, Storm, and Rad counters.</p>
+            <h3>Host Handoff &amp; Table Tools</h3>
+            <p>Tap any opponent's card to inspect their stats or transfer Pod Ownership if you need to leave early. Open the <strong>☰</strong> menu for Partner Commanders, extra counters, dice, and the life log.</p>
           </div>
         </div>
       </div>
@@ -329,6 +358,9 @@
 
       <button id="modalMakeMonarchBtn" class="btn-monarch" style="margin-top: 14px; margin-bottom: 0;">
         👑 Give Monarch to Player
+      </button>
+      <button id="modalTransferHostBtn" class="btn-secondary hidden" style="margin-top: 8px; margin-bottom: 0;">
+        🛡️ Make Pod Owner
       </button>
     </div>
   </div>
