@@ -752,6 +752,7 @@ button:active { transform: scale(0.97); }
 }
 .opponent-card {
   background: var(--bg-surface);
+  color: var(--text-primary);
   border: 1px solid var(--border-subtle);
   border-top-width: 3px;
   border-radius: 14px;
