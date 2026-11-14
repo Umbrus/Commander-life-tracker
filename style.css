@@ -72,17 +72,23 @@ body {
   margin-bottom: 22px;
 }
 .hero-emblem {
-  width: 66px;
-  height: 66px;
+  width: 78px;
+  height: 78px;
   margin: 0 auto 14px;
-  border-radius: 20px;
-  background: linear-gradient(145deg, rgba(185, 28, 28, 0.28), rgba(127, 29, 29, 0.12));
-  border: 1px solid var(--border-gold);
-  color: var(--gold-foil);
+  border-radius: 22px;
+  overflow: hidden;
+  background: #070606;
+  border: 1.5px solid var(--border-gold);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 12px 30px rgba(185, 28, 28, 0.24), inset 0 0 12px rgba(253, 230, 138, 0.12);
+  box-shadow: 0 12px 30px rgba(185, 28, 28, 0.28), 0 0 18px rgba(253, 230, 138, 0.12);
+}
+.hero-emblem img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .brand-mark {
   font-size: 0.68rem;
