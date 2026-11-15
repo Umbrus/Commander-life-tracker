@@ -25,7 +25,7 @@
     <div id="lobbyView" class="lobby-wrapper">
       <div class="lobby-hero">
         <div class="hero-emblem" aria-hidden="true">
-          <img src="images/icon.svg" alt="CommandSync Emblem" />
+          <img src="images/icon.svg" alt="CommandSync Emblem" width="78" height="78" />
         </div>
         <div class="brand-mark">COMMANDER TABLETOP COMPANION</div>
         <h1 class="brand-title">CommandSync</h1>
@@ -68,6 +68,13 @@
             <button id="joinPodBtn" class="btn-secondary join-submit-btn">Join Pod</button>
           </div>
         </div>
+
+        <div class="divider"><span>OR SINGLE-DEVICE PASS &amp; PLAY</span></div>
+
+        <button id="openTableSetupBtn" type="button" class="btn-secondary table-mode-launch-btn">
+          <span>📱 Table Mode (One Device)</span>
+          <small>2–4 player split-screen like Lifetap — no codes needed</small>
+        </button>
       </div>
 
       <div class="lobby-footer">
@@ -77,7 +84,7 @@
       </div>
     </div>
 
-    <!-- ACTIVE TABLE SCREEN -->
+    <!-- ACTIVE TABLE SCREEN (SYNCED POD MODE) -->
     <div id="podView" class="pod-container hidden">
       <header class="top-bar">
         <div class="pod-pill">
@@ -206,6 +213,122 @@
     </div>
   </div>
 
+  <!-- TABLE MODE SETUP MODAL (2-4 Players & Starting Life) -->
+  <div id="tableSetupModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Table Mode Setup</h2>
+        <button id="closeTableSetupBtn" class="btn-secondary btn-small">✕</button>
+      </div>
+      <p class="modal-sub">Place one phone or tablet flat on the table for everyone to tap:</p>
+
+      <div class="input-group">
+        <label class="input-label">Number of Players</label>
+        <div id="tablePlayersSelector" class="life-preset-row">
+          <button type="button" class="preset-btn" data-players="2">2<span>1v1 Duel</span></button>
+          <button type="button" class="preset-btn" data-players="3">3<span>3-Pod</span></button>
+          <button type="button" class="preset-btn selected" data-players="4">4<span>4-Pod</span></button>
+        </div>
+      </div>
+
+      <div class="input-group" style="margin-top: 12px;">
+        <label class="input-label">Starting Life Total</label>
+        <div id="tableLifeSelector" class="life-preset-row">
+          <button type="button" class="preset-btn" data-life="20">20<span>Standard</span></button>
+          <button type="button" class="preset-btn" data-life="30">30<span>Brawl / 2HG</span></button>
+          <button type="button" class="preset-btn selected" data-life="40">40<span>Commander</span></button>
+        </div>
+      </div>
+
+      <button id="startTableGameBtn" type="button" class="btn-primary" style="margin-top: 16px; margin-bottom: 0;">
+        ⚔️ Launch Table Mode
+      </button>
+    </div>
+  </div>
+
+  <!-- FULL-SCREEN SINGLE-DEVICE TABLE MODE VIEW -->
+  <div id="tableView" class="table-view hidden">
+    <div id="tableGrid" class="table-grid players-4"></div>
+
+    <!-- Center Floating Hub Button -->
+    <div class="table-center-hub">
+      <button id="tableHubBtn" type="button" class="hub-orb-btn" aria-label="Table Menu">✦</button>
+      <div id="tableHubMenu" class="table-hub-menu hidden">
+        <button id="tableRollFirstBtn" type="button" class="hub-action-btn">🎲 Roll 1st Player</button>
+        <button id="tableDiceBtn" type="button" class="hub-action-btn">🪙 Dice &amp; Coin</button>
+        <button id="tableResetBtn" type="button" class="hub-action-btn">↻ Reset Life</button>
+        <button id="tableSetupAgainBtn" type="button" class="hub-action-btn">⚙️ Players / Life</button>
+        <button id="tableExitBtn" type="button" class="hub-action-btn danger">✕ Exit to Lobby</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE MODE PLAYER COMMAND TRAY (Commander Damage Matrix & Counters) -->
+  <div id="tablePlayerModal" class="modal-backdrop hidden">
+    <div class="modal-card table-tray-card">
+      <div class="modal-header">
+        <h2 id="trayPlayerTitle">Player 1 — Command Tray</h2>
+        <button id="closeTableTrayBtn" type="button" class="btn-secondary btn-small">✕</button>
+      </div>
+
+      <!-- Status & Secondary Counters -->
+      <div class="tray-section-label">Table Status &amp; Counters</div>
+      <div class="tray-counters-grid">
+        <button id="trayMonarchBtn" type="button" class="tray-monarch-pill">
+          <span>👑 Monarch</span>
+          <strong id="trayMonarchState">OFF</strong>
+        </button>
+
+        <div class="tray-counter-box">
+          <span class="tray-counter-name">☠ Poison</span>
+          <div class="tray-stepper">
+            <button type="button" class="tray-step-btn" data-counter="poison" data-delta="-1">−</button>
+            <strong id="trayVal-poison">0</strong>
+            <button type="button" class="tray-step-btn" data-counter="poison" data-delta="1">+</button>
+          </div>
+        </div>
+
+        <div class="tray-counter-box">
+          <span class="tray-counter-name">🛡️ Cmdr Tax</span>
+          <div class="tray-stepper">
+            <button type="button" class="tray-step-btn" data-counter="tax" data-delta="-2">−</button>
+            <strong id="trayVal-tax">+0</strong>
+            <button type="button" class="tray-step-btn" data-counter="tax" data-delta="2">+</button>
+          </div>
+        </div>
+
+        <div class="tray-counter-box">
+          <span class="tray-counter-name">⚡ Energy</span>
+          <div class="tray-stepper">
+            <button type="button" class="tray-step-btn" data-counter="energy" data-delta="-1">−</button>
+            <strong id="trayVal-energy">0</strong>
+            <button type="button" class="tray-step-btn" data-counter="energy" data-delta="1">+</button>
+          </div>
+        </div>
+
+        <div class="tray-counter-box">
+          <span class="tray-counter-name">☢️ Rad</span>
+          <div class="tray-stepper">
+            <button type="button" class="tray-step-btn" data-counter="rad" data-delta="-1">−</button>
+            <strong id="trayVal-rad">0</strong>
+            <button type="button" class="tray-step-btn" data-counter="rad" data-delta="1">+</button>
+          </div>
+        </div>
+
+        <button id="trayPartnerToggleBtn" type="button" class="tray-partner-pill">
+          <span>🤝 My Partner</span>
+          <strong id="trayPartnerState">OFF</strong>
+        </button>
+      </div>
+
+      <!-- Spatial Commander Damage Matrix -->
+      <div class="tray-section-label" style="margin-top: 14px;">
+        Commander Damage Taken <small>(Tap tile for +1, or − to subtract)</small>
+      </div>
+      <div id="trayCmdrMatrix" class="tray-cmdr-matrix"></div>
+    </div>
+  </div>
+
   <!-- NEW GAME & STARTING LIFE MODAL (Host Only) -->
   <div id="newGameModal" class="modal-backdrop hidden">
     <div class="modal-card">
@@ -326,8 +449,8 @@
         <div class="guide-step">
           <div class="step-badge">3</div>
           <div class="step-body">
-            <h3>Host Handoff &amp; Table Tools</h3>
-            <p>Tap any opponent's card to inspect their stats or transfer Pod Ownership if you need to leave early. Open the <strong>☰</strong> menu for Partner Commanders, extra counters, dice, and the life log.</p>
+            <h3>Table Mode (Single Device)</h3>
+            <p>Prefer sharing one phone in the middle of the table like Lifetap? Tap <strong>Table Mode</strong> on the start screen for a 2–4 player split-screen counter.</p>
           </div>
         </div>
       </div>

@@ -389,7 +389,7 @@ async function enableWakeLock() {
 }
 
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible" && currentPodCode) {
+  if (document.visibilityState === "visible" && (currentPodCode || !document.getElementById("tableView").classList.contains("hidden"))) {
     enableWakeLock();
   }
 });
@@ -426,9 +426,10 @@ signInAnonymously(auth)
     statusBox.className = "conn-pill ok";
     lobbyForm.classList.remove("hidden");
   })
-  .catch((err) => {
-    statusText.textContent = "Connection Error: " + err.message;
+  .catch(() => {
+    statusText.textContent = "Offline — Table Mode Ready";
     statusBox.className = "conn-pill err";
+    lobbyForm.classList.remove("hidden");
   });
 
 function generateCode() {
@@ -909,9 +910,11 @@ document.getElementById("taxMinusBtn").onclick = () => changeTax(-2);
 document.getElementById("taxPlusBtn").onclick = () => changeTax(2);
 
 // --- TAP FOR 1, HOLD FOR 5 HELPER ---
-function bindLifeTapZone(element, step) {
+function bindLifeTapZone(element, step, customCallback = null) {
   let holdTimer = null;
   let didHold = false;
+
+  const invokeChange = customCallback || changeMyLife;
 
   const startPress = (e) => {
     e.preventDefault();
@@ -919,7 +922,7 @@ function bindLifeTapZone(element, step) {
     holdTimer = setTimeout(() => {
       didHold = true;
       triggerHaptic([20, 30, 20]);
-      changeMyLife(step * 5);
+      invokeChange(step * 5);
     }, 450);
   };
 
@@ -928,7 +931,7 @@ function bindLifeTapZone(element, step) {
     clearTimeout(holdTimer);
     if (!didHold) {
       triggerHaptic(12);
-      changeMyLife(step);
+      invokeChange(step);
     }
   };
 
@@ -1211,11 +1214,465 @@ document.getElementById("joinPodBtn").onclick = () => {
   if (code.length === 4) enterPod(code, false);
 };
 
-// --- REGISTER SERVICE WORKER & MONITOR ONLINE/OFFLINE STATUS ---
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch(() => {});
+// =========================================================
+// TABLE MODE (SINGLE-DEVICE SPLIT-SCREEN + LARGE POD RADAR)
+// =========================================================
+const tableSetupModal = document.getElementById("tableSetupModal");
+const tableView = document.getElementById("tableView");
+const tableGrid = document.getElementById("tableGrid");
+const tableHubMenu = document.getElementById("tableHubMenu");
+const tablePlayerModal = document.getElementById("tablePlayerModal");
+
+let tablePlayerCount = 4;
+let tableStartingLife = 40;
+let tablePlayers = [];
+let tableMonarchIdx = null;
+let activeTraySeatIdx = null;
+const tableDeltaTimers = {};
+const tableDeltaTotals = {};
+
+// Setup Modal Selectors
+document.querySelectorAll("#tablePlayersSelector .preset-btn").forEach((btn) => {
+  btn.onclick = () => {
+    tablePlayerCount = parseInt(btn.dataset.players, 10);
+    document.querySelectorAll("#tablePlayersSelector .preset-btn").forEach((b) => {
+      b.classList.toggle("selected", b === btn);
+    });
+  };
+});
+
+document.querySelectorAll("#tableLifeSelector .preset-btn").forEach((btn) => {
+  btn.onclick = () => {
+    tableStartingLife = parseInt(btn.dataset.life, 10);
+    document.querySelectorAll("#tableLifeSelector .preset-btn").forEach((b) => {
+      b.classList.toggle("selected", b === btn);
+    });
+  };
+});
+
+document.getElementById("openTableSetupBtn").onclick = () => {
+  tableSetupModal.classList.remove("hidden");
+};
+document.getElementById("closeTableSetupBtn").onclick = () => {
+  tableSetupModal.classList.add("hidden");
+};
+tableSetupModal.onclick = (e) => {
+  if (e.target === tableSetupModal) tableSetupModal.classList.add("hidden");
+};
+
+function initTableMode() {
+  const defaultThemes = ["blue", "red", "green", "gold"];
+  tableMonarchIdx = null;
+  tablePlayers = Array.from({ length: tablePlayerCount }, (_, idx) => ({
+    id: idx,
+    name: `Player ${idx + 1}`,
+    life: tableStartingLife,
+    theme: defaultThemes[idx % defaultThemes.length],
+    isFirst: false,
+    hasPartner: false,
+    poison: 0,
+    tax: 0,
+    energy: 0,
+    rad: 0,
+    cmdrDamage: {}
+  }));
+
+  renderTableGrid();
+  tableSetupModal.classList.add("hidden");
+  tableHubMenu.classList.add("hidden");
+  lobbyView.classList.add("hidden");
+  tableView.classList.remove("hidden");
+  enableWakeLock();
+}
+
+function getSeatMaxCmdrFrom(targetPlayer, sourceIdx) {
+  const dmgA = targetPlayer.cmdrDamage[sourceIdx] || 0;
+  const dmgB = targetPlayer.cmdrDamage[`${sourceIdx}_partner`] || 0;
+  return Math.max(dmgA, dmgB);
+}
+
+function renderTableGrid() {
+  tableGrid.className = `table-grid players-${tablePlayerCount}`;
+  tableGrid.innerHTML = "";
+
+  tablePlayers.forEach((p, idx) => {
+    const isTopRotated =
+      (tablePlayerCount === 2 && idx === 0) ||
+      ((tablePlayerCount === 3 || tablePlayerCount === 4) && (idx === 0 || idx === 1));
+    const isMonarch = tableMonarchIdx === idx;
+
+    const seat = document.createElement("div");
+    seat.id = `table-seat-${idx}`;
+    seat.className = `table-seat theme-${p.theme} ${isTopRotated ? "rotated-top" : ""} ${p.isFirst ? "first-player-glow" : ""} ${isMonarch ? "is-monarch" : ""}`;
+
+    // Build status badges (Poison, Tax, Energy, Rad)
+    const statusPills = [];
+    if (p.poison > 0) statusPills.push(`<span class="seat-mini-badge poison">☠${p.poison}</span>`);
+    if (p.tax > 0) statusPills.push(`<span class="seat-mini-badge">+${p.tax}</span>`);
+    if (p.energy > 0) statusPills.push(`<span class="seat-mini-badge">⚡${p.energy}</span>`);
+    if (p.rad > 0) statusPills.push(`<span class="seat-mini-badge">☢️${p.rad}</span>`);
+
+    // Build the 2-4 box spatial Pod Radar (Each cell is an interactive button)
+    const radarCellsHtml = tablePlayers
+      .map((other, otherIdx) => {
+        const spanClass = tablePlayerCount === 3 && otherIdx === 2 ? "span-2" : "";
+        if (otherIdx === idx) {
+          return `<button type="button" class="radar-cell-btn self-cell ${spanClass}" data-target="${idx}" data-source="self">YOU</button>`;
+        }
+        const maxDmg = getSeatMaxCmdrFrom(p, otherIdx);
+        return `<button type="button" class="radar-cell-btn theme-${other.theme} ${maxDmg >= 21 ? "lethal" : ""} ${spanClass}" data-target="${idx}" data-source="${otherIdx}">${maxDmg}</button>`;
+      })
+      .join("");
+
+    seat.innerHTML = `
+      <div class="hero-inner-frame"></div>
+      <div class="seat-top-bar">
+        <span class="seat-name-tag" id="table-name-${idx}" title="Tap to open Command Tray">
+          ${isMonarch ? "👑 " : ""}${p.isFirst ? "🎲 " : ""}${p.name} ⚙
+        </span>
+        <button type="button" class="seat-color-btn" data-idx="${idx}" title="Cycle Color">🎨</button>
+      </div>
+
+      <div class="seat-center-stack">
+        <div id="table-life-${idx}" class="seat-life-num ${p.life <= 0 ? "dead" : ""}">${p.life}</div>
+        <div id="table-delta-${idx}" class="seat-delta"></div>
+      </div>
+
+      <div class="seat-bottom-dock">
+        <div class="seat-status-pills">${statusPills.join("")}</div>
+        <div class="cmdr-radar-dock">
+          ${radarCellsHtml}
+        </div>
+      </div>
+
+      <div class="tap-zones">
+        <div class="tap-zone left" id="table-minus-${idx}">−</div>
+        <div class="tap-zone right" id="table-plus-${idx}">+</div>
+      </div>
+    `;
+
+    tableGrid.appendChild(seat);
+
+    // Bind Tap-for-1 / Hold-for-5 on each quadrant
+    bindLifeTapZone(seat.querySelector(`#table-minus-${idx}`), -1, (amt) => changeTableLife(idx, amt));
+    bindLifeTapZone(seat.querySelector(`#table-plus-${idx}`), 1, (amt) => changeTableLife(idx, amt));
+
+    // Tapping the Player Name pill also opens the Command Tray
+    const nameTag = seat.querySelector(`#table-name-${idx}`);
+    nameTag.addEventListener("pointerdown", (e) => e.stopPropagation());
+    nameTag.onclick = (e) => {
+      e.stopPropagation();
+      triggerHaptic(12);
+      openTablePlayerTray(idx);
+    };
+
+    // Bind Theme Color Cycler
+    const colorBtn = seat.querySelector(".seat-color-btn");
+    colorBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
+    colorBtn.onclick = (e) => {
+      e.stopPropagation();
+      triggerHaptic(10);
+      const currentThemeIdx = VALID_THEMES.indexOf(p.theme);
+      p.theme = VALID_THEMES[(currentThemeIdx + 1) % VALID_THEMES.length];
+      renderTableGrid();
+    };
+
+    // Bind each of the 4 Pod Radar Boxes:
+    // - Tapping "YOU" opens the full Command Tray modal
+    // - Tapping an opponent's box adds +1 Commander Damage immediately (and subtracts 1 life)
+    // - Holding any box for 420ms opens the full Command Tray modal
+    seat.querySelectorAll(".radar-cell-btn").forEach((cellBtn) => {
+      let holdTimer = null;
+      let held = false;
+
+      cellBtn.addEventListener("pointerdown", (e) => {
+        e.stopPropagation();
+        held = false;
+        holdTimer = setTimeout(() => {
+          held = true;
+          triggerHaptic([15, 25]);
+          openTablePlayerTray(idx);
+        }, 420);
+      });
+
+      cellBtn.addEventListener("pointerup", (e) => {
+        e.stopPropagation();
+        clearTimeout(holdTimer);
+        if (held) return;
+
+        const sourceAttr = cellBtn.dataset.source;
+        if (sourceAttr === "self") {
+          triggerHaptic(12);
+          openTablePlayerTray(idx);
+        } else {
+          const sourceIdx = parseInt(sourceAttr, 10);
+          adjustTableCmdrDamage(idx, sourceIdx, 1);
+        }
+      });
+
+      cellBtn.addEventListener("pointerleave", () => clearTimeout(holdTimer));
+      cellBtn.addEventListener("pointercancel", () => clearTimeout(holdTimer));
+    });
   });
+}
+
+function changeTableLife(idx, amount) {
+  const p = tablePlayers[idx];
+  if (!p) return;
+
+  p.life += amount;
+  const lifeEl = document.getElementById(`table-life-${idx}`);
+  if (lifeEl) {
+    lifeEl.textContent = p.life;
+    lifeEl.classList.toggle("dead", p.life <= 0);
+  }
+
+  tableDeltaTotals[idx] = (tableDeltaTotals[idx] || 0) + amount;
+  const deltaEl = document.getElementById(`table-delta-${idx}`);
+  if (deltaEl) {
+    const tot = tableDeltaTotals[idx];
+    deltaEl.textContent = tot > 0 ? `+${tot}` : `${tot}`;
+    deltaEl.className = `seat-delta ${tot >= 0 ? "delta-plus" : "delta-minus"}`;
+  }
+
+  clearTimeout(tableDeltaTimers[idx]);
+  tableDeltaTimers[idx] = setTimeout(() => {
+    tableDeltaTotals[idx] = 0;
+    if (deltaEl) deltaEl.textContent = "";
+  }, 1800);
+}
+
+// --- PLAYER COMMAND TRAY (MODAL FOR COMMANDER DAMAGE & COUNTERS) ---
+function openTablePlayerTray(idx) {
+  activeTraySeatIdx = idx;
+  renderTablePlayerTray();
+  tablePlayerModal.classList.remove("hidden");
+}
+
+function renderTablePlayerTray() {
+  if (activeTraySeatIdx === null || !tablePlayers[activeTraySeatIdx]) return;
+  const target = tablePlayers[activeTraySeatIdx];
+  const isMonarch = tableMonarchIdx === activeTraySeatIdx;
+
+  document.getElementById("trayPlayerTitle").textContent = `${target.name} — Command Tray`;
+
+  const monarchBtn = document.getElementById("trayMonarchBtn");
+  monarchBtn.classList.toggle("active", isMonarch);
+  document.getElementById("trayMonarchState").textContent = isMonarch ? "ON" : "OFF";
+
+  const partnerBtn = document.getElementById("trayPartnerToggleBtn");
+  partnerBtn.classList.toggle("active", target.hasPartner);
+  document.getElementById("trayPartnerState").textContent = target.hasPartner ? "ON" : "OFF";
+
+  document.getElementById("trayVal-poison").textContent = target.poison;
+  document.getElementById("trayVal-tax").textContent = `+${target.tax}`;
+  document.getElementById("trayVal-energy").textContent = target.energy;
+  document.getElementById("trayVal-rad").textContent = target.rad;
+
+  // Render Spatial Commander Damage Matrix
+  const matrix = document.getElementById("trayCmdrMatrix");
+  matrix.innerHTML = "";
+
+  tablePlayers.forEach((sourcePlayer, sourceIdx) => {
+    const tile = document.createElement("div");
+    const spanClass = tablePlayerCount === 3 && sourceIdx === 2 ? "span-2" : "";
+
+    if (sourceIdx === activeTraySeatIdx) {
+      tile.className = `matrix-tile self-tile ${spanClass}`;
+      tile.innerHTML = `
+        <div class="matrix-tile-header">${target.name} (You)</div>
+        <div class="matrix-dmg-big">${target.life} ❤️</div>
+      `;
+      matrix.appendChild(tile);
+      return;
+    }
+
+    tile.className = `matrix-tile theme-${sourcePlayer.theme} ${spanClass}`;
+
+    if (sourcePlayer.hasPartner) {
+      const dmgA = target.cmdrDamage[sourceIdx] || 0;
+      const dmgB = target.cmdrDamage[`${sourceIdx}_partner`] || 0;
+      tile.innerHTML = `
+        <div class="matrix-tile-header">From ${sourcePlayer.name}</div>
+        <div class="matrix-partner-split">
+          <div class="matrix-partner-sub">
+            <span>Cmdr A</span>
+            <div class="matrix-partner-controls">
+              <button type="button" class="tray-step-btn" data-key="${sourceIdx}" data-delta="-1">−</button>
+              <strong class="${dmgA >= 21 ? "lethal" : ""}">${dmgA}</strong>
+              <button type="button" class="tray-step-btn" data-key="${sourceIdx}" data-delta="1">+</button>
+            </div>
+          </div>
+          <div class="matrix-partner-sub">
+            <span>Cmdr B</span>
+            <div class="matrix-partner-controls">
+              <button type="button" class="tray-step-btn" data-key="${sourceIdx}_partner" data-delta="-1">−</button>
+              <strong class="${dmgB >= 21 ? "lethal" : ""}">${dmgB}</strong>
+              <button type="button" class="tray-step-btn" data-key="${sourceIdx}_partner" data-delta="1">+</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      tile.querySelectorAll(".tray-step-btn").forEach((btn) => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          adjustTableCmdrDamage(activeTraySeatIdx, btn.dataset.key, parseInt(btn.dataset.delta, 10));
+        };
+      });
+    } else {
+      const dmg = target.cmdrDamage[sourceIdx] || 0;
+      tile.innerHTML = `
+        <button type="button" class="matrix-minus-btn" title="Subtract 1">−</button>
+        <div class="matrix-tile-header">From ${sourcePlayer.name}</div>
+        <div class="matrix-dmg-big ${dmg >= 21 ? "lethal" : ""}">${dmg}</div>
+      `;
+
+      tile.onclick = () => {
+        adjustTableCmdrDamage(activeTraySeatIdx, sourceIdx, 1);
+      };
+
+      tile.querySelector(".matrix-minus-btn").onclick = (e) => {
+        e.stopPropagation();
+        adjustTableCmdrDamage(activeTraySeatIdx, sourceIdx, -1);
+      };
+    }
+
+    matrix.appendChild(tile);
+  });
+}
+
+function adjustTableCmdrDamage(targetIdx, dmgKey, delta) {
+  const target = tablePlayers[targetIdx];
+  if (!target) return;
+
+  const current = target.cmdrDamage[dmgKey] || 0;
+  const next = Math.max(0, current + delta);
+  const actualDelta = next - current;
+  if (actualDelta === 0) return;
+
+  triggerHaptic(next >= 21 ? [30, 40, 30] : 14);
+  target.cmdrDamage[dmgKey] = next;
+  changeTableLife(targetIdx, -actualDelta);
+  renderTableGrid();
+  if (!tablePlayerModal.classList.contains("hidden")) {
+    renderTablePlayerTray();
+  }
+}
+
+document.getElementById("trayMonarchBtn").onclick = () => {
+  if (activeTraySeatIdx === null) return;
+  triggerHaptic(12);
+  tableMonarchIdx = tableMonarchIdx === activeTraySeatIdx ? null : activeTraySeatIdx;
+  renderTableGrid();
+  renderTablePlayerTray();
+};
+
+document.getElementById("trayPartnerToggleBtn").onclick = () => {
+  if (activeTraySeatIdx === null) return;
+  triggerHaptic(12);
+  const p = tablePlayers[activeTraySeatIdx];
+  p.hasPartner = !p.hasPartner;
+  renderTableGrid();
+  renderTablePlayerTray();
+};
+
+document.querySelectorAll("#tablePlayerModal .tray-step-btn[data-counter]").forEach((btn) => {
+  btn.onclick = () => {
+    if (activeTraySeatIdx === null) return;
+    triggerHaptic(12);
+    const key = btn.dataset.counter;
+    const delta = parseInt(btn.dataset.delta, 10);
+    const p = tablePlayers[activeTraySeatIdx];
+    p[key] = Math.max(0, (p[key] || 0) + delta);
+    renderTableGrid();
+    renderTablePlayerTray();
+  };
+});
+
+document.getElementById("closeTableTrayBtn").onclick = () => {
+  tablePlayerModal.classList.add("hidden");
+};
+tablePlayerModal.onclick = (e) => {
+  if (e.target === tablePlayerModal) tablePlayerModal.classList.add("hidden");
+};
+
+document.getElementById("startTableGameBtn").onclick = initTableMode;
+
+// Floating Center Hub Menu Controls
+document.getElementById("tableHubBtn").onclick = (e) => {
+  e.stopPropagation();
+  triggerHaptic(12);
+  tableHubMenu.classList.toggle("hidden");
+};
+
+document.addEventListener("click", (e) => {
+  if (!tableHubMenu.classList.contains("hidden") && !tableHubMenu.contains(e.target)) {
+    tableHubMenu.classList.add("hidden");
+  }
+});
+
+document.getElementById("tableRollFirstBtn").onclick = () => {
+  tableHubMenu.classList.add("hidden");
+  if (tablePlayers.length === 0) return;
+  triggerHaptic([15, 30, 15]);
+  const winnerIdx = Math.floor(Math.random() * tablePlayers.length);
+  tablePlayers.forEach((p, idx) => {
+    p.isFirst = idx === winnerIdx;
+  });
+  renderTableGrid();
+};
+
+document.getElementById("tableDiceBtn").onclick = () => {
+  tableHubMenu.classList.add("hidden");
+  diceModal.classList.remove("hidden");
+};
+
+document.getElementById("tableResetBtn").onclick = () => {
+  tableHubMenu.classList.add("hidden");
+  triggerHaptic(18);
+  tableMonarchIdx = null;
+  tablePlayers.forEach((p) => {
+    p.life = tableStartingLife;
+    p.isFirst = false;
+    p.poison = 0;
+    p.tax = 0;
+    p.energy = 0;
+    p.rad = 0;
+    p.cmdrDamage = {};
+  });
+  renderTableGrid();
+};
+
+document.getElementById("tableSetupAgainBtn").onclick = () => {
+  tableHubMenu.classList.add("hidden");
+  tableSetupModal.classList.remove("hidden");
+};
+
+document.getElementById("tableExitBtn").onclick = () => {
+  tableHubMenu.classList.add("hidden");
+  tableView.classList.add("hidden");
+  lobbyView.classList.remove("hidden");
+};
+
+// --- REGISTER SERVICE WORKER (BYPASS ON LOCALHOST FOR VS CODE LIVE SERVER) ---
+if ("serviceWorker" in navigator) {
+  const isLocalhost =
+    window.location.hostname === "127.0.0.1" ||
+    window.location.hostname === "localhost";
+
+  if (isLocalhost) {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      registrations.forEach((reg) => reg.unregister());
+    });
+    if ("caches" in window) {
+      caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+    }
+  } else {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js").catch(() => {});
+    });
+  }
 }
 
 function updateNetworkBanner() {
