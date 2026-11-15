@@ -1,11 +1,12 @@
-const CACHE_NAME = "commander-pod-v6";
+const CACHE_NAME = "commander-pod-v7";
 const ASSETS = [
   "./",
   "./index.html",
   "./style.css",
   "./app.js",
   "./manifest.json",
-  "./images/icon.svg"
+  "./images/icon.svg",
+  "./images/icon-512.png"
 ];
 
 self.addEventListener("install", (event) => {
