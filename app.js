@@ -1825,7 +1825,7 @@ document.getElementById("tableExitBtn").onclick = () => {
   lobbyView.classList.remove("hidden");
 };
 
-// --- REGISTER SERVICE WORKER (BYPASS ON LOCALHOST FOR VS CODE LIVE SERVER) ---
+// --- REGISTER SERVICE WORKER (AUTO-RELOADS APK ON NEW CACHE VERSION) ---
 if ("serviceWorker" in navigator) {
   const isLocalhost =
     window.location.hostname === "127.0.0.1" ||
@@ -1839,8 +1839,19 @@ if ("serviceWorker" in navigator) {
       caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
     }
   } else {
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    });
+
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./sw.js").catch(() => {});
+      navigator.serviceWorker
+        .register("./sw.js", { updateViaCache: "none" })
+        .then((reg) => reg.update())
+        .catch(() => {});
     });
   }
 }
