@@ -1028,11 +1028,9 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
     document.getElementById("openFirstPlayerBtn").classList.toggle("hidden", !isHost);
     document.getElementById("newGameBtn").classList.toggle("hidden", !isHost);
 
-    // Show Host Pre-Game Turn Setup Card only when Host AND game turns haven't started yet
     const gameHasStarted = Boolean(activeTurnUid && players[activeTurnUid]);
     document.getElementById("hostStartBanner").classList.toggle("hidden", !(isHost && !gameHasStarted));
 
-    // Update Turn Tracker Banner & Clockwise Order Strip
     const turnBanner = document.getElementById("turnBanner");
     if (gameHasStarted) {
       turnBanner.classList.remove("hidden");
@@ -1215,13 +1213,14 @@ document.getElementById("joinPodBtn").onclick = () => {
 };
 
 // =========================================================
-// TABLE MODE (SINGLE-DEVICE SPLIT-SCREEN + LARGE POD RADAR)
+// TABLE MODE (SINGLE-DEVICE SPLIT-SCREEN + SIDEWAYS ORIENTATION)
 // =========================================================
 const tableSetupModal = document.getElementById("tableSetupModal");
 const tableView = document.getElementById("tableView");
 const tableGrid = document.getElementById("tableGrid");
 const tableHubMenu = document.getElementById("tableHubMenu");
 const tablePlayerModal = document.getElementById("tablePlayerModal");
+const tableTrayCard = tablePlayerModal.querySelector(".table-tray-card");
 
 let tablePlayerCount = 4;
 let tableStartingLife = 40;
@@ -1291,73 +1290,89 @@ function getSeatMaxCmdrFrom(targetPlayer, sourceIdx) {
   return Math.max(dmgA, dmgB);
 }
 
+function getSeatOrientationClass(idx) {
+  if (tablePlayerCount === 2) {
+    return idx === 0 ? "face-top" : "face-bottom";
+  }
+  if (tablePlayerCount === 3) {
+    if (idx === 0) return "face-left";
+    if (idx === 1) return "face-right";
+    return "face-bottom";
+  }
+  // 4 Players: Left column faces left edge (90deg), Right column faces right edge (-90deg)
+  return idx % 2 === 0 ? "face-left" : "face-right";
+}
+
 function renderTableGrid() {
   tableGrid.className = `table-grid players-${tablePlayerCount}`;
   tableGrid.innerHTML = "";
 
   tablePlayers.forEach((p, idx) => {
-    const isTopRotated =
-      (tablePlayerCount === 2 && idx === 0) ||
-      ((tablePlayerCount === 3 || tablePlayerCount === 4) && (idx === 0 || idx === 1));
+    const faceClass = getSeatOrientationClass(idx);
     const isMonarch = tableMonarchIdx === idx;
+
+    const firstZoneIsPlus = faceClass === "face-right" || faceClass === "face-top";
+    const firstStep = firstZoneIsPlus ? 1 : -1;
+    const secondStep = firstZoneIsPlus ? -1 : 1;
+    const firstSymbol = firstZoneIsPlus ? "+" : "−";
+    const secondSymbol = firstZoneIsPlus ? "−" : "+";
 
     const seat = document.createElement("div");
     seat.id = `table-seat-${idx}`;
-    seat.className = `table-seat theme-${p.theme} ${isTopRotated ? "rotated-top" : ""} ${p.isFirst ? "first-player-glow" : ""} ${isMonarch ? "is-monarch" : ""}`;
+    seat.className = `table-seat theme-${p.theme} ${faceClass} ${p.isFirst ? "first-player-glow" : ""} ${isMonarch ? "is-monarch" : ""}`;
 
-    // Build status badges (Poison, Tax, Energy, Rad)
     const statusPills = [];
     if (p.poison > 0) statusPills.push(`<span class="seat-mini-badge poison">☠${p.poison}</span>`);
     if (p.tax > 0) statusPills.push(`<span class="seat-mini-badge">+${p.tax}</span>`);
     if (p.energy > 0) statusPills.push(`<span class="seat-mini-badge">⚡${p.energy}</span>`);
     if (p.rad > 0) statusPills.push(`<span class="seat-mini-badge">☢️${p.rad}</span>`);
 
-    // Build the 2-4 box spatial Pod Radar (Each cell is an interactive button)
     const radarCellsHtml = tablePlayers
       .map((other, otherIdx) => {
         const spanClass = tablePlayerCount === 3 && otherIdx === 2 ? "span-2" : "";
         if (otherIdx === idx) {
-          return `<button type="button" class="radar-cell-btn self-cell ${spanClass}" data-target="${idx}" data-source="self">YOU</button>`;
+          return `<div class="radar-cell self-cell ${spanClass}">YOU</div>`;
         }
         const maxDmg = getSeatMaxCmdrFrom(p, otherIdx);
-        return `<button type="button" class="radar-cell-btn theme-${other.theme} ${maxDmg >= 21 ? "lethal" : ""} ${spanClass}" data-target="${idx}" data-source="${otherIdx}">${maxDmg}</button>`;
+        return `<div class="radar-cell theme-${other.theme} ${maxDmg >= 21 ? "lethal" : ""} ${spanClass}">${maxDmg}</div>`;
       })
       .join("");
 
     seat.innerHTML = `
       <div class="hero-inner-frame"></div>
-      <div class="seat-top-bar">
-        <span class="seat-name-tag" id="table-name-${idx}" title="Tap to open Command Tray">
-          ${isMonarch ? "👑 " : ""}${p.isFirst ? "🎲 " : ""}${p.name} ⚙
-        </span>
-        <button type="button" class="seat-color-btn" data-idx="${idx}" title="Cycle Color">🎨</button>
+
+      <div class="seat-tap-zones">
+        <div class="seat-tap-zone" id="table-zoneA-${idx}">${firstSymbol}</div>
+        <div class="seat-tap-zone" id="table-zoneB-${idx}">${secondSymbol}</div>
       </div>
 
-      <div class="seat-center-stack">
-        <div id="table-life-${idx}" class="seat-life-num ${p.life <= 0 ? "dead" : ""}">${p.life}</div>
-        <div id="table-delta-${idx}" class="seat-delta"></div>
-      </div>
-
-      <div class="seat-bottom-dock">
-        <div class="seat-status-pills">${statusPills.join("")}</div>
-        <div class="cmdr-radar-dock">
-          ${radarCellsHtml}
+      <div class="seat-hud">
+        <div class="seat-top-bar">
+          <span class="seat-name-tag" id="table-name-${idx}" title="Open Command Tray">
+            ${isMonarch ? "👑 " : ""}${p.isFirst ? "🎲 " : ""}${p.name}
+          </span>
+          <button type="button" class="seat-color-btn" data-idx="${idx}" title="Cycle Color">🎨</button>
         </div>
-      </div>
 
-      <div class="tap-zones">
-        <div class="tap-zone left" id="table-minus-${idx}">−</div>
-        <div class="tap-zone right" id="table-plus-${idx}">+</div>
+        <div class="seat-center-stack">
+          <div id="table-life-${idx}" class="seat-life-num ${p.life <= 0 ? "dead" : ""}">${p.life}</div>
+          <div id="table-delta-${idx}" class="seat-delta"></div>
+        </div>
+
+        <div class="seat-bottom-dock">
+          <div class="seat-status-pills">${statusPills.join("")}</div>
+          <button type="button" class="cmdr-radar-btn" id="table-radar-${idx}" aria-label="Open Command Tray">
+            ${radarCellsHtml}
+          </button>
+        </div>
       </div>
     `;
 
     tableGrid.appendChild(seat);
 
-    // Bind Tap-for-1 / Hold-for-5 on each quadrant
-    bindLifeTapZone(seat.querySelector(`#table-minus-${idx}`), -1, (amt) => changeTableLife(idx, amt));
-    bindLifeTapZone(seat.querySelector(`#table-plus-${idx}`), 1, (amt) => changeTableLife(idx, amt));
+    bindLifeTapZone(seat.querySelector(`#table-zoneA-${idx}`), firstStep, (amt) => changeTableLife(idx, amt));
+    bindLifeTapZone(seat.querySelector(`#table-zoneB-${idx}`), secondStep, (amt) => changeTableLife(idx, amt));
 
-    // Tapping the Player Name pill also opens the Command Tray
     const nameTag = seat.querySelector(`#table-name-${idx}`);
     nameTag.addEventListener("pointerdown", (e) => e.stopPropagation());
     nameTag.onclick = (e) => {
@@ -1366,7 +1381,6 @@ function renderTableGrid() {
       openTablePlayerTray(idx);
     };
 
-    // Bind Theme Color Cycler
     const colorBtn = seat.querySelector(".seat-color-btn");
     colorBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
     colorBtn.onclick = (e) => {
@@ -1377,42 +1391,13 @@ function renderTableGrid() {
       renderTableGrid();
     };
 
-    // Bind each of the 4 Pod Radar Boxes:
-    // - Tapping "YOU" opens the full Command Tray modal
-    // - Tapping an opponent's box adds +1 Commander Damage immediately (and subtracts 1 life)
-    // - Holding any box for 420ms opens the full Command Tray modal
-    seat.querySelectorAll(".radar-cell-btn").forEach((cellBtn) => {
-      let holdTimer = null;
-      let held = false;
-
-      cellBtn.addEventListener("pointerdown", (e) => {
-        e.stopPropagation();
-        held = false;
-        holdTimer = setTimeout(() => {
-          held = true;
-          triggerHaptic([15, 25]);
-          openTablePlayerTray(idx);
-        }, 420);
-      });
-
-      cellBtn.addEventListener("pointerup", (e) => {
-        e.stopPropagation();
-        clearTimeout(holdTimer);
-        if (held) return;
-
-        const sourceAttr = cellBtn.dataset.source;
-        if (sourceAttr === "self") {
-          triggerHaptic(12);
-          openTablePlayerTray(idx);
-        } else {
-          const sourceIdx = parseInt(sourceAttr, 10);
-          adjustTableCmdrDamage(idx, sourceIdx, 1);
-        }
-      });
-
-      cellBtn.addEventListener("pointerleave", () => clearTimeout(holdTimer));
-      cellBtn.addEventListener("pointercancel", () => clearTimeout(holdTimer));
-    });
+    const radarBtn = seat.querySelector(`#table-radar-${idx}`);
+    radarBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
+    radarBtn.onclick = (e) => {
+      e.stopPropagation();
+      triggerHaptic(12);
+      openTablePlayerTray(idx);
+    };
   });
 }
 
@@ -1442,9 +1427,16 @@ function changeTableLife(idx, amount) {
   }, 1800);
 }
 
-// --- PLAYER COMMAND TRAY (MODAL FOR COMMANDER DAMAGE & COUNTERS) ---
+// --- PLAYER COMMAND TRAY (ROTATES TO MATCH THE ACTIVE SEAT) ---
 function openTablePlayerTray(idx) {
   activeTraySeatIdx = idx;
+  const faceClass = getSeatOrientationClass(idx);
+
+  if (tableTrayCard) {
+    tableTrayCard.classList.remove("face-left", "face-right", "face-top", "face-bottom");
+    tableTrayCard.classList.add(faceClass);
+  }
+
   renderTablePlayerTray();
   tablePlayerModal.classList.remove("hidden");
 }
@@ -1469,7 +1461,6 @@ function renderTablePlayerTray() {
   document.getElementById("trayVal-energy").textContent = target.energy;
   document.getElementById("trayVal-rad").textContent = target.rad;
 
-  // Render Spatial Commander Damage Matrix
   const matrix = document.getElementById("trayCmdrMatrix");
   matrix.innerHTML = "";
 
