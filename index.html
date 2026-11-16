@@ -113,6 +113,7 @@
             <button id="openDiceRollerBtn" class="menu-item">🎲 Dice &amp; Coin Roller</button>
             <button id="openHistoryBtn" class="menu-item">📜 Life History Log</button>
             <button id="becomeMonarchBtn" class="menu-item">👑 Claim the Monarch</button>
+            <button id="toggleEliminatedBtn" class="menu-item">🏳️ Scoop / Knocked Out</button>
             <button id="toggleQrBtn" class="menu-item">📱 Hide QR Invite</button>
             <button id="openFirstPlayerBtn" class="menu-item hidden">🧭 Turn Order &amp; 1st Player</button>
             <button id="newGameBtn" class="menu-item warning hidden">↻ Start New Game</button>
@@ -130,6 +131,11 @@
           <button id="copyLinkBtn" class="btn-secondary btn-small">Copy Link</button>
           <button id="inlineHideQrBtn" class="btn-secondary btn-small">Hide QR</button>
         </div>
+      </div>
+
+      <!-- POD WINNER BANNER (Appears when 1 survivor remains in a 2+ player pod) -->
+      <div id="podWinnerBanner" class="winner-banner hidden">
+        <span id="podWinnerText">🏆 Player Wins the Pod!</span>
       </div>
 
       <!-- HOST PRE-GAME TURN ORDER SETUP CARD (Visible only before Turn 1 starts) -->
@@ -167,6 +173,13 @@
         <div id="heroPlayerName" class="hero-label">You</div>
         <div id="heroLifeDisplay" class="hero-life-display">40</div>
         <div id="deltaBadge" class="delta-badge"></div>
+
+        <!-- Knocked Out Overlay on Your Hero Card -->
+        <div id="heroEliminatedOverlay" class="hero-eliminated-overlay hidden">
+          <div class="eliminated-skull">💀 DEFEATED</div>
+          <div class="eliminated-sub">Skipped in turn rotation</div>
+          <button id="reviveSelfBtn" type="button" class="btn-secondary btn-small">↺ Revive / Still Alive</button>
+        </div>
 
         <div class="tap-zones">
           <div id="minusZone" class="tap-zone left">−</div>
@@ -279,6 +292,11 @@
           <strong id="trayMonarchState">OFF</strong>
         </button>
 
+        <button id="trayEliminatedBtn" type="button" class="tray-monarch-pill">
+          <span>💀 Knocked Out</span>
+          <strong id="trayEliminatedState">NO</strong>
+        </button>
+
         <div class="tray-counter-box">
           <span class="tray-counter-name">☠ Poison</span>
           <div class="tray-stepper">
@@ -315,14 +333,14 @@
           </div>
         </div>
 
-        <button id="trayPartnerToggleBtn" type="button" class="tray-partner-pill">
-          <span>🤝 My Partner</span>
+        <button id="trayPartnerToggleBtn" type="button" class="tray-partner-pill" style="grid-column: 1 / span 2;">
+          <span>🤝 Partner Commander (Two Commanders)</span>
           <strong id="trayPartnerState">OFF</strong>
         </button>
       </div>
 
       <!-- Spatial Commander Damage Matrix -->
-      <div class="tray-section-label" style="margin-top: 14px;">
+      <div class="tray-section-label" style="margin-top: 12px;">
         Commander Damage Taken <small>(Tap tile for +1, or − to subtract)</small>
       </div>
       <div id="trayCmdrMatrix" class="tray-cmdr-matrix"></div>
@@ -442,7 +460,7 @@
           <div class="step-badge">2</div>
           <div class="step-body">
             <h3>Track on Your Own Phone</h3>
-            <p>Tap the left or right half of your life card for <strong>−1 / +1</strong>, or <strong>press &amp; hold</strong> for <strong>−5 / +5</strong>. Adding Commander Damage automatically deducts from your life total and syncs to every screen in real time.</p>
+            <p>Tap the left or right half of your life card for <strong>−1 / +1</strong>, or <strong>press &amp; hold</strong> for <strong>−5 / +5</strong>. Reaching 0 life, 10 poison, or 21 Commander damage automatically marks a player knocked out and skips their turn.</p>
           </div>
         </div>
 
@@ -493,6 +511,9 @@
 
       <button id="modalMakeMonarchBtn" class="btn-monarch" style="margin-top: 14px; margin-bottom: 0;">
         👑 Give Monarch to Player
+      </button>
+      <button id="modalToggleEliminateBtn" class="btn-secondary" style="margin-top: 8px; margin-bottom: 0;">
+        💀 Mark Knocked Out
       </button>
       <button id="modalTransferHostBtn" class="btn-secondary hidden" style="margin-top: 8px; margin-bottom: 0;">
         🛡️ Make Pod Owner

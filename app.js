@@ -52,6 +52,7 @@ let myCurrentLife = 40;
 let myPoison = 0;
 let myTax = 0;
 let myHasPartner = false;
+let myEliminated = false;
 let myTheme = localStorage.getItem(THEME_PREF_KEY) || "blue";
 let myCommanderDamage = {};
 let myExtraCounters = { energy: 0, experience: 0, storm: 0, rad: 0 };
@@ -78,6 +79,15 @@ function triggerHaptic(pattern) {
       navigator.vibrate(pattern);
     } catch {}
   }
+}
+
+// --- LETHAL / ELIMINATED CHECK HELPER ---
+function hasLethalStats(life, poison, cmdrDamageObj) {
+  if (life <= 0) return true;
+  if ((poison || 0) >= 10) return true;
+  const vals = Object.values(cmdrDamageObj || {});
+  if (vals.some((v) => v >= 21)) return true;
+  return false;
 }
 
 // --- STARTING LIFE PRESET SELECTORS (Lobby & New Game Modal) ---
@@ -204,6 +214,46 @@ document.getElementById("togglePartnerBtn").onclick = () => {
   update(ref(db, `pods/${currentPodCode}/players/${currentUser.uid}`), {
     hasPartner: myHasPartner
   });
+};
+
+// --- SCOOP / KNOCKED OUT TOGGLE & REVIVE ---
+async function setPlayerEliminatedState(targetUid, nextState) {
+  if (!currentPodCode || !latestPodData) return;
+  triggerHaptic(nextState ? [20, 40, 20] : 15);
+
+  const updates = {
+    [`players/${targetUid}/eliminated`]: nextState
+  };
+
+  // If the eliminated player was the Monarch, clear Monarch status
+  if (nextState && latestPodData.monarchUid === targetUid) {
+    updates.monarchUid = null;
+  }
+
+  await update(ref(db, `pods/${currentPodCode}`), updates);
+
+  // If the eliminated player was the active turn player, automatically advance the turn
+  if (nextState && latestPodData.activeTurnUid === targetUid) {
+    await advancePodTurn();
+  }
+}
+
+document.getElementById("toggleEliminatedBtn").onclick = () => {
+  dropdownMenu.classList.add("hidden");
+  if (!currentUser) return;
+  setPlayerEliminatedState(currentUser.uid, !myEliminated);
+};
+
+document.getElementById("reviveSelfBtn").onclick = (e) => {
+  e.stopPropagation();
+  if (!currentUser) return;
+  const updates = { eliminated: false };
+  // If reviving from 0 or negative life, restore to 1 life so they don't immediately re-trigger 0-life KO
+  if (myCurrentLife <= 0) {
+    myCurrentLife = 1;
+    updates.life = 1;
+  }
+  update(ref(db, `pods/${currentPodCode}/players/${currentUser.uid}`), updates);
 };
 
 // --- LIFE HISTORY LOG MODAL ---
@@ -489,7 +539,7 @@ document.getElementById("leavePodBtn").onclick = async () => {
   window.location.href = window.location.origin + window.location.pathname;
 };
 
-// --- TURN ORDER HELPERS ---
+// --- TURN ORDER & AUTO-SKIP ELIMINATED PLAYERS ---
 function getOrderedPlayerUids(podData) {
   const playersObj = podData?.players || {};
   const existingIds = Object.keys(playersObj);
@@ -501,6 +551,22 @@ function getOrderedPlayerUids(podData) {
     .sort((a, b) => (playersObj[a].joinedAt || 0) - (playersObj[b].joinedAt || 0));
 
   return [...ordered, ...remaining];
+}
+
+function getNextAlivePlayerUid(podData, fromUid) {
+  const orderedUids = getOrderedPlayerUids(podData);
+  const players = podData?.players || {};
+  if (orderedUids.length === 0) return null;
+
+  const startIdx = orderedUids.indexOf(fromUid);
+  for (let offset = 1; offset <= orderedUids.length; offset++) {
+    const candidateIdx = (startIdx + offset) % orderedUids.length;
+    const candidateUid = orderedUids[candidateIdx];
+    if (!players[candidateUid]?.eliminated) {
+      return candidateUid;
+    }
+  }
+  return null;
 }
 
 async function setFirstPlayer(targetUid) {
@@ -516,12 +582,48 @@ async function setFirstPlayer(targetUid) {
 
 async function rollRandomFirstPlayer() {
   if (!currentPodCode || !latestPodData || latestPodData.hostUid !== currentUser.uid) return null;
-  const orderedUids = getOrderedPlayerUids(latestPodData);
-  if (orderedUids.length === 0) return null;
+  const players = latestPodData.players || {};
+  const aliveUids = getOrderedPlayerUids(latestPodData).filter((uid) => !players[uid]?.eliminated);
+  if (aliveUids.length === 0) return null;
+
   triggerHaptic([15, 25, 15]);
-  const winnerUid = orderedUids[Math.floor(Math.random() * orderedUids.length)];
+  const winnerUid = aliveUids[Math.floor(Math.random() * aliveUids.length)];
   await setFirstPlayer(winnerUid);
-  return latestPodData.players?.[winnerUid]?.name || "Player";
+  return players[winnerUid]?.name || "Player";
+}
+
+async function advancePodTurn() {
+  if (!currentPodCode || !latestPodData) return;
+  triggerHaptic(15);
+  const orderedUids = getOrderedPlayerUids(latestPodData);
+  const players = latestPodData.players || {};
+  if (orderedUids.length === 0) return;
+
+  const currentIdx = orderedUids.indexOf(latestPodData.activeTurnUid);
+  const firstIdx = orderedUids.indexOf(latestPodData.firstPlayerUid);
+
+  let nextUid = null;
+  let wrappedAround = false;
+
+  for (let step = 1; step <= orderedUids.length; step++) {
+    const candidateIdx = (currentIdx + step) % orderedUids.length;
+    if (candidateIdx === (firstIdx !== -1 ? firstIdx : 0)) {
+      wrappedAround = true;
+    }
+    const candidateUid = orderedUids[candidateIdx];
+    if (!players[candidateUid]?.eliminated) {
+      nextUid = candidateUid;
+      break;
+    }
+  }
+
+  if (!nextUid) return;
+
+  const nextTurnNumber = (latestPodData.turnNumber || 1) + (wrappedAround ? 1 : 0);
+  await update(ref(db, `pods/${currentPodCode}`), {
+    activeTurnUid: nextUid,
+    turnNumber: nextTurnNumber
+  });
 }
 
 // Host Pre-Game Setup Card Quick Buttons
@@ -532,24 +634,7 @@ document.getElementById("quickSeatOrderBtn").onclick = () => {
   openFirstPlayerModal();
 };
 
-document.getElementById("passTurnBtn").onclick = async () => {
-  if (!currentPodCode || !latestPodData) return;
-  triggerHaptic(15);
-  const orderedUids = getOrderedPlayerUids(latestPodData);
-  if (orderedUids.length === 0) return;
-
-  const currentIdx = orderedUids.indexOf(latestPodData.activeTurnUid);
-  const nextIdx = (currentIdx + 1) % orderedUids.length;
-  const nextUid = orderedUids[nextIdx];
-
-  const isNewRound = nextUid === latestPodData.firstPlayerUid;
-  const nextTurnNumber = (latestPodData.turnNumber || 1) + (isNewRound ? 1 : 0);
-
-  await update(ref(db, `pods/${currentPodCode}`), {
-    activeTurnUid: nextUid,
-    turnNumber: nextTurnNumber
-  });
-};
+document.getElementById("passTurnBtn").onclick = advancePodTurn;
 
 // --- HOST-ONLY: TURN ORDER & FIRST PLAYER MODAL ---
 function renderFirstPlayerModal() {
@@ -566,7 +651,7 @@ function renderFirstPlayerModal() {
 
     const label = document.createElement("div");
     label.className = "seat-label";
-    label.textContent = `${index + 1}. ${players[uid].name}${uid === currentUser.uid ? " (You)" : ""}`;
+    label.textContent = `${index + 1}. ${players[uid].name}${uid === currentUser.uid ? " (You)" : ""}${players[uid].eliminated ? " 💀" : ""}`;
 
     const actions = document.createElement("div");
     actions.className = "seat-actions";
@@ -674,6 +759,7 @@ document.getElementById("confirmNewGameBtn").onclick = async () => {
       name: p.name,
       theme: p.theme || "blue",
       hasPartner: Boolean(p.hasPartner),
+      eliminated: false,
       pinnedCounters: Array.isArray(p.pinnedCounters) ? p.pinnedCounters : [],
       joinedAt: p.joinedAt || Date.now(),
       life: selectedNewGameLife,
@@ -703,7 +789,7 @@ document.getElementById("becomeMonarchBtn").onclick = () => {
   setMonarch(isAlreadyMonarch ? null : currentUser.uid);
 };
 
-// --- OPPONENT INSPECTOR MODAL (Includes Host Transfer) ---
+// --- OPPONENT INSPECTOR MODAL (Includes Knocked Out Toggle & Host Transfer) ---
 function openOpponentModal(uid) {
   inspectedOpponentUid = uid;
   renderOpponentModal();
@@ -717,8 +803,9 @@ function renderOpponentModal() {
   const target = players[inspectedOpponentUid];
   const isMonarch = latestPodData.monarchUid === inspectedOpponentUid;
   const isHost = latestPodData.hostUid === currentUser.uid;
+  const isEliminated = Boolean(target.eliminated);
 
-  document.getElementById("modalPlayerName").textContent = `${isMonarch ? "👑 " : ""}${target.name}`;
+  document.getElementById("modalPlayerName").textContent = `${isMonarch ? "👑 " : ""}${target.name}${isEliminated ? " (Knocked Out)" : ""}`;
   document.getElementById("modalLifeVal").textContent = target.life ?? (latestPodData.startingLife || 40);
   document.getElementById("modalPoisonVal").textContent = target.poison ?? 0;
   document.getElementById("modalTaxVal").textContent = `+${target.tax ?? 0}`;
@@ -782,6 +869,13 @@ function renderOpponentModal() {
     setMonarch(inspectedOpponentUid);
   };
 
+  const koBtn = document.getElementById("modalToggleEliminateBtn");
+  koBtn.textContent = isEliminated ? "↺ Revive Player" : "💀 Mark Knocked Out";
+  koBtn.onclick = async () => {
+    await setPlayerEliminatedState(inspectedOpponentUid, !isEliminated);
+    renderOpponentModal();
+  };
+
   const transferBtn = document.getElementById("modalTransferHostBtn");
   transferBtn.classList.toggle("hidden", !isHost);
   transferBtn.onclick = async () => {
@@ -839,7 +933,24 @@ function recordHistoryChange(previousLife, newLife, note = "") {
   }, 1500);
 }
 
-// --- LIFE, POISON, TAX & COMMANDER DAMAGE UPDATERS ---
+// --- LIFE, POISON, TAX & COMMANDER DAMAGE UPDATERS (With Auto-KO Detection) ---
+async function syncMyLethalCheck(extraUpdates = {}) {
+  if (!currentPodCode || !currentUser) return;
+  const shouldBeKo = hasLethalStats(myCurrentLife, myPoison, myCommanderDamage);
+  const wasEliminated = myEliminated;
+
+  if (shouldBeKo !== myEliminated) {
+    myEliminated = shouldBeKo;
+    extraUpdates.eliminated = shouldBeKo;
+  }
+
+  await update(ref(db, `pods/${currentPodCode}/players/${currentUser.uid}`), extraUpdates);
+
+  if (!wasEliminated && shouldBeKo && latestPodData?.activeTurnUid === currentUser.uid) {
+    await advancePodTurn();
+  }
+}
+
 function changeMyLife(amount, note = "") {
   if (!currentPodCode || !currentUser) return;
 
@@ -861,19 +972,14 @@ function changeMyLife(amount, note = "") {
   }, 2000);
 
   saveSession(currentPodCode, playerNameInput.value.trim() || "Player");
-
-  update(ref(db, `pods/${currentPodCode}/players/${currentUser.uid}`), {
-    life: myCurrentLife
-  });
+  syncMyLethalCheck({ life: myCurrentLife });
 }
 
 function changePoison(delta) {
   if (!currentPodCode || !currentUser) return;
   triggerHaptic(12);
   myPoison = Math.max(0, myPoison + delta);
-  update(ref(db, `pods/${currentPodCode}/players/${currentUser.uid}`), {
-    poison: myPoison
-  });
+  syncMyLethalCheck({ poison: myPoison });
 }
 
 function changeTax(delta) {
@@ -897,11 +1003,12 @@ function changeCommanderDamage(dmgKey, sourceUid, slotLabel, delta) {
   myCommanderDamage[dmgKey] = nextDmg;
   const attackerName = latestPodData?.players?.[sourceUid]?.name || "Commander";
   const labelSuffix = slotLabel ? ` (${slotLabel})` : "";
-  changeMyLife(-actualChange, `Cmdr from ${attackerName}${labelSuffix}`);
 
   update(ref(db, `pods/${currentPodCode}/players/${currentUser.uid}/commanderDamage`), {
     [dmgKey]: nextDmg
   });
+
+  changeMyLife(-actualChange, `Cmdr from ${attackerName}${labelSuffix}`);
 }
 
 document.getElementById("poisonMinusBtn").onclick = () => changePoison(-1);
@@ -978,6 +1085,7 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
       name: name,
       theme: myTheme,
       hasPartner: false,
+      eliminated: false,
       pinnedCounters: [],
       joinedAt: Date.now(),
       life: podStartingLife,
@@ -991,6 +1099,7 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
     myPoison = existing.poison ?? 0;
     myTax = existing.tax ?? 0;
     myHasPartner = Boolean(existing.hasPartner);
+    myEliminated = Boolean(existing.eliminated);
     myCommanderDamage = existing.commanderDamage || {};
     myExtraCounters = { energy: 0, experience: 0, storm: 0, rad: 0, ...(existing.extraCounters || {}) };
     myPinnedCounters = Array.isArray(existing.pinnedCounters) ? existing.pinnedCounters : [];
@@ -1028,6 +1137,17 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
     document.getElementById("openFirstPlayerBtn").classList.toggle("hidden", !isHost);
     document.getElementById("newGameBtn").classList.toggle("hidden", !isHost);
 
+    // Check for Pod Winner (when 2+ players are in pod and exactly 1 survivor remains)
+    const aliveUids = orderedUids.filter((uid) => !players[uid]?.eliminated);
+    const winnerBanner = document.getElementById("podWinnerBanner");
+    if (orderedUids.length >= 2 && aliveUids.length === 1) {
+      const winnerName = players[aliveUids[0]]?.name || "Player";
+      document.getElementById("podWinnerText").textContent = `🏆 ${winnerName} Wins the Pod!`;
+      winnerBanner.classList.remove("hidden");
+    } else {
+      winnerBanner.classList.add("hidden");
+    }
+
     const gameHasStarted = Boolean(activeTurnUid && players[activeTurnUid]);
     document.getElementById("hostStartBanner").classList.toggle("hidden", !(isHost && !gameHasStarted));
 
@@ -1045,15 +1165,15 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
 
       const strip = document.getElementById("turnOrderStrip");
       strip.innerHTML = "";
-      const activeIdx = orderedUids.indexOf(activeTurnUid);
-      const nextIdx = orderedUids.length > 0 ? (activeIdx + 1) % orderedUids.length : -1;
+      const nextAliveUid = getNextAlivePlayerUid(podData, activeTurnUid);
 
       orderedUids.forEach((uid, idx) => {
+        const p = players[uid];
         const chip = document.createElement("span");
         const isCurrent = uid === activeTurnUid;
-        const isNext = idx === nextIdx && orderedUids.length > 1;
-        chip.className = `order-chip ${isCurrent ? "active" : ""} ${isNext ? "next-up" : ""}`;
-        chip.textContent = `${idx + 1}. ${players[uid].name}`;
+        const isNext = uid === nextAliveUid && aliveUids.length > 1;
+        chip.className = `order-chip ${isCurrent ? "active" : ""} ${isNext ? "next-up" : ""} ${p.eliminated ? "eliminated-chip" : ""}`;
+        chip.textContent = `${idx + 1}. ${p.name}${p.eliminated ? " 💀" : ""}`;
         strip.appendChild(chip);
 
         if (idx < orderedUids.length - 1) {
@@ -1078,6 +1198,7 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
       myPoison = me.poison ?? 0;
       myTax = me.tax ?? 0;
       myHasPartner = Boolean(me.hasPartner);
+      myEliminated = Boolean(me.eliminated);
       myCommanderDamage = me.commanderDamage || {};
       myExtraCounters = { energy: 0, experience: 0, storm: 0, rad: 0, ...(me.extraCounters || {}) };
       myPinnedCounters = Array.isArray(me.pinnedCounters) ? me.pinnedCounters : [];
@@ -1088,9 +1209,16 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
       partnerBtn.textContent = myHasPartner ? "🤝 Partner Commander: ON" : "🤝 Partner Commander: OFF";
       partnerBtn.classList.toggle("active-opt", myHasPartner);
 
+      const koMenuBtn = document.getElementById("toggleEliminatedBtn");
+      koMenuBtn.textContent = myEliminated ? "↺ Revive / Rejoin Game" : "🏳️ Scoop / Knocked Out";
+      koMenuBtn.classList.toggle("warning", myEliminated);
+
       const iAmMonarch = monarchUid === currentUser.uid;
       document.getElementById("heroPlayerName").textContent = `${iAmMonarch ? "👑 " : ""}${me.name} (You)${myHasPartner ? " • Partners" : ""}`;
-      document.getElementById("heroTracker").classList.toggle("is-monarch", iAmMonarch);
+      const heroEl = document.getElementById("heroTracker");
+      heroEl.classList.toggle("is-monarch", iAmMonarch);
+      heroEl.classList.toggle("is-eliminated", myEliminated);
+      document.getElementById("heroEliminatedOverlay").classList.toggle("hidden", !myEliminated);
 
       const monarchBtn = document.getElementById("becomeMonarchBtn");
       monarchBtn.classList.toggle("warning", iAmMonarch);
@@ -1114,10 +1242,12 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
       const oppIsMonarch = monarchUid === uid;
       const oppIsActiveTurn = activeTurnUid === uid;
       const oppIsHost = podData.hostUid === uid;
+      const oppIsEliminated = Boolean(p.eliminated);
       const oppTheme = VALID_THEMES.includes(p.theme) ? p.theme : "blue";
 
       const badges = [];
-      if (oppIsHost) badges.push("Host");
+      if (oppIsEliminated) badges.push("💀 OUT");
+      else if (oppIsHost) badges.push("Host");
       if (p.poison > 0) badges.push(`☠${p.poison}`);
       const cmdrValues = Object.values(p.commanderDamage || {});
       const maxCmdr = cmdrValues.length > 0 ? Math.max(...cmdrValues) : 0;
@@ -1125,10 +1255,10 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
 
       const card = document.createElement("button");
       card.type = "button";
-      card.className = `opponent-card theme-${oppTheme} ${oppIsMonarch ? "is-monarch" : ""} ${oppIsActiveTurn ? "is-active-turn" : ""}`;
+      card.className = `opponent-card theme-${oppTheme} ${oppIsMonarch ? "is-monarch" : ""} ${oppIsActiveTurn ? "is-active-turn" : ""} ${oppIsEliminated ? "is-eliminated" : ""}`;
       card.innerHTML = `
         <div class="opponent-name">${oppIsMonarch ? "👑 " : ""}${p.name}</div>
-        <div class="opponent-life ${p.life <= 0 ? "dead" : ""}">${p.life}</div>
+        <div class="opponent-life ${oppIsEliminated || p.life <= 0 ? "dead" : ""}">${p.life}</div>
         <div class="opponent-badges">${badges.join(" • ")}</div>
       `;
       card.addEventListener("click", () => openOpponentModal(uid));
@@ -1269,6 +1399,7 @@ function initTableMode() {
     theme: defaultThemes[idx % defaultThemes.length],
     isFirst: false,
     hasPartner: false,
+    eliminated: false,
     poison: 0,
     tax: 0,
     energy: 0,
@@ -1299,7 +1430,6 @@ function getSeatOrientationClass(idx) {
     if (idx === 1) return "face-right";
     return "face-bottom";
   }
-  // 4 Players: Left column faces left edge (90deg), Right column faces right edge (-90deg)
   return idx % 2 === 0 ? "face-left" : "face-right";
 }
 
@@ -1307,9 +1437,13 @@ function renderTableGrid() {
   tableGrid.className = `table-grid players-${tablePlayerCount}`;
   tableGrid.innerHTML = "";
 
+  const aliveSeats = tablePlayers.filter((p) => !p.eliminated);
+  const winnerSeatId = tablePlayers.length >= 2 && aliveSeats.length === 1 ? aliveSeats[0].id : null;
+
   tablePlayers.forEach((p, idx) => {
     const faceClass = getSeatOrientationClass(idx);
     const isMonarch = tableMonarchIdx === idx;
+    const isWinner = winnerSeatId === idx;
 
     const firstZoneIsPlus = faceClass === "face-right" || faceClass === "face-top";
     const firstStep = firstZoneIsPlus ? 1 : -1;
@@ -1319,7 +1453,7 @@ function renderTableGrid() {
 
     const seat = document.createElement("div");
     seat.id = `table-seat-${idx}`;
-    seat.className = `table-seat theme-${p.theme} ${faceClass} ${p.isFirst ? "first-player-glow" : ""} ${isMonarch ? "is-monarch" : ""}`;
+    seat.className = `table-seat theme-${p.theme} ${faceClass} ${p.isFirst ? "first-player-glow" : ""} ${isMonarch ? "is-monarch" : ""} ${p.eliminated ? "is-eliminated" : ""} ${isWinner ? "is-winner" : ""}`;
 
     const statusPills = [];
     if (p.poison > 0) statusPills.push(`<span class="seat-mini-badge poison">☠${p.poison}</span>`);
@@ -1355,7 +1489,8 @@ function renderTableGrid() {
         </div>
 
         <div class="seat-center-stack">
-          <div id="table-life-${idx}" class="seat-life-num ${p.life <= 0 ? "dead" : ""}">${p.life}</div>
+          <div id="table-life-${idx}" class="seat-life-num ${p.eliminated || p.life <= 0 ? "dead" : ""}">${p.life}</div>
+          ${p.eliminated ? `<div class="seat-ko-tag">💀 DEFEATED</div>` : isWinner ? `<div class="seat-winner-tag">🏆 WINNER</div>` : ""}
           <div id="table-delta-${idx}" class="seat-delta"></div>
         </div>
 
@@ -1401,15 +1536,35 @@ function renderTableGrid() {
   });
 }
 
+function checkTableSeatLethal(idx) {
+  const p = tablePlayers[idx];
+  if (!p) return false;
+  const nextKo = hasLethalStats(p.life, p.poison, p.cmdrDamage);
+  if (nextKo !== p.eliminated) {
+    p.eliminated = nextKo;
+    if (nextKo && tableMonarchIdx === idx) {
+      tableMonarchIdx = null;
+    }
+    return true;
+  }
+  return false;
+}
+
 function changeTableLife(idx, amount) {
   const p = tablePlayers[idx];
   if (!p) return;
 
   p.life += amount;
-  const lifeEl = document.getElementById(`table-life-${idx}`);
-  if (lifeEl) {
-    lifeEl.textContent = p.life;
-    lifeEl.classList.toggle("dead", p.life <= 0);
+  const koChanged = checkTableSeatLethal(idx);
+
+  if (koChanged) {
+    renderTableGrid();
+  } else {
+    const lifeEl = document.getElementById(`table-life-${idx}`);
+    if (lifeEl) {
+      lifeEl.textContent = p.life;
+      lifeEl.classList.toggle("dead", p.eliminated || p.life <= 0);
+    }
   }
 
   tableDeltaTotals[idx] = (tableDeltaTotals[idx] || 0) + amount;
@@ -1423,7 +1578,8 @@ function changeTableLife(idx, amount) {
   clearTimeout(tableDeltaTimers[idx]);
   tableDeltaTimers[idx] = setTimeout(() => {
     tableDeltaTotals[idx] = 0;
-    if (deltaEl) deltaEl.textContent = "";
+    const currentDeltaEl = document.getElementById(`table-delta-${idx}`);
+    if (currentDeltaEl) currentDeltaEl.textContent = "";
   }, 1800);
 }
 
@@ -1451,6 +1607,10 @@ function renderTablePlayerTray() {
   const monarchBtn = document.getElementById("trayMonarchBtn");
   monarchBtn.classList.toggle("active", isMonarch);
   document.getElementById("trayMonarchState").textContent = isMonarch ? "ON" : "OFF";
+
+  const elimBtn = document.getElementById("trayEliminatedBtn");
+  elimBtn.classList.toggle("active", target.eliminated);
+  document.getElementById("trayEliminatedState").textContent = target.eliminated ? "OUT" : "NO";
 
   const partnerBtn = document.getElementById("trayPartnerToggleBtn");
   partnerBtn.classList.toggle("active", target.hasPartner);
@@ -1545,6 +1705,7 @@ function adjustTableCmdrDamage(targetIdx, dmgKey, delta) {
   triggerHaptic(next >= 21 ? [30, 40, 30] : 14);
   target.cmdrDamage[dmgKey] = next;
   changeTableLife(targetIdx, -actualDelta);
+  checkTableSeatLethal(targetIdx);
   renderTableGrid();
   if (!tablePlayerModal.classList.contains("hidden")) {
     renderTablePlayerTray();
@@ -1555,6 +1716,21 @@ document.getElementById("trayMonarchBtn").onclick = () => {
   if (activeTraySeatIdx === null) return;
   triggerHaptic(12);
   tableMonarchIdx = tableMonarchIdx === activeTraySeatIdx ? null : activeTraySeatIdx;
+  renderTableGrid();
+  renderTablePlayerTray();
+};
+
+document.getElementById("trayEliminatedBtn").onclick = () => {
+  if (activeTraySeatIdx === null) return;
+  triggerHaptic(15);
+  const p = tablePlayers[activeTraySeatIdx];
+  p.eliminated = !p.eliminated;
+  if (!p.eliminated && p.life <= 0) {
+    p.life = 1;
+  }
+  if (p.eliminated && tableMonarchIdx === activeTraySeatIdx) {
+    tableMonarchIdx = null;
+  }
   renderTableGrid();
   renderTablePlayerTray();
 };
@@ -1576,6 +1752,7 @@ document.querySelectorAll("#tablePlayerModal .tray-step-btn[data-counter]").forE
     const delta = parseInt(btn.dataset.delta, 10);
     const p = tablePlayers[activeTraySeatIdx];
     p[key] = Math.max(0, (p[key] || 0) + delta);
+    checkTableSeatLethal(activeTraySeatIdx);
     renderTableGrid();
     renderTablePlayerTray();
   };
@@ -1605,9 +1782,10 @@ document.addEventListener("click", (e) => {
 
 document.getElementById("tableRollFirstBtn").onclick = () => {
   tableHubMenu.classList.add("hidden");
-  if (tablePlayers.length === 0) return;
+  const aliveIndices = tablePlayers.map((p, i) => (!p.eliminated ? i : -1)).filter((i) => i !== -1);
+  if (aliveIndices.length === 0) return;
   triggerHaptic([15, 30, 15]);
-  const winnerIdx = Math.floor(Math.random() * tablePlayers.length);
+  const winnerIdx = aliveIndices[Math.floor(Math.random() * aliveIndices.length)];
   tablePlayers.forEach((p, idx) => {
     p.isFirst = idx === winnerIdx;
   });
@@ -1626,6 +1804,7 @@ document.getElementById("tableResetBtn").onclick = () => {
   tablePlayers.forEach((p) => {
     p.life = tableStartingLife;
     p.isFirst = false;
+    p.eliminated = false;
     p.poison = 0;
     p.tax = 0;
     p.energy = 0;
