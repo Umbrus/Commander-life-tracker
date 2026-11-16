@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.umbrus.twa",
+        "sha256_cert_fingerprints": ["77:B4:5F:BC:23:61:8D:03:FB:9A:C8:DB:CC:34:A3:C5:0E:07:BF:57:1A:7D:E0:D7:60:47:74:A7:6F:E6:29:7D"]
+      }
+    }]
