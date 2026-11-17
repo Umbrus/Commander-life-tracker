@@ -237,7 +237,7 @@ function parseDecklistText(rawText) {
   return cards;
 }
 
-// Fetch Archidekt or Parse Moxfield URL
+// Fetch Archidekt (Multi-Proxy Fallback) or Parse Moxfield URL
 document.getElementById("fetchDeckUrlBtn").onclick = async () => {
   const urlVal = document.getElementById("deckUrlInput").value.trim();
   const statusEl = document.getElementById("deckFetchStatus");
@@ -251,14 +251,40 @@ document.getElementById("fetchDeckUrlBtn").onclick = async () => {
 
   if (archidektMatch) {
     const deckId = archidektMatch[1];
+    const targetUrl = `https://archidekt.com/api/decks/${deckId}/`;
     statusEl.textContent = "⏳ Importing deck from Archidekt...";
-    try {
-      const targetUrl = `https://archidekt.com/api/decks/${deckId}/`;
-      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
-      const res = await fetch(proxyUrl);
-      if (!res.ok) throw new Error("Fetch blocked");
-      const data = await res.json();
 
+    const proxyEndpoints = [
+      async () => {
+        const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`);
+        if (!res.ok) throw new Error("AllOrigins failed");
+        const wrapped = await res.json();
+        return JSON.parse(wrapped.contents);
+      },
+      async () => {
+        const res = await fetch(`https://api.cors.lol/?url=${encodeURIComponent(targetUrl)}`);
+        if (!res.ok) throw new Error("cors.lol failed");
+        return await res.json();
+      },
+      async () => {
+        const res = await fetch(`https://thingproxy.freeboard.io/fetch/${targetUrl}`);
+        if (!res.ok) throw new Error("ThingProxy failed");
+        return await res.json();
+      }
+    ];
+
+    let data = null;
+    for (const tryFetch of proxyEndpoints) {
+      try {
+        const result = await tryFetch();
+        if (result && Array.isArray(result.cards)) {
+          data = result;
+          break;
+        }
+      } catch {}
+    }
+
+    if (data) {
       if (data.name) document.getElementById("deckNameInput").value = data.name;
 
       const commanders = [];
@@ -280,8 +306,8 @@ document.getElementById("fetchDeckUrlBtn").onclick = async () => {
       if (commanders[1]) document.getElementById("deckPartnerInput").value = commanders[1];
       document.getElementById("deckListTextarea").value = textLines.join("\n");
       statusEl.textContent = `✅ Imported "${data.name || "Deck"}" (${textLines.length} unique cards)!`;
-    } catch {
-      statusEl.textContent = "⚠️ Archidekt blocked direct fetch — enter Deck Name & paste exported text below.";
+    } else {
+      statusEl.textContent = "⚠️ Could not auto-fetch (make sure the Archidekt deck is Public), or paste the exported text list below.";
     }
   } else if (moxfieldMatch) {
     const slug = moxfieldMatch[1].replace(/[-_]+/g, " ");
