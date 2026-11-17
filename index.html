@@ -371,7 +371,7 @@
     </div>
   </div>
 
-  <!-- FULL DECKLIST VIEWER MODAL -->
+ <!-- FULL DECKLIST VIEWER MODAL -->
   <div id="deckViewerModal" class="modal-backdrop hidden">
     <div class="modal-card deck-viewer-card">
       <div class="modal-header">
@@ -384,11 +384,21 @@
         <div class="viewer-deck-meta">
           <div id="viewerCmdrName" class="viewer-cmdr-name">Commander</div>
           <div id="viewerCardCount" class="viewer-card-count">0 Cards</div>
-          <div class="viewer-hero-actions">
+          <div class="viewer-hero-actions" style="flex-wrap: wrap;">
             <button type="button" id="viewerSelectActiveBtn" class="btn-primary btn-small">⚔️ Pilot Deck</button>
-            <a id="viewerExternalLink" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-small external-deck-link hidden">↗ Open Site</a>
+            <button type="button" id="viewerChangeArtBtn" class="btn-secondary btn-small">🎨 Change Art</button>
+            <a id="viewerExternalLink" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-small external-deck-link hidden">↗ Site</a>
           </div>
         </div>
+      </div>
+
+      <!-- Scryfall Printing / Reskin Picker Drawer -->
+      <div id="artPickerDrawer" class="art-picker-drawer hidden">
+        <div class="card-preview-top">
+          <span id="artPickerTitle">Select Printing / Secret Lair Art</span>
+          <button type="button" id="closeArtPickerBtn" class="btn-secondary btn-small">Close</button>
+        </div>
+        <div id="artPickerGrid" class="art-picker-grid"></div>
       </div>
 
       <!-- Scryfall Card Image Preview Box (Updates when user taps any card in the list) -->
