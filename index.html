@@ -21,6 +21,34 @@
   <div class="app-shell">
     <div id="offlineBanner" class="offline-banner hidden">⚠️ Offline — waiting to reconnect...</div>
 
+    <!-- TOP LOBBY NAVIGATION BAR (Visible on Lobby, Deck Locker & Stats Views) -->
+    <header id="lobbyTopBar" class="lobby-top-bar">
+      <div id="appModeBadge" class="app-mode-badge">
+        <span class="conn-dot" id="topConnDot"></span>
+        <span id="topStatusLabel">Connecting...</span>
+      </div>
+
+      <div class="menu-wrapper">
+        <button id="lobbyMenuBtn" type="button" class="hamburger-btn" aria-label="Main Navigation">☰</button>
+
+        <div id="lobbyDropdownMenu" class="dropdown-menu hidden">
+          <div class="menu-section-title">CommandSync Navigation</div>
+          <button type="button" class="menu-item nav-view-btn active-opt" data-target="lobbyView">⚔️ Pod Lobby (Play)</button>
+          <button type="button" class="menu-item nav-view-btn" data-target="decksView">📚 My Deck Locker</button>
+          <button type="button" class="menu-item nav-view-btn" data-target="statsView">🏆 Win / Loss Stats</button>
+          <div class="menu-divider"></div>
+          <button id="navHowItWorksBtn" type="button" class="menu-item">❓ How CommandSync Works</button>
+          <div id="apkAccountMenuSlot" class="apk-account-slot">
+            <div class="menu-divider"></div>
+            <div class="account-status-chip">
+              <span>☁️ Profile Sync: Device ID</span>
+              <small>Google Sign-In coming next</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
     <!-- LOBBY / JOIN SCREEN -->
     <div id="lobbyView" class="lobby-wrapper">
       <div class="lobby-hero">
@@ -41,6 +69,17 @@
         <div class="input-group">
           <label for="playerNameInput" class="input-label">Planeswalker Name</label>
           <input id="playerNameInput" type="text" maxlength="18" placeholder="e.g. Gideon" autocomplete="off" />
+        </div>
+
+        <!-- ACTIVE DECK PILOTING SELECTOR -->
+        <div class="input-group">
+          <div class="label-action-row">
+            <label for="activeDeckSelect" class="input-label" style="margin:0;">Piloting Deck (Optional)</label>
+            <button type="button" id="quickOpenLockerBtn" class="inline-text-link">+ Manage Decks</button>
+          </div>
+          <select id="activeDeckSelect" class="deck-select">
+            <option value="">No Deck Selected (Casual / Unranked)</option>
+          </select>
         </div>
 
         <div id="standardCreateSection">
@@ -81,6 +120,69 @@
         <button id="openHowItWorksBtn" type="button" class="link-btn">
           <span>?</span> How does CommandSync work?
         </button>
+      </div>
+    </div>
+
+    <!-- MY DECK LOCKER VIEW -->
+    <div id="decksView" class="subpage-wrapper hidden">
+      <div class="subpage-header">
+        <div>
+          <div class="brand-mark" style="margin-bottom:2px;">COMMANDER ARMORY</div>
+          <h1 class="subpage-title">My Deck Locker</h1>
+        </div>
+        <button type="button" id="openAddDeckModalBtn" class="btn-primary btn-small">＋ Add Deck</button>
+      </div>
+
+      <p class="subpage-sub">Link decks from Moxfield or Archidekt, inspect full 100-card lists, and select a deck before starting a pod to log wins &amp; losses.</p>
+
+      <div id="deckLockerList" class="deck-locker-list">
+        <div class="empty-card-box">
+          <div style="font-size:1.8rem;margin-bottom:6px;">📚</div>
+          <strong>No Decks Saved Yet</strong>
+          <p>Tap <strong>+ Add Deck</strong> to link an Archidekt or Moxfield decklist or import by Commander name.</p>
+        </div>
+      </div>
+
+      <button type="button" class="btn-secondary back-to-lobby-btn" style="margin-top: 14px;">← Back to Pod Lobby</button>
+    </div>
+
+    <!-- WIN / LOSS STATS VIEW -->
+    <div id="statsView" class="subpage-wrapper hidden">
+      <div class="subpage-header">
+        <div>
+          <div class="brand-mark" style="margin-bottom:2px;">MATCH RECORD</div>
+          <h1 class="subpage-title">Win / Loss Stats</h1>
+        </div>
+        <button type="button" id="backFromStatsBtn" class="btn-secondary btn-small">← Lobby</button>
+      </div>
+
+      <div class="stats-summary-grid">
+        <div class="stat-summary-card">
+          <span class="stat-num" id="statTotalGames">0</span>
+          <span class="stat-label">Games</span>
+        </div>
+        <div class="stat-summary-card win">
+          <span class="stat-num" id="statTotalWins">0</span>
+          <span class="stat-label">Wins</span>
+        </div>
+        <div class="stat-summary-card loss">
+          <span class="stat-num" id="statTotalLosses">0</span>
+          <span class="stat-label">Losses</span>
+        </div>
+        <div class="stat-summary-card rate">
+          <span class="stat-num" id="statWinRate">0%</span>
+          <span class="stat-label">Win Rate</span>
+        </div>
+      </div>
+
+      <div class="section-label" style="text-align:left;margin:14px 0 8px;">Performance by Deck</div>
+      <div id="deckStatsBreakdown" class="deck-stats-list">
+        <div class="empty-hint">Play a game with a selected deck to record stats!</div>
+      </div>
+
+      <div class="section-label" style="text-align:left;margin:16px 0 8px;">Recent Match History</div>
+      <div id="matchHistoryList" class="history-list">
+        <div class="empty-hint">No completed matches logged yet.</div>
       </div>
     </div>
 
@@ -135,7 +237,8 @@
 
       <!-- POD WINNER BANNER (Appears when 1 survivor remains in a 2+ player pod) -->
       <div id="podWinnerBanner" class="winner-banner hidden">
-        <span id="podWinnerText">🏆 Player Wins the Pod!</span>
+        <div id="podWinnerText">🏆 Player Wins the Pod!</div>
+        <div id="podWinnerDeckNote" class="winner-sub-note hidden"></div>
       </div>
 
       <!-- HOST PRE-GAME TURN ORDER SETUP CARD (Visible only before Turn 1 starts) -->
@@ -171,6 +274,7 @@
       <div id="heroTracker" class="hero-tracker theme-blue">
         <div class="hero-inner-frame"></div>
         <div id="heroPlayerName" class="hero-label">You</div>
+        <div id="heroDeckTag" class="hero-deck-tag hidden"></div>
         <div id="heroLifeDisplay" class="hero-life-display">40</div>
         <div id="deltaBadge" class="delta-badge"></div>
 
@@ -223,6 +327,86 @@
       </div>
 
       <div id="wakeStatus" class="wake-status">Screen Wake Lock: Checking...</div>
+    </div>
+  </div>
+
+  <!-- ADD / IMPORT DECK MODAL -->
+  <div id="addDeckModal" class="modal-backdrop hidden">
+    <div class="modal-card" style="max-height: 88vh; overflow-y: auto;">
+      <div class="modal-header">
+        <h2>Add Commander Deck</h2>
+        <button id="closeAddDeckModalBtn" type="button" class="btn-secondary btn-small">✕</button>
+      </div>
+
+      <div class="input-group">
+        <label for="deckUrlInput" class="input-label">Moxfield or Archidekt Link (Optional)</label>
+        <div class="join-row" style="grid-template-columns: 1fr auto;">
+          <input id="deckUrlInput" type="url" placeholder="https://archidekt.com/decks/..." style="text-align:left;font-size:0.84rem;" />
+          <button type="button" id="fetchDeckUrlBtn" class="btn-secondary btn-small" style="padding:0 12px;">Fetch</button>
+        </div>
+        <div id="deckFetchStatus" class="fetch-status-hint">Archidekt links auto-import the full 100 cards. For Moxfield, paste the link and export text below.</div>
+      </div>
+
+      <div class="input-group">
+        <label for="deckNameInput" class="input-label">Deck Name</label>
+        <input id="deckNameInput" type="text" maxlength="36" placeholder="e.g. Ur-Dragon Tribal" style="text-align:left;" />
+      </div>
+
+      <div class="input-group">
+        <label for="deckCommanderInput" class="input-label">Commander Name (Pulls Scryfall Art)</label>
+        <input id="deckCommanderInput" type="text" maxlength="50" placeholder="e.g. Atraxa, Praetors' Voice" style="text-align:left;" />
+      </div>
+
+      <div class="input-group">
+        <label for="deckPartnerInput" class="input-label">Partner / Background (Optional)</label>
+        <input id="deckPartnerInput" type="text" maxlength="50" placeholder="e.g. Tymna the Weaver" style="text-align:left;" />
+      </div>
+
+      <div class="input-group">
+        <label for="deckListTextarea" class="input-label">Full 100-Card List (Paste Export Text or Auto-Filled)</label>
+        <textarea id="deckListTextarea" class="deck-textarea" rows="5" placeholder="1 Sol Ring&#10;1 Arcane Signet&#10;1 Command Tower&#10;..."></textarea>
+      </div>
+
+      <button id="saveDeckBtn" type="button" class="btn-primary" style="margin-bottom: 0;">💾 Save to Deck Locker</button>
+    </div>
+  </div>
+
+  <!-- FULL DECKLIST VIEWER MODAL -->
+  <div id="deckViewerModal" class="modal-backdrop hidden">
+    <div class="modal-card deck-viewer-card">
+      <div class="modal-header">
+        <h2 id="viewerDeckTitle">Decklist</h2>
+        <button id="closeDeckViewerBtn" type="button" class="btn-secondary btn-small">✕</button>
+      </div>
+
+      <div id="viewerDeckHero" class="viewer-deck-hero">
+        <img id="viewerCmdrImg" src="" alt="Commander Art" class="viewer-cmdr-art hidden" />
+        <div class="viewer-deck-meta">
+          <div id="viewerCmdrName" class="viewer-cmdr-name">Commander</div>
+          <div id="viewerCardCount" class="viewer-card-count">0 Cards</div>
+          <div class="viewer-hero-actions">
+            <button type="button" id="viewerSelectActiveBtn" class="btn-primary btn-small">⚔️ Pilot Deck</button>
+            <a id="viewerExternalLink" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-small external-deck-link hidden">↗ Open Site</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scryfall Card Image Preview Box (Updates when user taps any card in the list) -->
+      <div id="cardHoverPreview" class="card-preview-drawer hidden">
+        <div class="card-preview-top">
+          <span id="previewCardTitle">Card Name</span>
+          <button type="button" id="closeCardPreviewBtn" class="btn-secondary btn-small">Hide</button>
+        </div>
+        <img id="previewCardImg" src="" alt="Card Preview" />
+      </div>
+
+      <div id="viewerDeckCardsList" class="viewer-cards-scroll"></div>
+
+      <div class="viewer-footer-actions">
+        <button type="button" id="viewerLogWinBtn" class="btn-secondary btn-small">＋1 Win</button>
+        <button type="button" id="viewerLogLossBtn" class="btn-secondary btn-small">＋1 Loss</button>
+        <button type="button" id="viewerDeleteDeckBtn" class="btn-secondary btn-small" style="color:#f87171;">🗑 Delete</button>
+      </div>
     </div>
   </div>
 
@@ -284,7 +468,6 @@
         <button id="closeTableTrayBtn" type="button" class="btn-secondary btn-small">✕</button>
       </div>
 
-      <!-- Status & Secondary Counters -->
       <div class="tray-section-label">Table Status &amp; Counters</div>
       <div class="tray-counters-grid">
         <button id="trayMonarchBtn" type="button" class="tray-monarch-pill">
@@ -339,7 +522,6 @@
         </button>
       </div>
 
-      <!-- Spatial Commander Damage Matrix -->
       <div class="tray-section-label" style="margin-top: 12px;">
         Commander Damage Taken <small>(Tap tile for +1, or − to subtract)</small>
       </div>
@@ -459,7 +641,7 @@
         <div class="guide-step">
           <div class="step-badge">2</div>
           <div class="step-body">
-            <h3>Track on Your Own Phone</h3>
+            <h3>Track Life, Eliminations &amp; Turns</h3>
             <p>Tap the left or right half of your life card for <strong>−1 / +1</strong>, or <strong>press &amp; hold</strong> for <strong>−5 / +5</strong>. Reaching 0 life, 10 poison, or 21 Commander damage automatically marks a player knocked out and skips their turn.</p>
           </div>
         </div>
@@ -467,14 +649,10 @@
         <div class="guide-step">
           <div class="step-badge">3</div>
           <div class="step-body">
-            <h3>Table Mode (Single Device)</h3>
-            <p>Prefer sharing one phone in the middle of the table? Tap <strong>Table Mode</strong> on the start screen for a 2–4 player split-screen counter.</p>
+            <h3>Deck Locker &amp; Win/Loss Stats</h3>
+            <p>Open the top-right <strong>☰</strong> menu to save your Moxfield or Archidekt decks, view full 100-card decklists, and automatically log wins and losses when you pilot a deck in a pod.</p>
           </div>
         </div>
-      </div>
-
-      <div class="guide-tip">
-        <strong>Pro Tip:</strong> Add CommandSync to your phone's Home Screen (<em>Share → Add to Home Screen</em> or Chrome <em>Install App</em>) for full-screen play without browser bars.
       </div>
 
       <button id="gotItBtn" class="btn-primary" style="margin-top: 14px; margin-bottom: 0;">Got It</button>
