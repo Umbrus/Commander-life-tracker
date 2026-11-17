@@ -12,6 +12,8 @@ const firebaseConfig = {
   appId: "1:989326008841:web:13b9a36110891cebcf0ed8"
 };
 
+const DECK_PROXY_WORKER = "https://commandsync-deck-proxy.skitheryx.workers.dev";
+
 const SESSION_KEY = "mtg_active_pod_session";
 const SAVED_NAME_KEY = "mtg_saved_player_name";
 const THEME_PREF_KEY = "mtg_preferred_theme";
@@ -237,7 +239,31 @@ function parseDecklistText(rawText) {
   return cards;
 }
 
-// Fetch Archidekt (Multi-Proxy Fallback) or Parse Moxfield URL
+async function fetchViaWorkerOrFallback(targetUrl) {
+  const endpoints = [
+    async () => {
+      const res = await fetch(`${DECK_PROXY_WORKER}/?url=${encodeURIComponent(targetUrl)}`);
+      if (!res.ok) throw new Error("Worker failed");
+      return await res.json();
+    },
+    async () => {
+      const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`);
+      if (!res.ok) throw new Error("AllOrigins failed");
+      const wrapped = await res.json();
+      return JSON.parse(wrapped.contents);
+    }
+  ];
+
+  for (const attempt of endpoints) {
+    try {
+      const data = await attempt();
+      if (data && !data.error) return data;
+    } catch {}
+  }
+  return null;
+}
+
+// Fetch Archidekt or Moxfield via Personal Cloudflare Worker
 document.getElementById("fetchDeckUrlBtn").onclick = async () => {
   const urlVal = document.getElementById("deckUrlInput").value.trim();
   const statusEl = document.getElementById("deckFetchStatus");
@@ -254,43 +280,15 @@ document.getElementById("fetchDeckUrlBtn").onclick = async () => {
     const targetUrl = `https://archidekt.com/api/decks/${deckId}/`;
     statusEl.textContent = "⏳ Importing deck from Archidekt...";
 
-    const proxyEndpoints = [
-      async () => {
-        const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`);
-        if (!res.ok) throw new Error("AllOrigins failed");
-        const wrapped = await res.json();
-        return JSON.parse(wrapped.contents);
-      },
-      async () => {
-        const res = await fetch(`https://api.cors.lol/?url=${encodeURIComponent(targetUrl)}`);
-        if (!res.ok) throw new Error("cors.lol failed");
-        return await res.json();
-      },
-      async () => {
-        const res = await fetch(`https://thingproxy.freeboard.io/fetch/${targetUrl}`);
-        if (!res.ok) throw new Error("ThingProxy failed");
-        return await res.json();
-      }
-    ];
+    const data = await fetchViaWorkerOrFallback(targetUrl);
 
-    let data = null;
-    for (const tryFetch of proxyEndpoints) {
-      try {
-        const result = await tryFetch();
-        if (result && Array.isArray(result.cards)) {
-          data = result;
-          break;
-        }
-      } catch {}
-    }
-
-    if (data) {
+    if (data && Array.isArray(data.cards)) {
       if (data.name) document.getElementById("deckNameInput").value = data.name;
 
       const commanders = [];
       const textLines = [];
 
-      (data.cards || []).forEach((entry) => {
+      data.cards.forEach((entry) => {
         const cardName = entry.card?.oracleCard?.name || entry.card?.name;
         const qty = entry.quantity || 1;
         const cats = entry.categories || [];
@@ -310,11 +308,35 @@ document.getElementById("fetchDeckUrlBtn").onclick = async () => {
       statusEl.textContent = "⚠️ Could not auto-fetch (make sure the Archidekt deck is Public), or paste the exported text list below.";
     }
   } else if (moxfieldMatch) {
-    const slug = moxfieldMatch[1].replace(/[-_]+/g, " ");
-    if (!document.getElementById("deckNameInput").value) {
-      document.getElementById("deckNameInput").value = slug;
+    const publicId = moxfieldMatch[1];
+    const targetUrl = `https://api2.moxfield.com/v2/decks/all/${publicId}`;
+    statusEl.textContent = "⏳ Importing deck from Moxfield...";
+
+    const data = await fetchViaWorkerOrFallback(targetUrl);
+    if (data && data.mainboard) {
+      if (data.name) document.getElementById("deckNameInput").value = data.name;
+      const cmdrNames = Object.keys(data.commanders || {});
+      if (cmdrNames[0]) document.getElementById("deckCommanderInput").value = cmdrNames[0];
+      if (cmdrNames[1]) document.getElementById("deckPartnerInput").value = cmdrNames[1];
+
+      const textLines = [];
+      cmdrNames.forEach((cName) => {
+        const qty = data.commanders[cName]?.quantity || 1;
+        textLines.push(`${qty} ${cName}`);
+      });
+      Object.entries(data.mainboard).forEach(([cName, info]) => {
+        textLines.push(`${info.quantity || 1} ${cName}`);
+      });
+
+      document.getElementById("deckListTextarea").value = textLines.join("\n");
+      statusEl.textContent = `✅ Imported "${data.name || "Moxfield Deck"}" (${textLines.length} unique cards)!`;
+    } else {
+      const slug = publicId.replace(/[-_]+/g, " ");
+      if (!document.getElementById("deckNameInput").value) {
+        document.getElementById("deckNameInput").value = slug;
+      }
+      statusEl.textContent = "🔗 Moxfield link attached! In Moxfield, tap Export → Copy for MTGO and paste below if blocked.";
     }
-    statusEl.textContent = "🔗 Moxfield link attached! In Moxfield, tap Export → Copy for MTGO and paste below to view all 100 cards in-app.";
   } else {
     statusEl.textContent = "Link saved! Fill in your Deck Name, Commander, and optional 100-card list below.";
   }
@@ -326,7 +348,7 @@ document.getElementById("openAddDeckModalBtn").onclick = () => {
   document.getElementById("deckCommanderInput").value = "";
   document.getElementById("deckPartnerInput").value = "";
   document.getElementById("deckListTextarea").value = "";
-  document.getElementById("deckFetchStatus").textContent = "Archidekt links auto-import the full 100 cards. For Moxfield, paste the link and export text below.";
+  document.getElementById("deckFetchStatus").textContent = "Paste a public Archidekt or Moxfield URL and tap Fetch to auto-import.";
   addDeckModal.classList.remove("hidden");
 };
 document.getElementById("closeAddDeckModalBtn").onclick = () => addDeckModal.classList.add("hidden");
