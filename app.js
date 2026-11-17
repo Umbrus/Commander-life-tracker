@@ -1,5 +1,13 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import {
+  getAuth,
+  signInAnonymously,
+  GoogleAuthProvider,
+  linkWithPopup,
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 import { getDatabase, ref, set, get, push, update, remove, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 
 const firebaseConfig = {
@@ -560,30 +568,127 @@ if (invitedPodCode) {
 
 loadLocalUserProfile();
 
-// --- INITIALIZE FIREBASE ---
+// --- INITIALIZE FIREBASE & GOOGLE SIGN-IN ---
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
+const googleProvider = new GoogleAuthProvider();
+let hasBootstrappedSession = false;
 
-signInAnonymously(auth)
-  .then(async (cred) => {
-    currentUser = cred.user;
+function updateAccountMenuUI(user) {
+  const statusEl = document.getElementById("accountStatusText");
+  const subEl = document.getElementById("accountEmailSub");
+  const authBtn = document.getElementById("googleAuthBtn");
+  if (!statusEl || !subEl || !authBtn) return;
 
-    try {
-      const userSnap = await get(ref(db, `users/${currentUser.uid}`));
-      if (userSnap.exists()) {
-        const cloudData = userSnap.val();
-        if (cloudData.decks) {
-          userDecks = { ...userDecks, ...cloudData.decks };
-        }
-        if (cloudData.matches) {
-          userMatches = Object.values(cloudData.matches).sort((a, b) => (b.at || 0) - (a.at || 0));
-        }
-        saveLocalUserProfile();
-        syncActiveDeckDropdown();
+  if (user && !user.isAnonymous) {
+    statusEl.textContent = `☁️ ${user.displayName || "Google Account"}`;
+    subEl.textContent = user.email || "Cloud backup active";
+    authBtn.textContent = "🚪 Sign Out of Google";
+  } else {
+    statusEl.textContent = "☁️ Sync: Device ID";
+    subEl.textContent = "Sign in to back up decks across devices";
+    authBtn.textContent = "🔐 Sign in with Google";
+  }
+}
+
+async function syncCloudProfileForUser(uid) {
+  try {
+    const userSnap = await get(ref(db, `users/${uid}`));
+    if (userSnap.exists()) {
+      const cloudData = userSnap.val();
+      if (cloudData.decks) {
+        userDecks = { ...userDecks, ...cloudData.decks };
       }
-    } catch {}
+      if (cloudData.matches) {
+        const cloudMatches = Object.values(cloudData.matches);
+        const merged = [...userMatches, ...cloudMatches];
+        const seen = new Set();
+        userMatches = merged
+          .filter((m) => {
+            const key = `${m.deckId}_${m.at}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          })
+          .sort((a, b) => (b.at || 0) - (a.at || 0));
+      }
+      saveLocalUserProfile();
+      syncActiveDeckDropdown();
+    }
+    if (Object.keys(userDecks).length > 0) {
+      await update(ref(db, `users/${uid}/decks`), userDecks).catch(() => {});
+    }
+  } catch {}
+}
 
+const googleAuthBtn = document.getElementById("googleAuthBtn");
+if (googleAuthBtn) {
+  googleAuthBtn.onclick = async () => {
+    lobbyDropdownMenu.classList.add("hidden");
+    if (!auth.currentUser) return;
+
+    if (!auth.currentUser.isAnonymous) {
+      await signOut(auth);
+      await signInAnonymously(auth);
+      return;
+    }
+
+    const previousAnonUid = auth.currentUser.uid;
+    try {
+      const result = await linkWithPopup(auth.currentUser, googleProvider);
+      currentUser = result.user;
+      updateAccountMenuUI(currentUser);
+      await syncCloudProfileForUser(currentUser.uid);
+      alert(`Signed in as ${currentUser.displayName || currentUser.email}! Your decks are now backed up.`);
+    } catch (err) {
+      if (err.code === "auth/credential-already-in-use" || err.code === "auth/email-already-in-use") {
+        try {
+          const oldSnap = await get(ref(db, `users/${previousAnonUid}`));
+          const oldData = oldSnap.exists() ? oldSnap.val() : null;
+
+          const signInRes = await signInWithPopup(auth, googleProvider);
+          currentUser = signInRes.user;
+          if (oldData?.decks) {
+            userDecks = { ...oldData.decks, ...userDecks };
+          }
+          updateAccountMenuUI(currentUser);
+          await syncCloudProfileForUser(currentUser.uid);
+          alert(`Welcome back, ${currentUser.displayName || currentUser.email}! Your decks have been synced.`);
+        } catch (innerErr) {
+          alert(`Google Sign-In failed: ${innerErr.message}`);
+        }
+      } else if (err.code !== "auth/popup-closed-by-user") {
+        alert(`Google Sign-In error: ${err.message}`);
+      }
+    }
+  };
+}
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    try {
+      await signInAnonymously(auth);
+    } catch {
+      statusText.textContent = "Offline — Table Mode Ready";
+      topStatusLabel.textContent = "Offline";
+      statusBox.className = "conn-pill err";
+      lobbyForm.classList.remove("hidden");
+    }
+    return;
+  }
+
+  currentUser = user;
+  updateAccountMenuUI(user);
+
+  if (!user.isAnonymous && user.displayName && !playerNameInput.value.trim()) {
+    playerNameInput.value = user.displayName.split(" ")[0];
+  }
+
+  await syncCloudProfileForUser(user.uid);
+
+  if (!hasBootstrappedSession) {
+    hasBootstrappedSession = true;
     const savedSession = getValidSession();
     if (savedSession && !invitedPodCode) {
       statusText.textContent = `Reconnecting to Pod ${savedSession.code}...`;
@@ -600,13 +705,8 @@ signInAnonymously(auth)
     document.getElementById("topConnDot").style.background = "#22c55e";
     statusBox.className = "conn-pill ok";
     lobbyForm.classList.remove("hidden");
-  })
-  .catch(() => {
-    statusText.textContent = "Offline — Table Mode Ready";
-    topStatusLabel.textContent = "Offline";
-    statusBox.className = "conn-pill err";
-    lobbyForm.classList.remove("hidden");
-  });
+  }
+});
 
 function generateCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";

@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 
 const firebaseConfig = {
@@ -112,9 +112,23 @@ function renderStats() {
 loadLocalData();
 renderStats();
 
-signInAnonymously(auth)
-  .then(async (cred) => {
-    const snap = await get(ref(db, `users/${cred.user.uid}`));
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    try {
+      await signInAnonymously(auth);
+    } catch {}
+    return;
+  }
+
+  const labelEl = document.getElementById("statsSyncLabel");
+  const subEl = document.getElementById("statsEmailSub");
+  if (labelEl && subEl && !user.isAnonymous) {
+    labelEl.textContent = `☁️ ${user.displayName || "Google Account"}`;
+    subEl.textContent = user.email || "Cloud backup active";
+  }
+
+  try {
+    const snap = await get(ref(db, `users/${user.uid}`));
     if (snap.exists()) {
       const data = snap.val();
       if (data.decks) userDecks = { ...userDecks, ...data.decks };
@@ -125,5 +139,5 @@ signInAnonymously(auth)
       localStorage.setItem(LOCAL_MATCHES_KEY, JSON.stringify(userMatches));
       renderStats();
     }
-  })
-  .catch(() => {});
+  } catch {}
+});

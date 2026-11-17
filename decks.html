@@ -32,8 +32,11 @@
           <div class="menu-divider"></div>
           <div class="account-status-chip">
             <span id="profileSyncLabel">☁️ Profile Sync: Connecting...</span>
-            <small>Google Sign-In coming next</small>
+            <small id="accountEmailSub">Sign in to back up decks across devices</small>
           </div>
+          <button id="googleAuthBtn" type="button" class="menu-item active-opt" style="margin-top:4px;">
+            🔐 Sign in with Google
+          </button>
         </div>
       </div>
     </header>
@@ -59,7 +62,7 @@
       </div>
     </div>
 
-    <!-- DEDICATED FULL-PAGE DECK INSPECTOR & ART PICKER (Opens when a deck is tapped) -->
+    <!-- DEDICATED FULL-PAGE DECK INSPECTOR & ART PICKER -->
     <div id="deckDetailSection" class="subpage-wrapper hidden">
       <div class="subpage-header">
         <button type="button" id="backToLockerBtn" class="btn-secondary btn-small">← All Decks</button>
