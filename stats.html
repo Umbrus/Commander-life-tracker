@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#070606" />
+  <title>Win / Loss Stats — CommandSync</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="images/icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="app-shell">
+    <header class="lobby-top-bar">
+      <a href="index.html" class="app-mode-badge" style="text-decoration:none;color:var(--gold-foil);">
+        ← Pod Lobby
+      </a>
+
+      <div class="menu-wrapper">
+        <button id="statsMenuBtn" type="button" class="hamburger-btn" aria-label="Navigation Menu">☰</button>
+
+        <div id="statsDropdownMenu" class="dropdown-menu hidden">
+          <div class="menu-section-title">CommandSync Navigation</div>
+          <a href="index.html" class="menu-item" style="display:block;text-decoration:none;">⚔️ Pod Lobby (Play)</a>
+          <a href="decks.html" class="menu-item" style="display:block;text-decoration:none;">📚 My Deck Locker</a>
+          <a href="stats.html" class="menu-item active-opt" style="display:block;text-decoration:none;">🏆 Win / Loss Stats</a>
+        </div>
+      </div>
+    </header>
+
+    <div class="subpage-wrapper">
+      <div class="subpage-header">
+        <div>
+          <div class="brand-mark" style="margin-bottom:2px;">MATCH RECORD</div>
+          <h1 class="subpage-title">Win / Loss Stats</h1>
+        </div>
+        <a href="decks.html" class="btn-secondary btn-small" style="text-decoration:none;">📚 Decks</a>
+      </div>
+
+      <div class="stats-summary-grid">
+        <div class="stat-summary-card">
+          <span class="stat-num" id="statTotalGames">0</span>
+          <span class="stat-label">Games</span>
+        </div>
+        <div class="stat-summary-card win">
+          <span class="stat-num" id="statTotalWins">0</span>
+          <span class="stat-label">Wins</span>
+        </div>
+        <div class="stat-summary-card loss">
+          <span class="stat-num" id="statTotalLosses">0</span>
+          <span class="stat-label">Losses</span>
+        </div>
+        <div class="stat-summary-card rate">
+          <span class="stat-num" id="statWinRate">0%</span>
+          <span class="stat-label">Win Rate</span>
+        </div>
+      </div>
+
+      <div class="section-label" style="text-align:left;margin:16px 0 8px;">Performance by Deck</div>
+      <div id="deckStatsBreakdown" class="deck-stats-list">
+        <div class="empty-hint">Play a game with a selected deck to record stats!</div>
+      </div>
+
+      <div class="section-label" style="text-align:left;margin:18px 0 8px;">Recent Match History</div>
+      <div id="matchHistoryList" class="history-list" style="max-height:none;">
+        <div class="empty-hint">No completed matches logged yet.</div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="stats.js"></script>
+</body>
+</html>

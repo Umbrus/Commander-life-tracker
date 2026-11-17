@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#070606" />
+  <title>My Deck Locker — CommandSync</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="images/icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="app-shell">
+    <!-- TOP NAVIGATION BAR -->
+    <header class="lobby-top-bar">
+      <a href="index.html" class="app-mode-badge" style="text-decoration:none;color:var(--gold-foil);">
+        ← Pod Lobby
+      </a>
+
+      <div class="menu-wrapper">
+        <button id="pageMenuBtn" type="button" class="hamburger-btn" aria-label="Navigation Menu">☰</button>
+
+        <div id="pageDropdownMenu" class="dropdown-menu hidden">
+          <div class="menu-section-title">CommandSync Navigation</div>
+          <a href="index.html" class="menu-item" style="display:block;text-decoration:none;">⚔️ Pod Lobby (Play)</a>
+          <a href="decks.html" class="menu-item active-opt" style="display:block;text-decoration:none;">📚 My Deck Locker</a>
+          <a href="stats.html" class="menu-item" style="display:block;text-decoration:none;">🏆 Win / Loss Stats</a>
+          <div class="menu-divider"></div>
+          <div class="account-status-chip">
+            <span id="profileSyncLabel">☁️ Profile Sync: Connecting...</span>
+            <small>Google Sign-In coming next</small>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN DECK LOCKER LIST VIEW -->
+    <div id="lockerMainSection" class="subpage-wrapper">
+      <div class="subpage-header">
+        <div>
+          <div class="brand-mark" style="margin-bottom:2px;">COMMANDER ARMORY</div>
+          <h1 class="subpage-title">My Deck Locker</h1>
+        </div>
+        <button type="button" id="openAddDeckModalBtn" class="btn-primary btn-small">＋ Add Deck</button>
+      </div>
+
+      <p class="subpage-sub">Import decks from Archidekt or Moxfield, customize Secret Lair / alternate Commander art, and select a deck to pilot.</p>
+
+      <div id="deckLockerList" class="deck-locker-list">
+        <div class="empty-card-box">
+          <div style="font-size:1.8rem;margin-bottom:6px;">📚</div>
+          <strong>No Decks Saved Yet</strong>
+          <p>Tap <strong>+ Add Deck</strong> to link an Archidekt or Moxfield decklist or import by Commander name.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- DEDICATED FULL-PAGE DECK INSPECTOR & ART PICKER (Opens when a deck is tapped) -->
+    <div id="deckDetailSection" class="subpage-wrapper hidden">
+      <div class="subpage-header">
+        <button type="button" id="backToLockerBtn" class="btn-secondary btn-small">← All Decks</button>
+        <div style="display:flex;gap:6px;">
+          <a id="detailExternalLink" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-small external-deck-link hidden">↗ Open Site</a>
+          <button type="button" id="detailDeleteDeckBtn" class="btn-secondary btn-small" style="color:#f87171;">🗑 Delete</button>
+        </div>
+      </div>
+
+      <!-- Deck Hero Card -->
+      <div class="viewer-deck-hero" style="margin-top:4px;">
+        <img id="detailCmdrImg" src="" alt="Commander Art" class="viewer-cmdr-art hidden" />
+        <div class="viewer-deck-meta">
+          <h2 id="detailDeckTitle" style="margin:0 0 2px;font-family:var(--font-display);font-size:1.1rem;color:var(--gold-foil);">Deck Name</h2>
+          <div id="detailCmdrName" class="viewer-cmdr-name">Commander</div>
+          <div id="detailCardCount" class="viewer-card-count">0 Cards</div>
+        </div>
+      </div>
+
+      <!-- Primary Deck Action Bar -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+        <button type="button" id="detailPilotBtn" class="btn-primary" style="margin:0;padding:11px;">⚔️ Pilot Deck</button>
+        <button type="button" id="detailToggleArtBtn" class="btn-secondary" style="margin:0;padding:11px;border-color:var(--border-gold);color:var(--gold-foil);">🎨 Change Art</button>
+      </div>
+
+      <!-- DEDICATED SCRYFALL ART & SECRET LAIR RESKIN PICKER -->
+      <div id="dedicatedArtPicker" class="art-picker-drawer hidden">
+        <div class="card-preview-top">
+          <span id="artPickerHeading">Select Printing / Secret Lair Art</span>
+          <button type="button" id="closeArtPickerBtn" class="btn-secondary btn-small">Done</button>
+        </div>
+
+        <div class="join-row" style="grid-template-columns: 1fr auto; margin-bottom: 8px;">
+          <input id="artSearchInput" type="text" placeholder="Search e.g. Miku, Font of Song" style="text-align:left;padding:9px 11px;font-size:0.84rem;" />
+          <button type="button" id="artSearchBtn" class="btn-primary btn-small" style="padding:0 14px;">Search</button>
+        </div>
+
+        <div id="artPickerGrid" class="art-picker-grid" style="max-height: 270px;"></div>
+      </div>
+
+      <!-- Manual Win / Loss Quick Buttons -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+        <button type="button" id="detailLogWinBtn" class="btn-secondary btn-small" style="padding:9px;">＋1 Win</button>
+        <button type="button" id="detailLogLossBtn" class="btn-secondary btn-small" style="padding:9px;">＋1 Loss</button>
+      </div>
+
+      <!-- Scryfall Card Image Preview Drawer -->
+      <div id="cardHoverPreview" class="card-preview-drawer hidden">
+        <div class="card-preview-top">
+          <span id="previewCardTitle">Card Name</span>
+          <button type="button" id="closeCardPreviewBtn" class="btn-secondary btn-small">Hide</button>
+        </div>
+        <img id="previewCardImg" src="" alt="Card Preview" />
+      </div>
+
+      <div class="section-label" style="text-align:left;">Full Decklist (Tap any card to view art)</div>
+      <div id="detailCardsList" class="viewer-cards-scroll" style="max-height:none;"></div>
+    </div>
+  </div>
+
+  <!-- ADD / IMPORT DECK MODAL -->
+  <div id="addDeckModal" class="modal-backdrop hidden">
+    <div class="modal-card" style="max-height: 88vh; overflow-y: auto;">
+      <div class="modal-header">
+        <h2>Add Commander Deck</h2>
+        <button id="closeAddDeckModalBtn" type="button" class="btn-secondary btn-small">✕</button>
+      </div>
+
+      <div class="input-group">
+        <label for="deckUrlInput" class="input-label">Archidekt or Moxfield Link (Optional)</label>
+        <div class="join-row" style="grid-template-columns: 1fr auto;">
+          <input id="deckUrlInput" type="url" placeholder="https://archidekt.com/decks/..." style="text-align:left;font-size:0.84rem;" />
+          <button type="button" id="fetchDeckUrlBtn" class="btn-secondary btn-small" style="padding:0 12px;">Fetch</button>
+        </div>
+        <div id="deckFetchStatus" class="fetch-status-hint">Paste a public Archidekt or Moxfield URL and tap Fetch to auto-import.</div>
+      </div>
+
+      <div class="input-group">
+        <label for="deckNameInput" class="input-label">Deck Name</label>
+        <input id="deckNameInput" type="text" maxlength="36" placeholder="e.g. Miku Selesnya Tokens" style="text-align:left;" />
+      </div>
+
+      <div class="input-group">
+        <label for="deckCommanderInput" class="input-label">Commander or Secret Lair Name</label>
+        <input id="deckCommanderInput" type="text" maxlength="55" placeholder="e.g. Miku, Font of Song" style="text-align:left;" />
+      </div>
+
+      <div class="input-group">
+        <label for="deckPartnerInput" class="input-label">Partner / Background (Optional)</label>
+        <input id="deckPartnerInput" type="text" maxlength="50" placeholder="e.g. Tymna the Weaver" style="text-align:left;" />
+      </div>
+
+      <div class="input-group">
+        <label for="deckListTextarea" class="input-label">Full 100-Card List</label>
+        <textarea id="deckListTextarea" class="deck-textarea" rows="5" placeholder="1 Sol Ring&#10;1 Arcane Signet&#10;1 Command Tower&#10;..."></textarea>
+      </div>
+
+      <button id="saveDeckBtn" type="button" class="btn-primary" style="margin-bottom: 0;">💾 Save to Deck Locker</button>
+    </div>
+  </div>
+
+  <script type="module" src="decks.js"></script>
+</body>
+</html>

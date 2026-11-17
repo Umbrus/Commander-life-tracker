@@ -1,9 +1,13 @@
-const CACHE_NAME = "commander-pod-v15";
+const CACHE_NAME = "commander-pod-v17";
 const ASSETS = [
   "./",
   "./index.html",
+  "./decks.html",
+  "./stats.html",
   "./style.css",
   "./app.js",
+  "./decks.js",
+  "./stats.js",
   "./manifest.json",
   "./images/icon.svg",
   "./images/icon-512.png"
