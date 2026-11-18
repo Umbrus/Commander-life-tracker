@@ -2,10 +2,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebas
 import {
   getAuth,
   signInAnonymously,
-  GoogleAuthProvider,
-  linkWithPopup,
-  signInWithPopup,
-  signOut,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 import { getDatabase, ref, set, get, push, update, remove } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
@@ -28,7 +24,6 @@ const LOCAL_MATCHES_KEY = "mtg_local_match_history";
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
-const googleProvider = new GoogleAuthProvider();
 
 let currentUser = null;
 let userDecks = {};
@@ -41,18 +36,6 @@ function triggerHaptic(pattern) {
     try { navigator.vibrate(pattern); } catch {}
   }
 }
-
-// Hamburger Menu
-const pageDropdownMenu = document.getElementById("pageDropdownMenu");
-document.getElementById("pageMenuBtn").onclick = (e) => {
-  e.stopPropagation();
-  pageDropdownMenu.classList.toggle("hidden");
-};
-document.addEventListener("click", (e) => {
-  if (!pageDropdownMenu.classList.contains("hidden") && !pageDropdownMenu.contains(e.target)) {
-    pageDropdownMenu.classList.add("hidden");
-  }
-});
 
 // Storage Helpers
 function loadLocalData() {
@@ -73,78 +56,13 @@ function saveLocalData() {
 loadLocalData();
 renderDeckLocker();
 
-function updateDeckPageAuthUI(user) {
-  const labelEl = document.getElementById("profileSyncLabel");
-  const subEl = document.getElementById("accountEmailSub");
-  const authBtn = document.getElementById("googleAuthBtn");
-  if (!labelEl || !subEl || !authBtn) return;
-
-  if (user && !user.isAnonymous) {
-    labelEl.textContent = `☁️ ${user.displayName || "Google Account"}`;
-    subEl.textContent = user.email || "Cloud backup active";
-    authBtn.textContent = "🚪 Sign Out of Google";
-  } else {
-    labelEl.textContent = "☁️ Profile Sync: Device ID";
-    subEl.textContent = "Sign in to back up decks across devices";
-    authBtn.textContent = "🔐 Sign in with Google";
-  }
-}
-
-const deckPageAuthBtn = document.getElementById("googleAuthBtn");
-if (deckPageAuthBtn) {
-  deckPageAuthBtn.onclick = async () => {
-    pageDropdownMenu.classList.add("hidden");
-    if (!auth.currentUser) return;
-
-    if (!auth.currentUser.isAnonymous) {
-      await signOut(auth);
-      await signInAnonymously(auth);
-      return;
-    }
-
-    const previousAnonUid = auth.currentUser.uid;
-    try {
-      const result = await linkWithPopup(auth.currentUser, googleProvider);
-      currentUser = result.user;
-      updateDeckPageAuthUI(currentUser);
-      if (Object.keys(userDecks).length > 0) {
-        await update(ref(db, `users/${currentUser.uid}/decks`), userDecks).catch(() => {});
-      }
-      alert(`Signed in as ${currentUser.displayName || currentUser.email}! Your decks are now backed up.`);
-    } catch (err) {
-      if (err.code === "auth/credential-already-in-use" || err.code === "auth/email-already-in-use") {
-        try {
-          const oldSnap = await get(ref(db, `users/${previousAnonUid}`));
-          const oldData = oldSnap.exists() ? oldSnap.val() : null;
-
-          const res = await signInWithPopup(auth, googleProvider);
-          currentUser = res.user;
-          if (oldData?.decks) {
-            userDecks = { ...oldData.decks, ...userDecks };
-          }
-          updateDeckPageAuthUI(currentUser);
-        } catch (innerErr) {
-          alert(`Google Sign-In failed: ${innerErr.message}`);
-        }
-      } else if (err.code !== "auth/popup-closed-by-user") {
-        alert(`Google Sign-In error: ${err.message}`);
-      }
-    }
-  };
-}
-
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
-    try {
-      await signInAnonymously(auth);
-    } catch {
-      document.getElementById("profileSyncLabel").textContent = "☁️ Profile Sync: Offline";
-    }
+    try { await signInAnonymously(auth); } catch {}
     return;
   }
 
   currentUser = user;
-  updateDeckPageAuthUI(user);
 
   try {
     const snap = await get(ref(db, `users/${currentUser.uid}/decks`));
@@ -492,13 +410,16 @@ function logOutcome(outcome) {
   if (outcome === "win") deck.wins = (deck.wins || 0) + 1;
   else deck.losses = (deck.losses || 0) + 1;
 
+  const now = Date.now();
   const entry = {
+    id: `m_${now}`,
     deckId: deck.id,
     deckName: deck.name,
     commander: deck.commander,
     outcome,
     podLabel: "Manual Log",
-    at: Date.now()
+    dateStr: new Date(now).toISOString().slice(0, 10),
+    at: now
   };
   userMatches.unshift(entry);
   saveLocalData();

@@ -1,0 +1,217 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import {
+  getAuth,
+  signInAnonymously,
+  GoogleAuthProvider,
+  linkWithPopup,
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCh_fJv3mMlQQ2teHyryAxtd0x_mCmMzTU",
+  authDomain: "commander-life-tracker-6938f.firebaseapp.com",
+  databaseURL: "https://commander-life-tracker-6938f-default-rtdb.firebaseio.com",
+  projectId: "commander-life-tracker-6938f",
+  storageBucket: "commander-life-tracker-6938f.firebasestorage.app",
+  messagingSenderId: "989326008841",
+  appId: "1:989326008841:web:13b9a36110891cebcf0ed8"
+};
+
+const SAVED_NAME_KEY = "mtg_saved_player_name";
+const THEME_PREF_KEY = "mtg_preferred_theme";
+const LOCAL_DECKS_KEY = "mtg_local_deck_locker";
+const LOCAL_MATCHES_KEY = "mtg_local_match_history";
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+const googleProvider = new GoogleAuthProvider();
+
+function triggerHaptic(pattern) {
+  if ("vibrate" in navigator) {
+    try { navigator.vibrate(pattern); } catch {}
+  }
+}
+
+// Guide Modal
+const howItWorksModal = document.getElementById("howItWorksModal");
+document.getElementById("openGuideBtn").onclick = () => howItWorksModal.classList.remove("hidden");
+document.getElementById("closeHowItWorksBtn").onclick = () => howItWorksModal.classList.add("hidden");
+document.getElementById("gotItBtn").onclick = () => howItWorksModal.classList.add("hidden");
+howItWorksModal.onclick = (e) => {
+  if (e.target === howItWorksModal) howItWorksModal.classList.add("hidden");
+};
+
+// Player Defaults (Name & Theme)
+const nameInput = document.getElementById("defaultNameInput");
+nameInput.value = localStorage.getItem(SAVED_NAME_KEY) || "";
+
+document.getElementById("saveDefaultNameBtn").onclick = () => {
+  triggerHaptic(12);
+  const val = nameInput.value.trim();
+  localStorage.setItem(SAVED_NAME_KEY, val);
+  const btn = document.getElementById("saveDefaultNameBtn");
+  btn.textContent = "Saved!";
+  setTimeout(() => (btn.textContent = "Save"), 1600);
+};
+
+let currentTheme = localStorage.getItem(THEME_PREF_KEY) || "blue";
+function renderThemeSwatches() {
+  document.querySelectorAll("#defaultThemeSwatches .swatch-btn").forEach((btn) => {
+    btn.classList.toggle("selected", btn.dataset.theme === currentTheme);
+  });
+}
+renderThemeSwatches();
+
+document.querySelectorAll("#defaultThemeSwatches .swatch-btn").forEach((btn) => {
+  btn.onclick = () => {
+    triggerHaptic(12);
+    currentTheme = btn.dataset.theme;
+    localStorage.setItem(THEME_PREF_KEY, currentTheme);
+    renderThemeSwatches();
+  };
+});
+
+// Standalone Dice & Coin Roller
+const recentRolls = [];
+function rollDie(type) {
+  triggerHaptic(15);
+  const labelEl = document.getElementById("diceTypeLabel");
+  const resultEl = document.getElementById("diceBigResult");
+  let label = "";
+  let result = "";
+
+  if (type === "coin") {
+    label = "Coin Flip";
+    result = Math.random() < 0.5 ? "🪙 Heads" : "🪙 Tails";
+  } else if (type === "planar") {
+    label = "Planar Die (d6)";
+    const r = Math.floor(Math.random() * 6) + 1;
+    if (r === 1) result = "⬡ Planeswalk";
+    else if (r === 6) result = "⚡ Chaos";
+    else result = "Blank";
+  } else {
+    const sides = parseInt(type, 10);
+    label = `Rolling d${sides}`;
+    result = `${Math.floor(Math.random() * sides) + 1}`;
+  }
+
+  labelEl.textContent = label;
+  resultEl.textContent = result;
+  resultEl.classList.remove("dice-pop");
+  void resultEl.offsetWidth;
+  resultEl.classList.add("dice-pop");
+
+  const shortTag = type === "coin" ? result.replace("🪙 ", "") : type === "planar" ? result : `d${type}: ${result}`;
+  recentRolls.unshift(shortTag);
+  if (recentRolls.length > 5) recentRolls.pop();
+  document.getElementById("recentRollsBar").textContent = `Recent: ${recentRolls.join("  •  ")}`;
+}
+
+document.querySelectorAll(".die-btn").forEach((btn) => {
+  btn.onclick = () => rollDie(btn.dataset.die);
+});
+
+// Google Sign-In & Cloud Backup
+function updateProfileAuthUI(user) {
+  const statusEl = document.getElementById("profileSyncStatus");
+  const authBtn = document.getElementById("googleAuthBtn");
+  if (!user || user.isAnonymous) {
+    statusEl.textContent = "Currently using an anonymous Device ID. Sign in with Google to sync decks and stats across your phone and PC.";
+    authBtn.textContent = "🔐 Sign in with Google";
+    authBtn.className = "btn-primary";
+    authBtn.style.marginBottom = "0";
+  } else {
+    statusEl.textContent = `Signed in as ${user.displayName || "Planeswalker"} (${user.email}). Your decks and match stats are backed up.`;
+    authBtn.textContent = "🚪 Sign Out of Google";
+    authBtn.className = "btn-secondary";
+    authBtn.style.marginBottom = "0";
+  }
+}
+
+document.getElementById("googleAuthBtn").onclick = async () => {
+  if (!auth.currentUser) return;
+
+  if (!auth.currentUser.isAnonymous) {
+    await signOut(auth);
+    await signInAnonymously(auth);
+    return;
+  }
+
+  const prevUid = auth.currentUser.uid;
+  try {
+    const res = await linkWithPopup(auth.currentUser, googleProvider);
+    updateProfileAuthUI(res.user);
+    const localDecks = JSON.parse(localStorage.getItem(LOCAL_DECKS_KEY) || "{}");
+    if (Object.keys(localDecks).length > 0) {
+      await update(ref(db, `users/${res.user.uid}/decks`), localDecks).catch(() => {});
+    }
+  } catch (err) {
+    if (err.code === "auth/credential-already-in-use" || err.code === "auth/email-already-in-use") {
+      try {
+        const oldSnap = await get(ref(db, `users/${prevUid}/decks`));
+        const oldDecks = oldSnap.exists() ? oldSnap.val() : {};
+        const signInRes = await signInWithPopup(auth, googleProvider);
+        const merged = { ...oldDecks, ...JSON.parse(localStorage.getItem(LOCAL_DECKS_KEY) || "{}") };
+        localStorage.setItem(LOCAL_DECKS_KEY, JSON.stringify(merged));
+        if (Object.keys(merged).length > 0) {
+          await update(ref(db, `users/${signInRes.user.uid}/decks`), merged).catch(() => {});
+        }
+        updateProfileAuthUI(signInRes.user);
+      } catch (innerErr) {
+        alert(`Google Sign-In failed: ${innerErr.message}`);
+      }
+    } else if (err.code !== "auth/popup-closed-by-user") {
+      alert(`Google Sign-In error: ${err.message}`);
+    }
+  }
+};
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    try { await signInAnonymously(auth); } catch {}
+    return;
+  }
+  updateProfileAuthUI(user);
+});
+
+// JSON Export / Import Backup
+document.getElementById("exportBackupBtn").onclick = () => {
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    decks: JSON.parse(localStorage.getItem(LOCAL_DECKS_KEY) || "{}"),
+    matches: JSON.parse(localStorage.getItem(LOCAL_MATCHES_KEY) || "[]")
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `commandsync-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+document.getElementById("importBackupInput").onchange = async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    if (parsed.decks) {
+      const mergedDecks = { ...JSON.parse(localStorage.getItem(LOCAL_DECKS_KEY) || "{}"), ...parsed.decks };
+      localStorage.setItem(LOCAL_DECKS_KEY, JSON.stringify(mergedDecks));
+      if (auth.currentUser) {
+        await update(ref(db, `users/${auth.currentUser.uid}/decks`), mergedDecks).catch(() => {});
+      }
+    }
+    if (Array.isArray(parsed.matches)) {
+      localStorage.setItem(LOCAL_MATCHES_KEY, JSON.stringify(parsed.matches));
+    }
+    alert("✅ Backup restored successfully!");
+  } catch {
+    alert("⚠️ Invalid backup JSON file.");
+  }
+};

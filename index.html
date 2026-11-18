@@ -21,35 +21,15 @@
   <div class="app-shell">
     <div id="offlineBanner" class="offline-banner hidden">⚠️ Offline — waiting to reconnect...</div>
 
-    <!-- TOP LOBBY NAVIGATION BAR -->
+    <!-- TOP LOBBY STATUS BAR -->
     <header id="lobbyTopBar" class="lobby-top-bar">
       <div id="appModeBadge" class="app-mode-badge">
         <span class="conn-dot" id="topConnDot"></span>
         <span id="topStatusLabel">Connecting...</span>
       </div>
-
-      <div class="menu-wrapper">
-        <button id="lobbyMenuBtn" type="button" class="hamburger-btn" aria-label="Main Navigation">☰</button>
-
-        <div id="lobbyDropdownMenu" class="dropdown-menu hidden">
-          <div class="menu-section-title">CommandSync Navigation</div>
-          <a href="index.html" class="menu-item active-opt" style="display:block;text-decoration:none;">⚔️ Pod Lobby (Play)</a>
-          <a href="decks.html" class="menu-item" style="display:block;text-decoration:none;">📚 My Deck Locker</a>
-          <a href="stats.html" class="menu-item" style="display:block;text-decoration:none;">🏆 Win / Loss Stats</a>
-          <div class="menu-divider"></div>
-          <button id="navHowItWorksBtn" type="button" class="menu-item">❓ How CommandSync Works</button>
-          <div id="apkAccountMenuSlot" class="apk-account-slot">
-            <div class="menu-divider"></div>
-            <div class="account-status-chip">
-              <span id="accountStatusText">☁️ Sync: Device ID</span>
-              <small id="accountEmailSub">Sign in to back up decks across devices</small>
-            </div>
-            <button id="googleAuthBtn" type="button" class="menu-item active-opt" style="margin-top:4px;">
-              🔐 Sign in with Google
-            </button>
-          </div>
-        </div>
-      </div>
+      <a href="profile.html" class="app-mode-badge" id="lobbyAccountBadge" style="text-decoration:none;color:var(--gold-foil);">
+        ☁️ Sign In
+      </a>
     </header>
 
     <!-- LOBBY / JOIN SCREEN -->
@@ -509,7 +489,7 @@
           <div class="step-badge">3</div>
           <div class="step-body">
             <h3>Deck Locker, Google Sync &amp; Stats</h3>
-            <p>Open the top-right <strong>☰</strong> menu to save your Moxfield or Archidekt decks, customize Secret Lair Commander art, sign in with Google for cloud backup, and log wins and losses.</p>
+            <p>Use the bottom tabs to save Moxfield or Archidekt decks, customize Secret Lair Commander art, sign in with Google for cloud backup, and log wins and losses.</p>
           </div>
         </div>
       </div>
@@ -576,6 +556,26 @@
       <div id="manualFirstPlayerList" class="manual-pick-list"></div>
     </div>
   </div>
+
+  <!-- 4-TAB BOTTOM NAVIGATION BAR (Hidden during active Pod or Table Mode) -->
+  <nav id="mainBottomNav" class="bottom-nav" aria-label="Primary Navigation">
+    <a href="index.html" class="bottom-nav-item active">
+      <span class="nav-icon">⚔️</span>
+      <span class="nav-label">Play</span>
+    </a>
+    <a href="decks.html" class="bottom-nav-item">
+      <span class="nav-icon">📚</span>
+      <span class="nav-label">Decks</span>
+    </a>
+    <a href="stats.html" class="bottom-nav-item">
+      <span class="nav-icon">🏆</span>
+      <span class="nav-label">Stats</span>
+    </a>
+    <a href="profile.html" class="bottom-nav-item">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-label">Profile</span>
+    </a>
+  </nav>
 
   <script type="module" src="app.js"></script>
 </body>

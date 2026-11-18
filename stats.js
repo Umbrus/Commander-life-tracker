@@ -22,17 +22,6 @@ const db = getDatabase(app);
 let userDecks = {};
 let userMatches = [];
 
-const statsDropdownMenu = document.getElementById("statsDropdownMenu");
-document.getElementById("statsMenuBtn").onclick = (e) => {
-  e.stopPropagation();
-  statsDropdownMenu.classList.toggle("hidden");
-};
-document.addEventListener("click", (e) => {
-  if (!statsDropdownMenu.classList.contains("hidden") && !statsDropdownMenu.contains(e.target)) {
-    statsDropdownMenu.classList.add("hidden");
-  }
-});
-
 function loadLocalData() {
   try {
     userDecks = JSON.parse(localStorage.getItem(LOCAL_DECKS_KEY) || "{}");
@@ -92,13 +81,14 @@ function renderStats() {
   } else {
     userMatches.slice(0, 30).forEach((m) => {
       const isWin = m.outcome === "win";
-      const dateStr = m.at ? new Date(m.at).toLocaleDateString() : "";
+      const dateStr = m.dateStr || (m.at ? new Date(m.at).toLocaleDateString() : "");
+      const turnText = m.turns ? ` • Turn ${m.turns}` : "";
       const row = document.createElement("div");
       row.className = "history-row";
       row.innerHTML = `
         <div class="history-main">
           <div class="history-player">${m.deckName}</div>
-          <div class="history-sub">${m.commander}${m.podLabel ? ` • ${m.podLabel}` : ""}${dateStr ? ` • ${dateStr}` : ""}</div>
+          <div class="history-sub">${m.commander}${turnText}${dateStr ? ` • ${dateStr}` : ""}</div>
         </div>
         <div class="history-delta ${isWin ? "gain" : "loss"}">
           ${isWin ? "WIN" : "LOSS"}
@@ -118,13 +108,6 @@ onAuthStateChanged(auth, async (user) => {
       await signInAnonymously(auth);
     } catch {}
     return;
-  }
-
-  const labelEl = document.getElementById("statsSyncLabel");
-  const subEl = document.getElementById("statsEmailSub");
-  if (labelEl && subEl && !user.isAnonymous) {
-    labelEl.textContent = `☁️ ${user.displayName || "Google Account"}`;
-    subEl.textContent = user.email || "Cloud backup active";
   }
 
   try {

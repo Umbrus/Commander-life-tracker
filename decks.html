@@ -15,32 +15,6 @@
 <body>
 
   <div class="app-shell">
-    <!-- TOP NAVIGATION BAR -->
-    <header class="lobby-top-bar">
-      <a href="index.html" class="app-mode-badge" style="text-decoration:none;color:var(--gold-foil);">
-        ← Pod Lobby
-      </a>
-
-      <div class="menu-wrapper">
-        <button id="pageMenuBtn" type="button" class="hamburger-btn" aria-label="Navigation Menu">☰</button>
-
-        <div id="pageDropdownMenu" class="dropdown-menu hidden">
-          <div class="menu-section-title">CommandSync Navigation</div>
-          <a href="index.html" class="menu-item" style="display:block;text-decoration:none;">⚔️ Pod Lobby (Play)</a>
-          <a href="decks.html" class="menu-item active-opt" style="display:block;text-decoration:none;">📚 My Deck Locker</a>
-          <a href="stats.html" class="menu-item" style="display:block;text-decoration:none;">🏆 Win / Loss Stats</a>
-          <div class="menu-divider"></div>
-          <div class="account-status-chip">
-            <span id="profileSyncLabel">☁️ Profile Sync: Connecting...</span>
-            <small id="accountEmailSub">Sign in to back up decks across devices</small>
-          </div>
-          <button id="googleAuthBtn" type="button" class="menu-item active-opt" style="margin-top:4px;">
-            🔐 Sign in with Google
-          </button>
-        </div>
-      </div>
-    </header>
-
     <!-- MAIN DECK LOCKER LIST VIEW -->
     <div id="lockerMainSection" class="subpage-wrapper">
       <div class="subpage-header">
@@ -163,6 +137,26 @@
       <button id="saveDeckBtn" type="button" class="btn-primary" style="margin-bottom: 0;">💾 Save to Deck Locker</button>
     </div>
   </div>
+
+  <!-- 4-TAB BOTTOM NAVIGATION BAR -->
+  <nav class="bottom-nav" aria-label="Primary Navigation">
+    <a href="index.html" class="bottom-nav-item">
+      <span class="nav-icon">⚔️</span>
+      <span class="nav-label">Play</span>
+    </a>
+    <a href="decks.html" class="bottom-nav-item active">
+      <span class="nav-icon">📚</span>
+      <span class="nav-label">Decks</span>
+    </a>
+    <a href="stats.html" class="bottom-nav-item">
+      <span class="nav-icon">🏆</span>
+      <span class="nav-label">Stats</span>
+    </a>
+    <a href="profile.html" class="bottom-nav-item">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-label">Profile</span>
+    </a>
+  </nav>
 
   <script type="module" src="decks.js"></script>
 </body>

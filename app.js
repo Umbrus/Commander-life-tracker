@@ -2,10 +2,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebas
 import {
   getAuth,
   signInAnonymously,
-  GoogleAuthProvider,
-  linkWithPopup,
-  signInWithPopup,
-  signOut,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 import { getDatabase, ref, set, get, push, update, remove, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
@@ -43,10 +39,10 @@ const lobbyTopBar = document.getElementById("lobbyTopBar");
 const lobbyView = document.getElementById("lobbyView");
 const lobbyForm = document.getElementById("lobbyForm");
 const podView = document.getElementById("podView");
+const mainBottomNav = document.getElementById("mainBottomNav");
 const roomCodeInput = document.getElementById("roomCodeInput");
 const playerNameInput = document.getElementById("playerNameInput");
 const dropdownMenu = document.getElementById("podDropdownMenu");
-const lobbyDropdownMenu = document.getElementById("lobbyDropdownMenu");
 const howItWorksModal = document.getElementById("howItWorksModal");
 const historyModal = document.getElementById("historyModal");
 const diceModal = document.getElementById("diceModal");
@@ -101,25 +97,6 @@ function triggerHaptic(pattern) {
 }
 
 // =========================================================
-// LOBBY HAMBURGER MENU
-// =========================================================
-document.getElementById("lobbyMenuBtn").onclick = (e) => {
-  e.stopPropagation();
-  lobbyDropdownMenu.classList.toggle("hidden");
-};
-
-document.addEventListener("click", (e) => {
-  if (!lobbyDropdownMenu.classList.contains("hidden") && !lobbyDropdownMenu.contains(e.target)) {
-    lobbyDropdownMenu.classList.add("hidden");
-  }
-});
-
-document.getElementById("navHowItWorksBtn").onclick = () => {
-  lobbyDropdownMenu.classList.add("hidden");
-  howItWorksModal.classList.remove("hidden");
-};
-
-// =========================================================
 // DECK DROPDOWN & AUTO WIN/LOSS RECORDING
 // =========================================================
 function loadLocalUserProfile() {
@@ -164,7 +141,7 @@ document.getElementById("activeDeckSelect").onchange = (e) => {
   localStorage.setItem(ACTIVE_DECK_KEY, activeDeckId);
 };
 
-function recordDeckMatchOutcome(deckId, outcome, podLabel = "") {
+function recordDeckMatchOutcome(deckId, outcome, podLabel = "", turns = null) {
   const deck = userDecks[deckId];
   if (!deck) return;
 
@@ -174,16 +151,20 @@ function recordDeckMatchOutcome(deckId, outcome, podLabel = "") {
     deck.losses = (deck.losses || 0) + 1;
   }
 
+  const now = Date.now();
   const matchEntry = {
+    id: `m_${now}`,
     deckId,
     deckName: deck.name,
     commander: deck.commander,
     outcome,
+    turns: turns || null,
     podLabel,
-    at: Date.now()
+    dateStr: new Date(now).toISOString().slice(0, 10),
+    at: now
   };
   userMatches.unshift(matchEntry);
-  if (userMatches.length > 50) userMatches.pop();
+  if (userMatches.length > 100) userMatches.pop();
 
   saveLocalUserProfile();
   syncActiveDeckDropdown();
@@ -568,27 +549,19 @@ if (invitedPodCode) {
 
 loadLocalUserProfile();
 
-// --- INITIALIZE FIREBASE & GOOGLE SIGN-IN ---
+// --- INITIALIZE FIREBASE ---
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
-const googleProvider = new GoogleAuthProvider();
 let hasBootstrappedSession = false;
 
 function updateAccountMenuUI(user) {
-  const statusEl = document.getElementById("accountStatusText");
-  const subEl = document.getElementById("accountEmailSub");
-  const authBtn = document.getElementById("googleAuthBtn");
-  if (!statusEl || !subEl || !authBtn) return;
-
+  const badge = document.getElementById("lobbyAccountBadge");
+  if (!badge) return;
   if (user && !user.isAnonymous) {
-    statusEl.textContent = `☁️ ${user.displayName || "Google Account"}`;
-    subEl.textContent = user.email || "Cloud backup active";
-    authBtn.textContent = "🚪 Sign Out of Google";
+    badge.textContent = `☁️ ${user.displayName ? user.displayName.split(" ")[0] : "Synced"}`;
   } else {
-    statusEl.textContent = "☁️ Sync: Device ID";
-    subEl.textContent = "Sign in to back up decks across devices";
-    authBtn.textContent = "🔐 Sign in with Google";
+    badge.textContent = "☁️ Sign In";
   }
 }
 
@@ -620,49 +593,6 @@ async function syncCloudProfileForUser(uid) {
       await update(ref(db, `users/${uid}/decks`), userDecks).catch(() => {});
     }
   } catch {}
-}
-
-const googleAuthBtn = document.getElementById("googleAuthBtn");
-if (googleAuthBtn) {
-  googleAuthBtn.onclick = async () => {
-    lobbyDropdownMenu.classList.add("hidden");
-    if (!auth.currentUser) return;
-
-    if (!auth.currentUser.isAnonymous) {
-      await signOut(auth);
-      await signInAnonymously(auth);
-      return;
-    }
-
-    const previousAnonUid = auth.currentUser.uid;
-    try {
-      const result = await linkWithPopup(auth.currentUser, googleProvider);
-      currentUser = result.user;
-      updateAccountMenuUI(currentUser);
-      await syncCloudProfileForUser(currentUser.uid);
-      alert(`Signed in as ${currentUser.displayName || currentUser.email}! Your decks are now backed up.`);
-    } catch (err) {
-      if (err.code === "auth/credential-already-in-use" || err.code === "auth/email-already-in-use") {
-        try {
-          const oldSnap = await get(ref(db, `users/${previousAnonUid}`));
-          const oldData = oldSnap.exists() ? oldSnap.val() : null;
-
-          const signInRes = await signInWithPopup(auth, googleProvider);
-          currentUser = signInRes.user;
-          if (oldData?.decks) {
-            userDecks = { ...oldData.decks, ...userDecks };
-          }
-          updateAccountMenuUI(currentUser);
-          await syncCloudProfileForUser(currentUser.uid);
-          alert(`Welcome back, ${currentUser.displayName || currentUser.email}! Your decks have been synced.`);
-        } catch (innerErr) {
-          alert(`Google Sign-In failed: ${innerErr.message}`);
-        }
-      } else if (err.code !== "auth/popup-closed-by-user") {
-        alert(`Google Sign-In error: ${err.message}`);
-      }
-    }
-  };
 }
 
 onAuthStateChanged(auth, async (user) => {
@@ -1345,6 +1275,7 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
 
   lobbyTopBar.classList.add("hidden");
   lobbyView.classList.add("hidden");
+  if (mainBottomNav) mainBottomNav.classList.add("hidden");
   podView.classList.remove("hidden");
 
   document.getElementById("displayRoomCode").textContent = code;
@@ -1374,7 +1305,7 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
     document.getElementById("openFirstPlayerBtn").classList.toggle("hidden", !isHost);
     document.getElementById("newGameBtn").classList.toggle("hidden", !isHost);
 
-    // Check for Pod Winner & Auto-Log Win/Loss to Active Deck
+    // Check for Pod Winner & Auto-Log Win/Loss + Turn Count to Active Deck
     const aliveUids = orderedUids.filter((uid) => !players[uid]?.eliminated);
     const winnerBanner = document.getElementById("podWinnerBanner");
     const winnerDeckNote = document.getElementById("podWinnerDeckNote");
@@ -1389,8 +1320,8 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
       if (activeDeckId && userDecks[activeDeckId] && lastRecordedPodMatchKey !== matchUniqueKey) {
         lastRecordedPodMatchKey = matchUniqueKey;
         const iWon = winnerUid === currentUser.uid;
-        recordDeckMatchOutcome(activeDeckId, iWon ? "win" : "loss", `Pod ${code}`);
-        winnerDeckNote.textContent = `📊 Logged ${iWon ? "+1 Win" : "+1 Loss"} to ${userDecks[activeDeckId].name}`;
+        recordDeckMatchOutcome(activeDeckId, iWon ? "win" : "loss", `Pod ${code}`, turnNumber);
+        winnerDeckNote.textContent = `📊 Logged ${iWon ? "+1 Win" : "+1 Loss"} (Turn ${turnNumber}) to ${userDecks[activeDeckId].name}`;
         winnerDeckNote.classList.remove("hidden");
       }
     } else {
@@ -1671,6 +1602,7 @@ function initTableMode() {
   tableHubMenu.classList.add("hidden");
   lobbyTopBar.classList.add("hidden");
   lobbyView.classList.add("hidden");
+  if (mainBottomNav) mainBottomNav.classList.add("hidden");
   tableView.classList.remove("hidden");
   enableWakeLock();
 }
@@ -2083,6 +2015,7 @@ document.getElementById("tableExitBtn").onclick = () => {
   tableView.classList.add("hidden");
   lobbyTopBar.classList.remove("hidden");
   lobbyView.classList.remove("hidden");
+  if (mainBottomNav) mainBottomNav.classList.remove("hidden");
 };
 
 // --- REGISTER SERVICE WORKER (AUTO-RELOADS APK ON NEW CACHE VERSION) ---
