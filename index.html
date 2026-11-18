@@ -130,8 +130,9 @@
             </div>
 
             <div class="menu-divider"></div>
+            <button id="openOracleLookupBtn" class="menu-item">🔍 Card &amp; Oracle Lookup</button>
             <button id="togglePartnerBtn" class="menu-item">🤝 Partner Commander: OFF</button>
-            <button id="openCountersBtn" class="menu-item">⚡ Extra Counters (Energy/Rad)</button>
+            <button id="openCountersBtn" class="menu-item">⚡ Extra Counters &amp; Mana</button>
             <button id="openDiceRollerBtn" class="menu-item">🎲 Dice &amp; Coin Roller</button>
             <button id="openHistoryBtn" class="menu-item">📜 Life History Log</button>
             <button id="becomeMonarchBtn" class="menu-item">👑 Claim the Monarch</button>
@@ -232,6 +233,15 @@
             <button id="taxPlusBtn" class="mini-btn">+</button>
           </div>
         </div>
+      </div>
+
+      <!-- OPTIONAL FLOATING MANA POOL BAR (W U B R G C) -->
+      <div id="floatingManaStrip" class="floating-mana-card hidden">
+        <div class="mana-strip-header">
+          <span>💧 Floating Mana <small>(Tap +1 • Hold −1)</small></span>
+          <button id="clearManaPoolBtn" type="button" class="chip-action-btn">Empty</button>
+        </div>
+        <div id="manaPillsRow" class="mana-pills-row"></div>
       </div>
 
       <!-- Pinned Optional Deck Counters -->
@@ -373,6 +383,25 @@
     </div>
   </div>
 
+  <!-- IN-POD SCRYFALL ORACLE & RULINGS LOOKUP MODAL -->
+  <div id="oracleLookupModal" class="modal-backdrop hidden">
+    <div class="modal-card" style="max-height: 86vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <h2>Card &amp; Oracle Lookup</h2>
+        <button id="closeOracleLookupBtn" type="button" class="btn-secondary btn-small">✕</button>
+      </div>
+
+      <div class="join-row" style="grid-template-columns: 1fr auto; margin-bottom: 10px;">
+        <input id="podOracleInput" type="text" placeholder="e.g. Blood Moon or Humility" style="text-align: left; font-size: 0.9rem; padding: 10px 12px;" />
+        <button id="podOracleSearchBtn" type="button" class="btn-primary btn-small" style="padding: 0 14px;">Search</button>
+      </div>
+
+      <div id="podOracleResults" class="oracle-results-scroll">
+        <div class="empty-hint">Search any Magic card to read its official Oracle text, Commander legality, and Gatherer rulings.</div>
+      </div>
+    </div>
+  </div>
+
   <!-- NEW GAME & STARTING LIFE MODAL -->
   <div id="newGameModal" class="modal-backdrop hidden">
     <div class="modal-card">
@@ -392,7 +421,7 @@
     </div>
   </div>
 
-  <!-- EXTRA COUNTERS PICKER MODAL -->
+  <!-- EXTRA COUNTERS & FLOATING MANA PICKER MODAL -->
   <div id="extraCountersModal" class="modal-backdrop hidden">
     <div class="modal-card">
       <div class="modal-header">
@@ -402,6 +431,10 @@
       <p class="modal-sub">Pin counters used by your deck to your main screen:</p>
 
       <div class="counter-toggle-list">
+        <button type="button" class="toggle-counter-row" data-counter="mana">
+          <span>💧 Floating Mana (W U B R G C)</span>
+          <span id="badge-mana" class="toggle-state">OFF</span>
+        </button>
         <button type="button" class="toggle-counter-row" data-counter="energy">
           <span>⚡ Energy Counters</span>
           <span id="badge-energy" class="toggle-state">OFF</span>
@@ -486,7 +519,7 @@
           <div class="step-badge">2</div>
           <div class="step-body">
             <h3>Track Life, Eliminations &amp; Turns</h3>
-            <p>Tap the left or right half of your life card for <strong>−1 / +1</strong>, or <strong>press &amp; hold</strong> for <strong>−5 / +5</strong>. Reaching 0 life, 10 poison, or 21 Commander damage automatically marks a player knocked out and skips their turn.</p>
+            <p>Tap left or right for <strong>−1 / +1</strong>, or <strong>press &amp; hold</strong> to accelerate through <strong>±5</strong> and <strong>±10</strong> increments. Reaching 0 life, 10 poison, or 21 Commander damage automatically marks a player knocked out and skips their turn.</p>
           </div>
         </div>
 
@@ -494,7 +527,7 @@
           <div class="step-badge">3</div>
           <div class="step-body">
             <h3>Deck Locker, Google Sync &amp; Stats</h3>
-            <p>Use the bottom tabs to save Moxfield or Archidekt decks, customize Secret Lair Commander art, sign in with Google for cloud backup, and log wins and losses.</p>
+            <p>Use the bottom tabs to save Moxfield or Archidekt decks, customize Secret Lair Commander art, sign in with Google for cloud backup, and inspect matchup stats.</p>
           </div>
         </div>
       </div>

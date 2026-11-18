@@ -2646,3 +2646,349 @@ button:active { transform: scale(0.97); }
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+/* =========================================================
+   PHASE 3: FLOATING MANA, ORACLE LOOKUP & STATS INSIGHTS
+   ========================================================= */
+.floating-mana-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-gold);
+  border-radius: 14px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.mana-strip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.mana-strip-header small {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.mana-pills-row {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+
+.mana-pip-btn {
+  margin: 0;
+  padding: 7px 4px;
+  border-radius: 10px;
+  background: var(--bg-base);
+  border: 1.5px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.mana-sym {
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.mana-count {
+  font-size: 1rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #ffffff;
+}
+
+.mana-pip-btn.mana-w { border-color: rgba(254, 240, 138, 0.45); }
+.mana-pip-btn.mana-w .mana-sym { color: #fef08a; }
+.mana-pip-btn.mana-u { border-color: rgba(96, 165, 250, 0.45); }
+.mana-pip-btn.mana-u .mana-sym { color: #60a5fa; }
+.mana-pip-btn.mana-b { border-color: rgba(192, 132, 252, 0.45); }
+.mana-pip-btn.mana-b .mana-sym { color: #c084fc; }
+.mana-pip-btn.mana-r { border-color: rgba(248, 113, 113, 0.45); }
+.mana-pip-btn.mana-r .mana-sym { color: #f87171; }
+.mana-pip-btn.mana-g { border-color: rgba(74, 222, 128, 0.45); }
+.mana-pip-btn.mana-g .mana-sym { color: #4ade80; }
+.mana-pip-btn.mana-c { border-color: rgba(168, 162, 158, 0.45); }
+.mana-pip-btn.mana-c .mana-sym { color: #d6d3d1; }
+
+.mana-pip-btn.has-mana {
+  background: rgba(234, 179, 8, 0.14);
+  box-shadow: 0 0 10px rgba(234, 179, 8, 0.18);
+}
+
+/* Oracle Lookup Styles */
+.oracle-results-scroll {
+  overflow-y: auto;
+  max-height: 360px;
+  text-align: left;
+}
+
+.oracle-card-result {
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.oracle-card-header {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.oracle-card-thumb {
+  width: 68px;
+  border-radius: 6px;
+  border: 1px solid var(--border-gold);
+  flex-shrink: 0;
+}
+
+.oracle-card-name {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--gold-foil);
+}
+
+.oracle-card-cost {
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.oracle-card-legality {
+  font-size: 0.7rem;
+  color: #86efac;
+  margin-top: 4px;
+}
+
+.oracle-text-box {
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+
+.oracle-ruling-heading {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--gold-foil);
+  margin-bottom: 5px;
+}
+
+.oracle-ruling-item {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  padding: 5px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.oracle-ruling-date {
+  display: inline-block;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-right: 6px;
+}
+
+.oracle-ruling-empty {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+/* Stats Pace 3-Card Bar & Insights Accordion */
+.stats-pace-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.stat-pace-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 9px 8px;
+  text-align: center;
+}
+
+.stat-pace-label {
+  display: block;
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+}
+
+.stat-pace-val {
+  font-family: var(--font-display);
+  font-size: 0.96rem;
+  font-weight: 800;
+  color: var(--gold-foil);
+}
+
+.insights-accordion {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-gold);
+  border-radius: 14px;
+  margin-top: 12px;
+  overflow: hidden;
+}
+
+.insights-accordion-toggle {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 0;
+  background: transparent;
+  color: var(--gold-foil);
+  font-size: 0.84rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.insights-accordion-body {
+  padding: 0 12px 12px;
+  border-top: 1px solid var(--border-subtle);
+  text-align: left;
+}
+
+.insights-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.insight-box {
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 9px 10px;
+}
+
+.insight-box-title {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.insight-box-val {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--gold-foil);
+  margin: 2px 0;
+}
+
+.insight-box-sub {
+  font-size: 0.66rem;
+  color: var(--text-muted);
+}
+
+.insight-sub-section {
+  margin-top: 10px;
+}
+
+.insight-sub-header {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+}
+
+.insight-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.insight-pill {
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  color: var(--text-primary);
+}
+
+.insight-pill strong {
+  color: var(--gold-foil);
+}
+
+.insight-opp-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.76rem;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.insight-opp-name {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.insight-opp-rec {
+  color: var(--gold-foil);
+  font-weight: 700;
+}
+
+.deck-stat-card-expandable {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.deck-stat-card-expandable .deck-stat-row {
+  border: none;
+  border-radius: 0;
+}
+
+.deck-stat-drawer {
+  padding: 8px 12px 10px;
+  background: rgba(0, 0, 0, 0.35);
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  text-align: left;
+  line-height: 1.4;
+}
+
+.deck-streak-pill {
+  font-size: 0.64rem;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 999px;
+  margin-left: 4px;
+}
+
+.deck-streak-pill.win {
+  background: rgba(34, 197, 94, 0.18);
+  color: #4ade80;
+}
+
+.deck-streak-pill.loss {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+}
+
+.match-opponents-tag {
+  font-size: 0.72rem;
+  color: #d6d3d1;
+  margin-top: 2px;
+}

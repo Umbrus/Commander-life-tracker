@@ -45,6 +45,83 @@ howItWorksModal.onclick = (e) => {
   if (e.target === howItWorksModal) howItWorksModal.classList.add("hidden");
 };
 
+// Standalone Scryfall Oracle & Rulings Lookup
+async function runProfileOracleSearch(queryStr) {
+  const resultsEl = document.getElementById("profileOracleResults");
+  if (!resultsEl) return;
+  const trimmed = (queryStr || "").trim();
+  if (!trimmed) return;
+
+  resultsEl.innerHTML = `<div class="empty-hint">Searching Scryfall Oracle database...</div>`;
+
+  try {
+    const res = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(trimmed)}`);
+    if (!res.ok) {
+      resultsEl.innerHTML = `<div class="empty-hint">No exact card found for "${trimmed}".</div>`;
+      return;
+    }
+    const card = await res.json();
+    const imgUris = card.image_uris || card.card_faces?.[0]?.image_uris || {};
+    const oracleText = card.oracle_text ||
+      (card.card_faces ? card.card_faces.map((f) => `${f.name}: ${f.oracle_text}`).join("\n\n") : "No Oracle text.");
+
+    let rulingsHtml = `<div class="empty-hint" style="padding:4px 0;">Loading official rulings...</div>`;
+
+    const renderCardBox = (rulingsSection) => {
+      resultsEl.innerHTML = `
+        <div class="oracle-card-result">
+          <div class="oracle-card-header">
+            ${imgUris.normal ? `<img src="${imgUris.normal}" alt="${card.name}" class="oracle-card-thumb" />` : ""}
+            <div class="oracle-card-meta">
+              <div class="oracle-card-name">${card.name}</div>
+              <div class="oracle-card-cost">${card.mana_cost || ""} • ${card.type_line || ""}</div>
+              <div class="oracle-card-legality">Commander: <strong>${(card.legalities?.commander || "unknown").toUpperCase()}</strong></div>
+            </div>
+          </div>
+          <div class="oracle-text-box">${oracleText.replace(/\n/g, "<br/>")}</div>
+          <div class="oracle-rulings-section">${rulingsSection}</div>
+        </div>
+      `;
+    };
+
+    renderCardBox(rulingsHtml);
+
+    if (card.rulings_uri) {
+      const rRes = await fetch(card.rulings_uri);
+      if (rRes.ok) {
+        const rData = await rRes.json();
+        const rulings = rData.data || [];
+        if (rulings.length === 0) {
+          rulingsHtml = `<div class="oracle-ruling-empty">No special Gatherer/Scryfall rulings on file.</div>`;
+        } else {
+          rulingsHtml = `<div class="oracle-ruling-heading">Official Rulings (${rulings.length})</div>` +
+            rulings.slice(0, 8).map((r) => `
+              <div class="oracle-ruling-item">
+                <span class="oracle-ruling-date">${r.published_at}</span>
+                <span>${r.comment}</span>
+              </div>
+            `).join("");
+        }
+        renderCardBox(rulingsHtml);
+      }
+    }
+  } catch {
+    resultsEl.innerHTML = `<div class="empty-hint">Unable to reach Scryfall while offline.</div>`;
+  }
+}
+
+const profileOracleInput = document.getElementById("profileOracleInput");
+const profileOracleSearchBtn = document.getElementById("profileOracleSearchBtn");
+if (profileOracleSearchBtn && profileOracleInput) {
+  profileOracleSearchBtn.onclick = () => runProfileOracleSearch(profileOracleInput.value);
+  profileOracleInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      runProfileOracleSearch(profileOracleInput.value);
+    }
+  });
+}
+
 // Player Defaults (Name & Theme)
 const nameInput = document.getElementById("defaultNameInput");
 nameInput.value = localStorage.getItem(SAVED_NAME_KEY) || "";

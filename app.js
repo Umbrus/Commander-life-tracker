@@ -46,6 +46,15 @@ const EXTRA_COUNTER_META = {
   rad: { label: "☢️ Rad", icon: "☢️" }
 };
 
+const MANA_COLORS = [
+  { key: "W", label: "W", title: "White" },
+  { key: "U", label: "U", title: "Blue" },
+  { key: "B", label: "B", title: "Black" },
+  { key: "R", label: "R", title: "Red" },
+  { key: "G", label: "G", title: "Green" },
+  { key: "C", label: "C", title: "Colorless" }
+];
+
 const statusBox = document.getElementById("statusBox");
 const statusText = document.getElementById("statusText");
 const topStatusLabel = document.getElementById("topStatusLabel");
@@ -62,6 +71,7 @@ const historyModal = document.getElementById("historyModal");
 const diceModal = document.getElementById("diceModal");
 const extraCountersModal = document.getElementById("extraCountersModal");
 const newGameModal = document.getElementById("newGameModal");
+const oracleLookupModal = document.getElementById("oracleLookupModal");
 const offlineBanner = document.getElementById("offlineBanner");
 
 const undoToast = document.getElementById("undoToast");
@@ -85,6 +95,8 @@ let myTheme = localStorage.getItem(THEME_PREF_KEY) || "blue";
 let myCommanderDamage = {};
 let myExtraCounters = { energy: 0, experience: 0, storm: 0, rad: 0 };
 let myPinnedCounters = [];
+let myShowManaPool = false;
+let myManaPool = { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 };
 
 let userDecks = {};
 let userMatches = [];
@@ -365,8 +377,187 @@ howItWorksModal.onclick = (e) => {
   if (e.target === howItWorksModal) howItWorksModal.classList.add("hidden");
 };
 
-// --- EXTRA COUNTERS PICKER & RENDERER ---
+// =========================================================
+// PHASE 3: IN-POD SCRYFALL ORACLE & RULINGS LOOKUP
+// =========================================================
+async function lookupOracleCard(queryStr) {
+  const resultsEl = document.getElementById("podOracleResults");
+  if (!resultsEl) return;
+  const trimmed = (queryStr || "").trim();
+  if (!trimmed) {
+    resultsEl.innerHTML = `<div class="empty-hint">Type a card name above to view Oracle text &amp; rulings.</div>`;
+    return;
+  }
+
+  resultsEl.innerHTML = `<div class="empty-hint">Searching Scryfall Oracle database...</div>`;
+
+  try {
+    const res = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(trimmed)}`);
+    if (!res.ok) {
+      resultsEl.innerHTML = `<div class="empty-hint">No exact card found for "${trimmed}". Check spelling and try again.</div>`;
+      return;
+    }
+    const card = await res.json();
+    const imgUris = card.image_uris || card.card_faces?.[0]?.image_uris || {};
+    const oracleText = card.oracle_text ||
+      (card.card_faces ? card.card_faces.map((f) => `${f.name}: ${f.oracle_text}`).join("\n\n") : "No Oracle text.");
+
+    let rulingsHtml = `<div class="empty-hint" style="padding:4px 0;">Loading official rulings...</div>`;
+
+    const renderCardBox = (rulingsSection) => {
+      resultsEl.innerHTML = `
+        <div class="oracle-card-result">
+          <div class="oracle-card-header">
+            ${imgUris.normal ? `<img src="${imgUris.normal}" alt="${card.name}" class="oracle-card-thumb" />` : ""}
+            <div class="oracle-card-meta">
+              <div class="oracle-card-name">${card.name}</div>
+              <div class="oracle-card-cost">${card.mana_cost || ""} • ${card.type_line || ""}</div>
+              <div class="oracle-card-legality">Commander: <strong>${(card.legalities?.commander || "unknown").toUpperCase()}</strong></div>
+            </div>
+          </div>
+          <div class="oracle-text-box">${oracleText.replace(/\n/g, "<br/>")}</div>
+          <div class="oracle-rulings-section">${rulingsSection}</div>
+        </div>
+      `;
+    };
+
+    renderCardBox(rulingsHtml);
+
+    if (card.rulings_uri) {
+      const rRes = await fetch(card.rulings_uri);
+      if (rRes.ok) {
+        const rData = await rRes.json();
+        const rulings = rData.data || [];
+        if (rulings.length === 0) {
+          rulingsHtml = `<div class="oracle-ruling-empty">No special Gatherer/Scryfall rulings on file.</div>`;
+        } else {
+          rulingsHtml = `<div class="oracle-ruling-heading">Official Rulings (${rulings.length})</div>` +
+            rulings.slice(0, 8).map((r) => `
+              <div class="oracle-ruling-item">
+                <span class="oracle-ruling-date">${r.published_at}</span>
+                <span>${r.comment}</span>
+              </div>
+            `).join("");
+        }
+        renderCardBox(rulingsHtml);
+      }
+    }
+  } catch {
+    resultsEl.innerHTML = `<div class="empty-hint">Unable to reach Scryfall while offline.</div>`;
+  }
+}
+
+const openOracleBtn = document.getElementById("openOracleLookupBtn");
+if (openOracleBtn && oracleLookupModal) {
+  openOracleBtn.onclick = () => {
+    dropdownMenu.classList.add("hidden");
+    oracleLookupModal.classList.remove("hidden");
+    const inp = document.getElementById("podOracleInput");
+    if (inp) setTimeout(() => inp.focus(), 60);
+  };
+}
+const closeOracleBtn = document.getElementById("closeOracleLookupBtn");
+if (closeOracleBtn && oracleLookupModal) {
+  closeOracleBtn.onclick = () => oracleLookupModal.classList.add("hidden");
+  oracleLookupModal.onclick = (e) => {
+    if (e.target === oracleLookupModal) oracleLookupModal.classList.add("hidden");
+  };
+}
+const podOracleSearchBtn = document.getElementById("podOracleSearchBtn");
+const podOracleInput = document.getElementById("podOracleInput");
+if (podOracleSearchBtn && podOracleInput) {
+  podOracleSearchBtn.onclick = () => lookupOracleCard(podOracleInput.value);
+  podOracleInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      lookupOracleCard(podOracleInput.value);
+    }
+  });
+}
+
+// --- EXTRA COUNTERS & FLOATING MANA POOL PICKER / RENDERER ---
+function renderFloatingManaStrip() {
+  const manaBar = document.getElementById("floatingManaStrip");
+  if (!manaBar) return;
+
+  const manaRowBtn = document.querySelector(`.toggle-counter-row[data-counter="mana"]`);
+  const manaBadge = document.getElementById("badge-mana");
+  if (manaRowBtn) manaRowBtn.classList.toggle("pinned", myShowManaPool);
+  if (manaBadge) manaBadge.textContent = myShowManaPool ? "ON" : "OFF";
+
+  if (!myShowManaPool) {
+    manaBar.classList.add("hidden");
+    return;
+  }
+
+  manaBar.classList.remove("hidden");
+  const pillsWrap = document.getElementById("manaPillsRow");
+  if (!pillsWrap) return;
+  pillsWrap.innerHTML = "";
+
+  MANA_COLORS.forEach((m) => {
+    const val = myManaPool[m.key] || 0;
+    const pip = document.createElement("button");
+    pip.type = "button";
+    pip.className = `mana-pip-btn mana-${m.key.toLowerCase()} ${val > 0 ? "has-mana" : ""}`;
+    pip.title = `${m.title} Mana (Tap +1, Hold −1)`;
+    pip.innerHTML = `
+      <span class="mana-sym">${m.label}</span>
+      <span class="mana-count">${val}</span>
+    `;
+
+    let holdTimer = null;
+    let didHold = false;
+    pip.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      didHold = false;
+      holdTimer = setTimeout(() => {
+        didHold = true;
+        triggerHaptic(15);
+        adjustManaPool(m.key, -1);
+      }, 420);
+    });
+    pip.addEventListener("pointerup", (e) => {
+      e.preventDefault();
+      clearTimeout(holdTimer);
+      if (!didHold) {
+        triggerHaptic(10);
+        adjustManaPool(m.key, 1);
+      }
+    });
+    pip.addEventListener("pointerleave", () => clearTimeout(holdTimer));
+    pip.addEventListener("pointercancel", () => clearTimeout(holdTimer));
+
+    pillsWrap.appendChild(pip);
+  });
+}
+
+function adjustManaPool(colorKey, delta) {
+  myManaPool[colorKey] = Math.max(0, (myManaPool[colorKey] || 0) + delta);
+  renderFloatingManaStrip();
+  if (currentPodCode && currentUser) {
+    update(ref(db, `pods/${currentPodCode}/players/${currentUser.uid}/manaPool`), {
+      [colorKey]: myManaPool[colorKey]
+    });
+  }
+}
+
+const clearManaBtn = document.getElementById("clearManaPoolBtn");
+if (clearManaBtn) {
+  clearManaBtn.onclick = () => {
+    triggerHaptic(12);
+    myManaPool = { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 };
+    renderFloatingManaStrip();
+    if (currentPodCode && currentUser) {
+      update(ref(db, `pods/${currentPodCode}/players/${currentUser.uid}`), {
+        manaPool: myManaPool
+      });
+    }
+  };
+}
+
 function renderPinnedExtraCounters() {
+  renderFloatingManaStrip();
   const grid = document.getElementById("extraCountersGrid");
   grid.innerHTML = "";
 
@@ -420,6 +611,17 @@ function renderPinnedExtraCounters() {
 document.querySelectorAll(".toggle-counter-row").forEach((btn) => {
   btn.onclick = () => {
     const key = btn.dataset.counter;
+    if (key === "mana") {
+      myShowManaPool = !myShowManaPool;
+      renderPinnedExtraCounters();
+      if (currentPodCode && currentUser) {
+        update(ref(db, `pods/${currentPodCode}/players/${currentUser.uid}`), {
+          showManaPool: myShowManaPool
+        });
+      }
+      return;
+    }
+
     if (myPinnedCounters.includes(key)) {
       myPinnedCounters = myPinnedCounters.filter((k) => k !== key);
     } else {
@@ -1126,6 +1328,8 @@ document.getElementById("confirmNewGameBtn").onclick = async () => {
       eliminatedTurn: null,
       online: p.online !== false,
       pinnedCounters: Array.isArray(p.pinnedCounters) ? p.pinnedCounters : [],
+      showManaPool: Boolean(p.showManaPool),
+      manaPool: { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 },
       joinedAt: p.joinedAt || Date.now(),
       life: selectedNewGameLife,
       poison: 0,
@@ -1383,33 +1587,56 @@ document.getElementById("poisonPlusBtn").onclick = () => changePoison(1);
 document.getElementById("taxMinusBtn").onclick = () => changeTax(-2);
 document.getElementById("taxPlusBtn").onclick = () => changeTax(2);
 
-// --- TAP FOR 1, HOLD FOR 5 HELPER ---
+// --- PROGRESSIVE PRESS-AND-HOLD LIFE ACCELERATION (±5 -> ±5 -> ±10 REPEATING) ---
 function bindLifeTapZone(element, step, customCallback = null) {
-  let holdTimer = null;
+  let holdTimeout = null;
+  let repeatInterval = null;
   let didHold = false;
+  let holdTicks = 0;
 
   const invokeChange = customCallback || changeMyLife;
 
+  const clearTimers = () => {
+    clearTimeout(holdTimeout);
+    clearInterval(repeatInterval);
+    holdTimeout = null;
+    repeatInterval = null;
+  };
+
   const startPress = (e) => {
     e.preventDefault();
+    clearTimers();
     didHold = false;
-    holdTimer = setTimeout(() => {
+    holdTicks = 0;
+
+    holdTimeout = setTimeout(() => {
       didHold = true;
-      triggerHaptic([20, 30, 20]);
+      holdTicks = 1;
+      triggerHaptic([18, 25, 18]);
       invokeChange(step * 5);
+
+      repeatInterval = setInterval(() => {
+        holdTicks++;
+        const multiplier = holdTicks === 2 ? 5 : 10;
+        triggerHaptic(multiplier === 10 ? 22 : 14);
+        invokeChange(step * multiplier);
+      }, 460);
     }, 450);
   };
 
   const endPress = (e) => {
     e.preventDefault();
-    clearTimeout(holdTimer);
-    if (!didHold) {
+    const wasHolding = didHold;
+    clearTimers();
+    if (!wasHolding) {
       triggerHaptic(12);
       invokeChange(step);
     }
   };
 
-  const cancelPress = () => clearTimeout(holdTimer);
+  const cancelPress = () => {
+    clearTimers();
+  };
 
   element.addEventListener("pointerdown", startPress);
   element.addEventListener("pointerup", endPress);
@@ -1466,6 +1693,8 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
       eliminatedTurn: null,
       online: true,
       pinnedCounters: [],
+      showManaPool: false,
+      manaPool: { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 },
       joinedAt: Date.now(),
       life: podStartingLife,
       poison: 0,
@@ -1482,6 +1711,8 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
     myCommanderDamage = existing.commanderDamage || {};
     myExtraCounters = { energy: 0, experience: 0, storm: 0, rad: 0, ...(existing.extraCounters || {}) };
     myPinnedCounters = Array.isArray(existing.pinnedCounters) ? existing.pinnedCounters : [];
+    myShowManaPool = Boolean(existing.showManaPool);
+    myManaPool = { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0, ...(existing.manaPool || {}) };
     if (existing.theme) applyMyThemeUI(existing.theme);
     if (existing.artCrop && !selectedArtCrop) applyHeroCommanderBackdrop(existing.artCrop);
 
@@ -1534,7 +1765,6 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
       bannerRematchBtn.classList.toggle("hidden", !isHost);
     }
 
-    // Turn-change haptic & gold border pulse when turn passes to you
     if (activeTurnUid && activeTurnUid !== previousActiveTurnUid) {
       if (activeTurnUid === currentUser.uid && previousActiveTurnUid !== null) {
         triggerHaptic([20, 45, 20]);
@@ -1554,7 +1784,6 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
     const winnerDeckNote = document.getElementById("podWinnerDeckNote");
     const matchUniqueKey = `${code}_g${gameNum}`;
 
-    // Early Elimination Loss Logging (captures myExitTurn immediately, then patches gameEndTurn later)
     if (
       orderedUids.length >= 2 &&
       aliveUids.length > 1 &&
@@ -1569,7 +1798,6 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
       activeGameMatchRecord = recordDeckMatchOutcome(activeDeckId, "loss", `Pod ${code}`, exitTurn, meta);
     }
 
-    // Final Pod Winner & End-of-Game Logging
     if (orderedUids.length >= 2 && aliveUids.length === 1) {
       const winnerUid = aliveUids[0];
       const winnerName = players[winnerUid]?.name || "Player";
@@ -1649,6 +1877,8 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
       myCommanderDamage = me.commanderDamage || {};
       myExtraCounters = { energy: 0, experience: 0, storm: 0, rad: 0, ...(me.extraCounters || {}) };
       myPinnedCounters = Array.isArray(me.pinnedCounters) ? me.pinnedCounters : [];
+      myShowManaPool = Boolean(me.showManaPool);
+      myManaPool = { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0, ...(me.manaPool || {}) };
 
       if (me.theme && me.theme !== myTheme) applyMyThemeUI(me.theme);
       if (me.artCrop) applyHeroCommanderBackdrop(me.artCrop);

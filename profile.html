@@ -33,6 +33,17 @@
         </button>
       </div>
 
+      <!-- STANDALONE SCRYFALL ORACLE & RULINGS LOOKUP -->
+      <div class="profile-card">
+        <h2 class="profile-card-title">🔍 Scryfall Card &amp; Oracle Lookup</h2>
+        <p class="profile-card-sub">Check exact Oracle wording, Commander legality, and official Gatherer rulings.</p>
+        <div class="join-row" style="grid-template-columns: 1fr auto; margin-bottom: 10px;">
+          <input id="profileOracleInput" type="text" placeholder="e.g. Panglacial Wurm" style="text-align: left; font-size: 0.88rem; padding: 10px 12px;" />
+          <button id="profileOracleSearchBtn" type="button" class="btn-primary btn-small" style="padding: 0 14px;">Search</button>
+        </div>
+        <div id="profileOracleResults" class="oracle-results-scroll" style="max-height: 290px;"></div>
+      </div>
+
       <!-- PLAYER DEFAULTS CARD -->
       <div class="profile-card">
         <h2 class="profile-card-title">⚔️ Player Defaults</h2>
@@ -115,7 +126,7 @@
           <div class="step-badge">2</div>
           <div class="step-body">
             <h3>Track Life, Eliminations &amp; Turns</h3>
-            <p>Tap left/right for <strong>−1 / +1</strong>, or <strong>press &amp; hold</strong> for <strong>−5 / +5</strong>. Reaching 0 life, 10 poison, or 21 Commander damage automatically marks a player knocked out and skips their turn.</p>
+            <p>Tap left/right for <strong>−1 / +1</strong>, or <strong>press &amp; hold</strong> to accelerate through <strong>±5</strong> and <strong>±10</strong>. Reaching 0 life, 10 poison, or 21 Commander damage automatically marks a player knocked out and skips their turn.</p>
           </div>
         </div>
         <div class="guide-step">

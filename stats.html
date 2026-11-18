@@ -52,19 +52,66 @@
         </div>
       </div>
 
-      <!-- TURN SPEED & AVERAGE WIN TURN BAR -->
-      <div class="stats-secondary-bar">
-        <div class="stat-mini-card">
-          <span class="stat-mini-label">⚡ Avg Win Turn</span>
-          <span class="stat-mini-val" id="statAvgWinTurn">—</span>
+      <!-- 3-PILL DUAL-TURN PACE STRIP -->
+      <div class="stats-pace-grid">
+        <div class="stat-pace-card">
+          <span class="stat-pace-label">⚡ Avg Win</span>
+          <span class="stat-pace-val" id="statAvgWinTurn">—</span>
         </div>
-        <div class="stat-mini-card">
-          <span class="stat-mini-label">⏱ Avg Game Length</span>
-          <span class="stat-mini-val" id="statAvgAllTurn">—</span>
+        <div class="stat-pace-card">
+          <span class="stat-pace-label">💀 Avg Exit</span>
+          <span class="stat-pace-val" id="statAvgExitTurn">—</span>
+        </div>
+        <div class="stat-pace-card">
+          <span class="stat-pace-label">⏱ Pod End</span>
+          <span class="stat-pace-val" id="statAvgAllTurn">—</span>
         </div>
       </div>
 
-      <div class="section-label" style="text-align:left;margin:16px 0 8px;">Performance by Deck</div>
+      <!-- COLLAPSIBLE POD & MATCHUP INSIGHTS ACCORDION -->
+      <div class="insights-accordion">
+        <button type="button" id="toggleInsightsBtn" class="insights-accordion-toggle">
+          <span>📊 Pod &amp; Matchup Insights</span>
+          <span id="insightsChevron">▾</span>
+        </button>
+        <div id="insightsAccordionBody" class="insights-accordion-body hidden">
+          <div class="insights-grid-2">
+            <div class="insight-box">
+              <div class="insight-box-title">🎲 1st-Seat Win %</div>
+              <div class="insight-box-val" id="insightFirstSeatVal">—</div>
+              <div class="insight-box-sub" id="insightFirstSeatSub">No seat data yet</div>
+            </div>
+            <div class="insight-box">
+              <div class="insight-box-title">⚔️ Cmdr KOs</div>
+              <div class="insight-box-val" id="insightCmdrKillsVal">0</div>
+              <div class="insight-box-sub">21+ lethal eliminations</div>
+            </div>
+          </div>
+
+          <div class="insight-sub-section">
+            <div class="insight-sub-header">Pod Size Breakdown</div>
+            <div id="insightPodSizeList" class="insight-chip-row">
+              <span class="empty-hint">No pod size data yet</span>
+            </div>
+          </div>
+
+          <div class="insight-sub-section">
+            <div class="insight-sub-header">Win Conditions</div>
+            <div id="insightWinConList" class="insight-chip-row">
+              <span class="empty-hint">No win conditions logged yet</span>
+            </div>
+          </div>
+
+          <div class="insight-sub-section">
+            <div class="insight-sub-header">Most Faced Commanders</div>
+            <div id="insightOpponentsList" class="insight-mini-list">
+              <div class="empty-hint">Play synced pods or log opponents to track matchups</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-label" style="text-align:left;margin:16px 0 8px;">Performance by Deck (Tap to expand)</div>
       <div id="deckStatsBreakdown" class="deck-stats-list">
         <div class="empty-hint">Play or log a game to see per-deck win rates!</div>
       </div>
@@ -76,7 +123,7 @@
     </div>
   </div>
 
-  <!-- ADD / EDIT MATCH MODAL -->
+  <!-- ADD / EDIT MATCH MODAL (WITH DUAL TURNS, OPPONENTS & WIN-CON) -->
   <div id="matchEditorModal" class="modal-backdrop hidden">
     <div class="modal-card" style="max-height: 88vh; overflow-y: auto;">
       <div class="modal-header">
@@ -97,20 +144,43 @@
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns: 1.2fr 0.8fr;gap:8px;margin-bottom:14px;">
+      <div class="input-group">
+        <label for="matchDateInput" class="input-label">Date Played</label>
+        <input id="matchDateInput" type="date" style="text-align:left;padding:11px 12px;font-size:0.88rem;" />
+      </div>
+
+      <div style="display:grid;grid-template-columns: 1fr 1fr;gap:8px;margin-bottom:14px;">
         <div class="input-group" style="margin-bottom:0;">
-          <label for="matchDateInput" class="input-label">Date Played</label>
-          <input id="matchDateInput" type="date" style="text-align:left;padding:11px 12px;font-size:0.88rem;" />
+          <label for="matchExitTurnInput" class="input-label">Your Exit / Win Turn</label>
+          <input id="matchExitTurnInput" type="number" min="1" max="99" placeholder="e.g. 7" style="padding:11px 10px;font-size:0.95rem;" />
         </div>
         <div class="input-group" style="margin-bottom:0;">
-          <label for="matchTurnsInput" class="input-label">Final Turn</label>
-          <input id="matchTurnsInput" type="number" min="1" max="99" placeholder="e.g. 9" style="padding:11px 10px;font-size:0.95rem;" />
+          <label for="matchEndTurnInput" class="input-label">Final Pod Turn</label>
+          <input id="matchEndTurnInput" type="number" min="1" max="99" placeholder="e.g. 10" style="padding:11px 10px;font-size:0.95rem;" />
         </div>
       </div>
 
       <div class="input-group">
-        <label for="matchNoteInput" class="input-label">Notes / Win-Con (Optional)</label>
-        <input id="matchNoteInput" type="text" maxlength="60" placeholder="e.g. 4-pod at 5oz Knights • Combat win" style="text-align:left;font-size:0.86rem;" />
+        <label for="matchOpponentsInput" class="input-label">Opponents / Commanders Faced (Comma-separated)</label>
+        <input id="matchOpponentsInput" type="text" maxlength="140" placeholder="e.g. Atraxa, Krenko, Urza" style="text-align:left;font-size:0.84rem;" />
+      </div>
+
+      <div class="input-group">
+        <label for="matchWinConSelect" class="input-label">Win Condition (Optional)</label>
+        <select id="matchWinConSelect" class="deck-select" style="padding:11px 12px;font-size:0.85rem;">
+          <option value="">Unspecified</option>
+          <option value="Combat / Life">Combat / Life Damage</option>
+          <option value="Commander Damage">Commander Damage (21+)</option>
+          <option value="Combo">Combo / Infinite</option>
+          <option value="Drain / Burn">Drain / Aristocrats / Burn</option>
+          <option value="Poison / Infect">Poison / Infect (10+)</option>
+          <option value="Alt Win">Alternate Win-Con Card</option>
+        </select>
+      </div>
+
+      <div class="input-group">
+        <label for="matchNoteInput" class="input-label">Notes (Optional)</label>
+        <input id="matchNoteInput" type="text" maxlength="80" placeholder="e.g. 4-pod at 5oz Knights" style="text-align:left;font-size:0.84rem;" />
       </div>
 
       <button id="saveMatchBtn" type="button" class="btn-primary" style="margin-bottom:8px;">💾 Save Match</button>
