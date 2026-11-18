@@ -2010,13 +2010,64 @@ document.getElementById("tableSetupAgainBtn").onclick = () => {
   tableSetupModal.classList.remove("hidden");
 };
 
-document.getElementById("tableExitBtn").onclick = () => {
-  tableHubMenu.classList.add("hidden");
+const tableQuickLogModal = document.getElementById("tableQuickLogModal");
+let tableLogOutcome = "win";
+
+document.getElementById("tableLogWinBtn").onclick = () => {
+  tableLogOutcome = "win";
+  document.getElementById("tableLogWinBtn").classList.add("selected-win");
+  document.getElementById("tableLogLossBtn").classList.remove("selected-loss");
+};
+document.getElementById("tableLogLossBtn").onclick = () => {
+  tableLogOutcome = "loss";
+  document.getElementById("tableLogLossBtn").classList.add("selected-loss");
+  document.getElementById("tableLogWinBtn").classList.remove("selected-win");
+};
+
+function finishExitingTableMode() {
+  tableQuickLogModal.classList.add("hidden");
   tableView.classList.add("hidden");
   lobbyTopBar.classList.remove("hidden");
   lobbyView.classList.remove("hidden");
   if (mainBottomNav) mainBottomNav.classList.remove("hidden");
+}
+
+document.getElementById("tableExitBtn").onclick = () => {
+  tableHubMenu.classList.add("hidden");
+  const anyLifeChanged = tablePlayers.some((p) => p.life !== tableStartingLife || p.eliminated);
+
+  if (anyLifeChanged && Object.keys(userDecks).length > 0 && tableQuickLogModal) {
+    const sel = document.getElementById("tableLogDeckSelect");
+    sel.innerHTML = "";
+    Object.entries(userDecks).forEach(([id, deck]) => {
+      const opt = document.createElement("option");
+      opt.value = id;
+      opt.textContent = deck.name;
+      if (id === activeDeckId) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    document.getElementById("tableLogTurnsInput").value = "";
+    tableLogOutcome = "win";
+    document.getElementById("tableLogWinBtn").classList.add("selected-win");
+    document.getElementById("tableLogLossBtn").classList.remove("selected-loss");
+    tableQuickLogModal.classList.remove("hidden");
+  } else {
+    finishExitingTableMode();
+  }
 };
+
+document.getElementById("skipTableLogBtn").onclick = finishExitingTableMode;
+
+document.getElementById("saveTableLogBtn").onclick = () => {
+  const deckId = document.getElementById("tableLogDeckSelect").value;
+  const turnsRaw = parseInt(document.getElementById("tableLogTurnsInput").value, 10);
+  const turns = !isNaN(turnsRaw) && turnsRaw > 0 ? turnsRaw : null;
+  if (deckId) {
+    recordDeckMatchOutcome(deckId, tableLogOutcome, "Table Mode", turns);
+  }
+  finishExitingTableMode();
+};
+
 
 // --- REGISTER SERVICE WORKER (AUTO-RELOADS APK ON NEW CACHE VERSION) ---
 if ("serviceWorker" in navigator) {

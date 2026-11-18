@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+import { getDatabase, ref, get, set, update } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCh_fJv3mMlQQ2teHyryAxtd0x_mCmMzTU",
@@ -14,13 +14,59 @@ const firebaseConfig = {
 
 const LOCAL_DECKS_KEY = "mtg_local_deck_locker";
 const LOCAL_MATCHES_KEY = "mtg_local_match_history";
+const ACTIVE_DECK_KEY = "mtg_active_deck_id";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
+let currentUser = null;
 let userDecks = {};
 let userMatches = [];
+let selectedRange = "month";
+let editingMatchIndex = null;
+let modalOutcome = "win";
+
+function triggerHaptic(pattern) {
+  if ("vibrate" in navigator) {
+    try { navigator.vibrate(pattern); } catch {}
+  }
+}
+
+function getTodayDateString() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function parseMatchDate(match) {
+  if (match.dateStr && /^\d{4}-\d{2}-\d{2}$/.test(match.dateStr)) {
+    const [y, m, d] = match.dateStr.split("-").map(Number);
+    return new Date(y, m - 1, d, 12, 0, 0);
+  }
+  return new Date(match.at || Date.now());
+}
+
+function isMatchInSelectedRange(match, range) {
+  if (range === "all") return true;
+  const now = new Date();
+  const d = parseMatchDate(match);
+
+  if (range === "year") {
+    return d.getFullYear() === now.getFullYear();
+  }
+  if (range === "quarter") {
+    const currentQuarter = Math.floor(now.getMonth() / 3);
+    const matchQuarter = Math.floor(d.getMonth() / 3);
+    return d.getFullYear() === now.getFullYear() && matchQuarter === currentQuarter;
+  }
+  if (range === "month") {
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }
+  return true;
+}
 
 function loadLocalData() {
   try {
@@ -32,83 +78,323 @@ function loadLocalData() {
   }
 }
 
+async function saveAndSyncAllStats() {
+  // Recalculate each deck's overall all-time wins & losses from the authoritative match list
+  Object.values(userDecks).forEach((deck) => {
+    deck.wins = 0;
+    deck.losses = 0;
+  });
+
+  userMatches.forEach((m) => {
+    if (m.deckId && userDecks[m.deckId]) {
+      if (m.outcome === "win") userDecks[m.deckId].wins += 1;
+      else userDecks[m.deckId].losses += 1;
+    }
+  });
+
+  userMatches.sort((a, b) => parseMatchDate(b).getTime() - parseMatchDate(a).getTime());
+
+  localStorage.setItem(LOCAL_DECKS_KEY, JSON.stringify(userDecks));
+  localStorage.setItem(LOCAL_MATCHES_KEY, JSON.stringify(userMatches));
+
+  if (currentUser) {
+    const matchesMap = {};
+    userMatches.forEach((m, idx) => {
+      const key = m.id || `m_${m.at || Date.now()}_${idx}`;
+      m.id = key;
+      matchesMap[key] = m;
+    });
+    await update(ref(db, `users/${currentUser.uid}`), {
+      decks: userDecks,
+      matches: matchesMap
+    }).catch(() => {});
+  }
+}
+
+// Timeframe Filter Buttons
+document.querySelectorAll("#timeframeFilterBar .timeframe-pill").forEach((btn) => {
+  btn.onclick = () => {
+    triggerHaptic(10);
+    selectedRange = btn.dataset.range;
+    document.querySelectorAll("#timeframeFilterBar .timeframe-pill").forEach((b) => {
+      b.classList.toggle("active", b === btn);
+    });
+    renderStats();
+  };
+});
+
 function renderStats() {
+  const filteredMatches = userMatches.filter((m) => isMatchInSelectedRange(m, selectedRange));
+
   let totalWins = 0;
   let totalLosses = 0;
+  let winTurnsSum = 0;
+  let winTurnsCount = 0;
+  let allTurnsSum = 0;
+  let allTurnsCount = 0;
 
-  const breakdownEl = document.getElementById("deckStatsBreakdown");
-  breakdownEl.innerHTML = "";
+  const perDeckStats = {};
+  Object.entries(userDecks).forEach(([id, deck]) => {
+    perDeckStats[id] = {
+      id,
+      name: deck.name,
+      commander: deck.commander,
+      wins: 0,
+      losses: 0,
+      winTurnsSum: 0,
+      winTurnsCount: 0
+    };
+  });
 
-  const decksArr = Object.values(userDecks);
-  if (decksArr.length === 0) {
-    breakdownEl.innerHTML = `<div class="empty-hint">Add a deck in My Deck Locker to track per-deck win rates!</div>`;
-  } else {
-    decksArr.forEach((d) => {
-      const w = d.wins || 0;
-      const l = d.losses || 0;
-      totalWins += w;
-      totalLosses += l;
-      const games = w + l;
-      const rate = games > 0 ? Math.round((w / games) * 100) : 0;
+  filteredMatches.forEach((m) => {
+    const isWin = m.outcome === "win";
+    if (isWin) totalWins += 1;
+    else totalLosses += 1;
 
-      const row = document.createElement("div");
-      row.className = "deck-stat-row";
-      row.innerHTML = `
-        <div class="history-main">
-          <div class="history-player">${d.name}</div>
-          <div class="history-sub">${d.commander}</div>
-        </div>
-        <div class="history-delta" style="color:var(--gold-foil);">
-          ${w}W - ${l}L (${rate}%)
-        </div>
-      `;
-      breakdownEl.appendChild(row);
-    });
-  }
+    const turnsVal = parseInt(m.turns, 10);
+    if (!isNaN(turnsVal) && turnsVal > 0) {
+      allTurnsSum += turnsVal;
+      allTurnsCount += 1;
+      if (isWin) {
+        winTurnsSum += turnsVal;
+        winTurnsCount += 1;
+      }
+    }
+
+    const deckKey = m.deckId || `custom_${m.deckName}`;
+    if (!perDeckStats[deckKey]) {
+      perDeckStats[deckKey] = {
+        id: deckKey,
+        name: m.deckName || "Casual / Unlisted",
+        commander: m.commander || "",
+        wins: 0,
+        losses: 0,
+        winTurnsSum: 0,
+        winTurnsCount: 0
+      };
+    }
+
+    if (isWin) {
+      perDeckStats[deckKey].wins += 1;
+      if (!isNaN(turnsVal) && turnsVal > 0) {
+        perDeckStats[deckKey].winTurnsSum += turnsVal;
+        perDeckStats[deckKey].winTurnsCount += 1;
+      }
+    } else {
+      perDeckStats[deckKey].losses += 1;
+    }
+  });
 
   const totalGames = totalWins + totalLosses;
   const overallRate = totalGames > 0 ? Math.round((totalWins / totalGames) * 100) : 0;
+  const avgWinTurn = winTurnsCount > 0 ? `Turn ${(winTurnsSum / winTurnsCount).toFixed(1)}` : "—";
+  const avgAllTurn = allTurnsCount > 0 ? `Turn ${(allTurnsSum / allTurnsCount).toFixed(1)}` : "—";
 
   document.getElementById("statTotalGames").textContent = totalGames;
   document.getElementById("statTotalWins").textContent = totalWins;
   document.getElementById("statTotalLosses").textContent = totalLosses;
   document.getElementById("statWinRate").textContent = `${overallRate}%`;
+  document.getElementById("statAvgWinTurn").textContent = avgWinTurn;
+  document.getElementById("statAvgAllTurn").textContent = avgAllTurn;
 
+  // Render Per-Deck Breakdown
+  const breakdownEl = document.getElementById("deckStatsBreakdown");
+  breakdownEl.innerHTML = "";
+
+  const deckRows = Object.values(perDeckStats).filter(
+    (d) => selectedRange === "all" || d.wins + d.losses > 0
+  );
+
+  if (deckRows.length === 0) {
+    breakdownEl.innerHTML = `<div class="empty-hint">No games recorded for this timeframe yet.</div>`;
+  } else {
+    deckRows
+      .sort((a, b) => (b.wins + b.losses) - (a.wins + a.losses))
+      .forEach((d) => {
+        const games = d.wins + d.losses;
+        const rate = games > 0 ? Math.round((d.wins / games) * 100) : 0;
+        const deckAvgWin = d.winTurnsCount > 0 ? ` • Avg Win: T${(d.winTurnsSum / d.winTurnsCount).toFixed(1)}` : "";
+
+        const row = document.createElement("div");
+        row.className = "deck-stat-row";
+        row.innerHTML = `
+          <div class="history-main">
+            <div class="history-player">${d.name}</div>
+            <div class="history-sub">${d.commander}${deckAvgWin}</div>
+          </div>
+          <div class="history-delta" style="color:var(--gold-foil);">
+            ${d.wins}W - ${d.losses}L (${rate}%)
+          </div>
+        `;
+        breakdownEl.appendChild(row);
+      });
+  }
+
+  // Render Editable Match History List
   const matchList = document.getElementById("matchHistoryList");
   matchList.innerHTML = "";
-  if (userMatches.length === 0) {
-    matchList.innerHTML = `<div class="empty-hint">No completed matches logged yet.</div>`;
+  if (filteredMatches.length === 0) {
+    matchList.innerHTML = `<div class="empty-hint">No completed matches logged in this timeframe.</div>`;
   } else {
-    userMatches.slice(0, 30).forEach((m) => {
+    filteredMatches.forEach((m) => {
+      const globalIdx = userMatches.indexOf(m);
       const isWin = m.outcome === "win";
-      const dateStr = m.dateStr || (m.at ? new Date(m.at).toLocaleDateString() : "");
+      const dateStr = m.dateStr || (m.at ? new Date(m.at).toISOString().slice(0, 10) : "");
       const turnText = m.turns ? ` • Turn ${m.turns}` : "";
+      const noteHtml = m.note ? `<div class="match-note-tag">“${m.note}”</div>` : "";
+
       const row = document.createElement("div");
-      row.className = "history-row";
+      row.className = "history-row editable-match-row";
       row.innerHTML = `
         <div class="history-main">
           <div class="history-player">${m.deckName}</div>
-          <div class="history-sub">${m.commander}${turnText}${dateStr ? ` • ${dateStr}` : ""}</div>
+          <div class="history-sub">${dateStr}${turnText}${m.podLabel && m.podLabel !== "Manual Log" ? ` • ${m.podLabel}` : ""}</div>
+          ${noteHtml}
         </div>
         <div class="history-delta ${isWin ? "gain" : "loss"}">
-          ${isWin ? "WIN" : "LOSS"}
+          ${isWin ? "WIN" : "LOSS"} ✎
         </div>
       `;
+      row.onclick = () => openMatchEditor(globalIdx);
       matchList.appendChild(row);
     });
   }
 }
+
+// Add / Edit Match Modal
+const matchEditorModal = document.getElementById("matchEditorModal");
+const outcomeWinBtn = document.getElementById("outcomeWinBtn");
+const outcomeLossBtn = document.getElementById("outcomeLossBtn");
+
+function setModalOutcome(val) {
+  modalOutcome = val;
+  outcomeWinBtn.classList.toggle("selected-win", val === "win");
+  outcomeLossBtn.classList.toggle("selected-loss", val === "loss");
+}
+
+outcomeWinBtn.onclick = () => setModalOutcome("win");
+outcomeLossBtn.onclick = () => setModalOutcome("loss");
+
+function populateDeckSelector(selectedId) {
+  const select = document.getElementById("matchDeckSelect");
+  select.innerHTML = "";
+
+  const deckEntries = Object.entries(userDecks);
+  if (deckEntries.length === 0) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "Casual / Unlisted Deck";
+    select.appendChild(opt);
+    return;
+  }
+
+  deckEntries.forEach(([id, deck]) => {
+    const opt = document.createElement("option");
+    opt.value = id;
+    opt.textContent = `${deck.name} (${deck.commander})`;
+    if (id === selectedId) opt.selected = true;
+    select.appendChild(opt);
+  });
+
+  const casualOpt = document.createElement("option");
+  casualOpt.value = "";
+  casualOpt.textContent = "Casual / Unlisted Deck";
+  if (!selectedId) casualOpt.selected = true;
+  select.appendChild(casualOpt);
+}
+
+function openMatchEditor(matchIndex = null) {
+  triggerHaptic(12);
+  editingMatchIndex = matchIndex;
+
+  const titleEl = document.getElementById("matchEditorTitle");
+  const deleteBtn = document.getElementById("deleteMatchBtn");
+
+  if (matchIndex !== null && userMatches[matchIndex]) {
+    const m = userMatches[matchIndex];
+    titleEl.textContent = "Edit Match Record";
+    deleteBtn.classList.remove("hidden");
+    populateDeckSelector(m.deckId || "");
+    setModalOutcome(m.outcome || "win");
+    document.getElementById("matchDateInput").value = m.dateStr || getTodayDateString();
+    document.getElementById("matchTurnsInput").value = m.turns || "";
+    document.getElementById("matchNoteInput").value = m.note || "";
+  } else {
+    titleEl.textContent = "Log Commander Game";
+    deleteBtn.classList.add("hidden");
+    const defaultDeckId = localStorage.getItem(ACTIVE_DECK_KEY) || Object.keys(userDecks)[0] || "";
+    populateDeckSelector(defaultDeckId);
+    setModalOutcome("win");
+    document.getElementById("matchDateInput").value = getTodayDateString();
+    document.getElementById("matchTurnsInput").value = "";
+    document.getElementById("matchNoteInput").value = "";
+  }
+
+  matchEditorModal.classList.remove("hidden");
+}
+
+document.getElementById("openAddMatchBtn").onclick = () => openMatchEditor(null);
+document.getElementById("closeMatchEditorBtn").onclick = () => matchEditorModal.classList.add("hidden");
+matchEditorModal.onclick = (e) => {
+  if (e.target === matchEditorModal) matchEditorModal.classList.add("hidden");
+};
+
+document.getElementById("saveMatchBtn").onclick = async () => {
+  triggerHaptic(15);
+  const deckId = document.getElementById("matchDeckSelect").value;
+  const deckObj = deckId ? userDecks[deckId] : null;
+  const dateStr = document.getElementById("matchDateInput").value || getTodayDateString();
+  const turnsRaw = parseInt(document.getElementById("matchTurnsInput").value, 10);
+  const turns = !isNaN(turnsRaw) && turnsRaw > 0 ? turnsRaw : null;
+  const note = document.getElementById("matchNoteInput").value.trim();
+
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const timestamp = new Date(y, m - 1, d, 12, 0, 0).getTime();
+
+  const existingId = editingMatchIndex !== null ? userMatches[editingMatchIndex]?.id : null;
+  const record = {
+    id: existingId || `m_${Date.now()}`,
+    deckId: deckId || "",
+    deckName: deckObj ? deckObj.name : "Casual / Unlisted Deck",
+    commander: deckObj ? deckObj.commander : "Commander",
+    outcome: modalOutcome,
+    turns,
+    note,
+    dateStr,
+    podLabel: editingMatchIndex !== null ? (userMatches[editingMatchIndex]?.podLabel || "Manual Log") : "Manual Log",
+    at: timestamp
+  };
+
+  if (editingMatchIndex !== null) {
+    userMatches[editingMatchIndex] = record;
+  } else {
+    userMatches.unshift(record);
+  }
+
+  await saveAndSyncAllStats();
+  matchEditorModal.classList.add("hidden");
+  renderStats();
+};
+
+document.getElementById("deleteMatchBtn").onclick = async () => {
+  if (editingMatchIndex === null) return;
+  if (!confirm("Delete this match record? Deck Win/Loss totals will update automatically.")) return;
+
+  userMatches.splice(editingMatchIndex, 1);
+  await saveAndSyncAllStats();
+  matchEditorModal.classList.add("hidden");
+  renderStats();
+};
 
 loadLocalData();
 renderStats();
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
-    try {
-      await signInAnonymously(auth);
-    } catch {}
+    try { await signInAnonymously(auth); } catch {}
     return;
   }
+  currentUser = user;
 
   try {
     const snap = await get(ref(db, `users/${user.uid}`));
@@ -116,7 +402,18 @@ onAuthStateChanged(auth, async (user) => {
       const data = snap.val();
       if (data.decks) userDecks = { ...userDecks, ...data.decks };
       if (data.matches) {
-        userMatches = Object.values(data.matches).sort((a, b) => (b.at || 0) - (a.at || 0));
+        const cloudList = Object.entries(data.matches).map(([key, val]) => ({
+          ...val,
+          id: val.id || key
+        }));
+        const merged = [...userMatches, ...cloudList];
+        const seen = new Set();
+        userMatches = merged.filter((item) => {
+          const k = item.id || `${item.deckId}_${item.at}`;
+          if (seen.has(k)) return false;
+          seen.add(k);
+          return true;
+        });
       }
       localStorage.setItem(LOCAL_DECKS_KEY, JSON.stringify(userDecks));
       localStorage.setItem(LOCAL_MATCHES_KEY, JSON.stringify(userMatches));

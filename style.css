@@ -2432,3 +2432,106 @@ button:active { transform: scale(0.97); }
   color: var(--gold-foil);
   background: rgba(234, 179, 8, 0.1);
 }
+/* =========================================================
+   UPGRADED STATS TIMEFRAME FILTERS & EDITABLE MATCH ROWS
+   ========================================================= */
+.timeframe-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.timeframe-pill {
+  padding: 8px 4px;
+  margin: 0;
+  border-radius: 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.timeframe-pill.active {
+  background: rgba(190, 18, 60, 0.24);
+  border-color: var(--gold-accent);
+  color: var(--gold-foil);
+}
+
+.stats-secondary-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.stat-mini-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stat-mini-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.stat-mini-val {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--gold-foil);
+}
+
+.editable-match-row {
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.06s ease;
+}
+
+.editable-match-row:active {
+  transform: scale(0.985);
+  border-color: var(--border-gold);
+}
+
+.match-note-tag {
+  font-size: 0.7rem;
+  color: var(--gold-foil);
+  margin-top: 2px;
+  font-style: italic;
+}
+
+.outcome-toggle-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.outcome-btn {
+  padding: 11px;
+  margin: 0;
+  border-radius: 12px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.outcome-btn.selected-win {
+  background: rgba(34, 197, 94, 0.18);
+  border-color: #22c55e;
+  color: #4ade80;
+}
+
+.outcome-btn.selected-loss {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: #ef4444;
+  color: #f87171;
+}

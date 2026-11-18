@@ -556,6 +556,37 @@
       <div id="manualFirstPlayerList" class="manual-pick-list"></div>
     </div>
   </div>
+  
+<!-- TABLE MODE QUICK-LOG MODAL (Prompts on Exit if Life Changed) -->
+  <div id="tableQuickLogModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Log Table Mode Game?</h2>
+        <button id="skipTableLogBtn" type="button" class="btn-secondary btn-small">Skip</button>
+      </div>
+      <p class="modal-sub">Record this game to your Stats &amp; Deck Locker before returning to the lobby:</p>
+
+      <div class="input-group">
+        <label for="tableLogDeckSelect" class="input-label">Deck You Piloted</label>
+        <select id="tableLogDeckSelect" class="deck-select"></select>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">Your Result</label>
+        <div class="outcome-toggle-grid">
+          <button type="button" id="tableLogWinBtn" class="outcome-btn selected-win">🏆 Win</button>
+          <button type="button" id="tableLogLossBtn" class="outcome-btn">💀 Loss</button>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label for="tableLogTurnsInput" class="input-label">Approximate Final Turn (Optional)</label>
+        <input id="tableLogTurnsInput" type="number" min="1" max="99" placeholder="e.g. 9" />
+      </div>
+
+      <button id="saveTableLogBtn" type="button" class="btn-primary" style="margin-bottom:0;">💾 Save to Stats</button>
+    </div>
+  </div>
 
   <!-- 4-TAB BOTTOM NAVIGATION BAR (Hidden during active Pod or Table Mode) -->
   <nav id="mainBottomNav" class="bottom-nav" aria-label="Primary Navigation">
