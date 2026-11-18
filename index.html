@@ -155,10 +155,11 @@
         </div>
       </div>
 
-      <!-- POD WINNER BANNER -->
+      <!-- POD WINNER BANNER + QUICK REMATCH -->
       <div id="podWinnerBanner" class="winner-banner hidden">
         <div id="podWinnerText">🏆 Player Wins the Pod!</div>
         <div id="podWinnerDeckNote" class="winner-sub-note hidden"></div>
+        <button id="bannerRematchBtn" type="button" class="btn-primary btn-small hidden" style="margin-top: 8px;">↻ Quick Rematch</button>
       </div>
 
       <!-- HOST PRE-GAME TURN ORDER SETUP CARD -->
@@ -192,6 +193,7 @@
 
       <!-- Your Hero Life Counter -->
       <div id="heroTracker" class="hero-tracker theme-blue">
+        <div id="heroArtBackdrop" class="hero-art-backdrop"></div>
         <div class="hero-inner-frame"></div>
         <div id="heroPlayerName" class="hero-label">You</div>
         <div id="heroDeckTag" class="hero-deck-tag hidden"></div>
@@ -200,7 +202,7 @@
 
         <!-- Knocked Out Overlay -->
         <div id="heroEliminatedOverlay" class="hero-eliminated-overlay hidden">
-          <div class="eliminated-skull">💀 DEFEATED</div>
+          <div class="eliminated-skull">- OUT -</div>
           <div class="eliminated-sub">Skipped in turn rotation</div>
           <button id="reviveSelfBtn" type="button" class="btn-secondary btn-small">↺ Revive / Still Alive</button>
         </div>
@@ -299,11 +301,14 @@
     </div>
   </div>
 
-  <!-- TABLE MODE PLAYER COMMAND TRAY -->
+  <!-- TABLE MODE PLAYER COMMAND TRAY (WITH INLINE PLAYER RENAME) -->
   <div id="tablePlayerModal" class="modal-backdrop hidden">
     <div class="modal-card table-tray-card">
       <div class="modal-header">
-        <h2 id="trayPlayerTitle">Player 1 — Command Tray</h2>
+        <div class="tray-name-edit-row">
+          <input id="trayPlayerNameInput" type="text" maxlength="16" class="tray-name-input" aria-label="Edit Player Name" />
+          <span class="tray-subtitle-tag">Tray</span>
+        </div>
         <button id="closeTableTrayBtn" type="button" class="btn-secondary btn-small">✕</button>
       </div>
 
@@ -556,8 +561,8 @@
       <div id="manualFirstPlayerList" class="manual-pick-list"></div>
     </div>
   </div>
-  
-<!-- TABLE MODE QUICK-LOG MODAL (Prompts on Exit if Life Changed) -->
+
+  <!-- TABLE MODE QUICK-LOG MODAL (Prompts on Exit if Life Changed) -->
   <div id="tableQuickLogModal" class="modal-backdrop hidden">
     <div class="modal-card">
       <div class="modal-header">
@@ -586,6 +591,12 @@
 
       <button id="saveTableLogBtn" type="button" class="btn-primary" style="margin-bottom:0;">💾 Save to Stats</button>
     </div>
+  </div>
+
+  <!-- FLOATING UNDO TOAST FOR ACCIDENTAL SCOOPS / RESETS -->
+  <div id="undoToast" class="undo-toast hidden" role="status" aria-live="polite">
+    <span id="undoToastMsg" class="undo-toast-msg">Action completed</span>
+    <button id="undoToastBtn" type="button" class="undo-toast-btn">↺ Undo</button>
   </div>
 
   <!-- 4-TAB BOTTOM NAVIGATION BAR (Hidden during active Pod or Table Mode) -->

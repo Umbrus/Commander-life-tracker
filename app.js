@@ -64,6 +64,10 @@ const extraCountersModal = document.getElementById("extraCountersModal");
 const newGameModal = document.getElementById("newGameModal");
 const offlineBanner = document.getElementById("offlineBanner");
 
+const undoToast = document.getElementById("undoToast");
+const undoToastMsg = document.getElementById("undoToastMsg");
+const undoToastBtn = document.getElementById("undoToastBtn");
+
 let currentUser = null;
 let currentPodCode = null;
 let latestPodData = null;
@@ -86,10 +90,14 @@ let userDecks = {};
 let userMatches = [];
 let activeDeckId = localStorage.getItem(ACTIVE_DECK_KEY) || "";
 let lastRecordedPodMatchKey = "";
+let activeGameMatchRecord = null;
+let previousActiveTurnUid = null;
 
 let deltaAccumulator = 0;
 let deltaClearTimer = null;
 let wakeLock = null;
+let undoTimer = null;
+let pendingUndoCallback = null;
 
 let pendingHistoryStartLife = null;
 let pendingHistoryNote = "";
@@ -111,7 +119,49 @@ function triggerHaptic(pattern) {
 }
 
 // =========================================================
-// DECK DROPDOWN & AUTO WIN/LOSS RECORDING
+// FLOATING UNDO TOAST HELPER
+// =========================================================
+function showUndoToast(message, undoCallback, durationMs = 6000) {
+  if (!undoToast || !undoToastMsg || !undoToastBtn) return;
+  undoToastMsg.textContent = message;
+  pendingUndoCallback = undoCallback;
+  undoToast.classList.remove("hidden");
+
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(() => {
+    undoToast.classList.add("hidden");
+    pendingUndoCallback = null;
+  }, durationMs);
+}
+
+if (undoToastBtn) {
+  undoToastBtn.onclick = async () => {
+    clearTimeout(undoTimer);
+    undoToast.classList.add("hidden");
+    if (typeof pendingUndoCallback === "function") {
+      const fn = pendingUndoCallback;
+      pendingUndoCallback = null;
+      triggerHaptic(15);
+      await fn();
+    }
+  };
+}
+
+// =========================================================
+// COMMANDER ART BACKDROP FOR HERO TILE
+// =========================================================
+function applyHeroCommanderBackdrop(artUrl) {
+  const backdrop = document.getElementById("heroArtBackdrop");
+  if (!backdrop) return;
+  if (artUrl) {
+    backdrop.style.backgroundImage = `url("${artUrl}")`;
+  } else {
+    backdrop.style.backgroundImage = "none";
+  }
+}
+
+// =========================================================
+// DECK DROPDOWN & RICH MATCHUP / DUAL-TURN RECORDING
 // =========================================================
 function loadLocalUserProfile() {
   try {
@@ -155,9 +205,60 @@ document.getElementById("activeDeckSelect").onchange = (e) => {
   localStorage.setItem(ACTIVE_DECK_KEY, activeDeckId);
 };
 
-function recordDeckMatchOutcome(deckId, outcome, podLabel = "", turns = null) {
+function detectWinCondition(podData) {
+  const players = podData?.players || {};
+  const otherPlayers = Object.entries(players).filter(([uid]) => uid !== currentUser?.uid);
+  if (otherPlayers.length === 0) return "Combat / Life";
+
+  const allPoisoned = otherPlayers.every(([, p]) => (p.poison || 0) >= 10);
+  if (allPoisoned) return "Poison / Infect";
+
+  const anyCmdrKill = otherPlayers.some(([, p]) => {
+    const dmg = p.commanderDamage || {};
+    return (dmg[currentUser.uid] || 0) >= 21 || (dmg[`${currentUser.uid}_partner`] || 0) >= 21;
+  });
+  if (anyCmdrKill) return "Commander Damage";
+
+  return "Combat / Life";
+}
+
+function countMyCommanderKills(podData) {
+  const players = podData?.players || {};
+  let kills = 0;
+  Object.entries(players).forEach(([uid, p]) => {
+    if (uid === currentUser?.uid) return;
+    const dmg = p.commanderDamage || {};
+    if ((dmg[currentUser.uid] || 0) >= 21 || (dmg[`${currentUser.uid}_partner`] || 0) >= 21) {
+      kills++;
+    }
+  });
+  return kills;
+}
+
+function buildPodMatchMeta(podData, outcome, myExitTurn, gameEndTurn) {
+  const players = podData?.players || {};
+  const orderedUids = getOrderedPlayerUids(podData);
+  const opponents = orderedUids
+    .filter((uid) => uid !== currentUser?.uid)
+    .map((uid) => {
+      const opp = players[uid] || {};
+      return opp.commander || opp.deckName || opp.name || "Opponent";
+    });
+
+  return {
+    opponents,
+    podSize: orderedUids.length || 4,
+    wentFirst: Boolean(podData?.firstPlayerUid && podData.firstPlayerUid === currentUser?.uid),
+    winCondition: outcome === "win" ? detectWinCondition(podData) : null,
+    commanderKills: countMyCommanderKills(podData),
+    myExitTurn: myExitTurn || null,
+    gameEndTurn: gameEndTurn || null
+  };
+}
+
+function recordDeckMatchOutcome(deckId, outcome, podLabel = "", turns = null, extraMeta = {}) {
   const deck = userDecks[deckId];
-  if (!deck) return;
+  if (!deck) return null;
 
   if (outcome === "win") {
     deck.wins = (deck.wins || 0) + 1;
@@ -166,13 +267,23 @@ function recordDeckMatchOutcome(deckId, outcome, podLabel = "", turns = null) {
   }
 
   const now = Date.now();
+  const exitTurn = extraMeta.myExitTurn || turns || null;
+  const endTurn = extraMeta.gameEndTurn || turns || null;
+
   const matchEntry = {
     id: `m_${now}`,
     deckId,
     deckName: deck.name,
     commander: deck.commander,
     outcome,
-    turns: turns || null,
+    turns: endTurn || exitTurn || null,
+    myExitTurn: exitTurn,
+    gameEndTurn: endTurn,
+    opponents: Array.isArray(extraMeta.opponents) ? extraMeta.opponents : [],
+    podSize: extraMeta.podSize || null,
+    wentFirst: typeof extraMeta.wentFirst === "boolean" ? extraMeta.wentFirst : null,
+    winCondition: extraMeta.winCondition || null,
+    commanderKills: extraMeta.commanderKills || 0,
     podLabel,
     dateStr: new Date(now).toISOString().slice(0, 10),
     at: now
@@ -188,7 +299,27 @@ function recordDeckMatchOutcome(deckId, outcome, podLabel = "", turns = null) {
       wins: deck.wins,
       losses: deck.losses
     }).catch(() => {});
-    push(ref(db, `users/${currentUser.uid}/matches`), matchEntry).catch(() => {});
+    const newMatchRef = push(ref(db, `users/${currentUser.uid}/matches`));
+    matchEntry.firebaseKey = newMatchRef.key;
+    set(newMatchRef, matchEntry).catch(() => {});
+  }
+
+  return matchEntry;
+}
+
+function patchMatchGameEndTurn(matchEntry, finalPodTurn) {
+  if (!matchEntry || !finalPodTurn) return;
+  if (matchEntry.gameEndTurn === finalPodTurn) return;
+
+  matchEntry.gameEndTurn = finalPodTurn;
+  matchEntry.turns = finalPodTurn;
+  saveLocalUserProfile();
+
+  if (currentUser && matchEntry.firebaseKey) {
+    update(ref(db, `users/${currentUser.uid}/matches/${matchEntry.firebaseKey}`), {
+      gameEndTurn: finalPodTurn,
+      turns: finalPodTurn
+    }).catch(() => {});
   }
 }
 
@@ -327,23 +458,48 @@ document.getElementById("togglePartnerBtn").onclick = () => {
   });
 };
 
-// --- SCOOP / KNOCKED OUT TOGGLE & REVIVE ---
+// --- SCOOP / KNOCKED OUT TOGGLE & REVIVE (WITH UNDO TOAST & EXIT TURN) ---
 async function setPlayerEliminatedState(targetUid, nextState) {
   if (!currentPodCode || !latestPodData) return;
   triggerHaptic(nextState ? [20, 40, 20] : 15);
 
+  const prevMonarchUid = latestPodData.monarchUid || null;
+  const prevTurnUid = latestPodData.activeTurnUid || null;
+  const prevTurnNumber = latestPodData.turnNumber || 1;
+  const targetName = latestPodData.players?.[targetUid]?.name || "Player";
+  const currentTurn = latestPodData.turnNumber || 1;
+
   const updates = {
-    [`players/${targetUid}/eliminated`]: nextState
+    [`players/${targetUid}/eliminated`]: nextState,
+    [`players/${targetUid}/eliminatedTurn`]: nextState ? currentTurn : null
   };
 
-  if (nextState && latestPodData.monarchUid === targetUid) {
+  if (nextState && prevMonarchUid === targetUid) {
     updates.monarchUid = null;
   }
 
   await update(ref(db, `pods/${currentPodCode}`), updates);
 
-  if (nextState && latestPodData.activeTurnUid === targetUid) {
+  if (nextState && prevTurnUid === targetUid) {
     await advancePodTurn();
+  }
+
+  if (nextState) {
+    const label = targetUid === currentUser.uid ? "You scooped / knocked out" : `${targetName} marked — OUT —`;
+    showUndoToast(label, async () => {
+      const restoreUpdates = {
+        [`players/${targetUid}/eliminated`]: false,
+        [`players/${targetUid}/eliminatedTurn`]: null
+      };
+      if (prevMonarchUid === targetUid) {
+        restoreUpdates.monarchUid = targetUid;
+      }
+      if (prevTurnUid === targetUid) {
+        restoreUpdates.activeTurnUid = targetUid;
+        restoreUpdates.turnNumber = prevTurnNumber;
+      }
+      await update(ref(db, `pods/${currentPodCode}`), restoreUpdates);
+    });
   }
 }
 
@@ -356,7 +512,7 @@ document.getElementById("toggleEliminatedBtn").onclick = () => {
 document.getElementById("reviveSelfBtn").onclick = (e) => {
   e.stopPropagation();
   if (!currentUser) return;
-  const updates = { eliminated: false };
+  const updates = { eliminated: false, eliminatedTurn: null };
   if (myCurrentLife <= 0) {
     myCurrentLife = 1;
     updates.life = 1;
@@ -540,7 +696,7 @@ async function enableWakeLock() {
       wakeLock.addEventListener("release", () => {
         document.getElementById("wakeStatus").textContent = "Screen Wake Lock: Paused";
       });
-    } catch (err) {
+    } catch {
       document.getElementById("wakeStatus").textContent = "Screen Wake Lock: Unavailable";
     }
   }
@@ -569,7 +725,6 @@ const auth = getAuth(app);
 const db = getDatabase(app);
 let hasBootstrappedSession = false;
 
-// --- PHASE 1: AUTOMATIC 24-HOUR STALE POD CLEANUP ---
 async function pruneStalePods() {
   try {
     const cutoff = Date.now() - 24 * 60 * 60 * 1000;
@@ -589,9 +744,7 @@ async function pruneStalePods() {
     if (Object.keys(deletions).length > 0) {
       await update(ref(db), deletions);
     }
-  } catch {
-    // Ignore silently if offline or already pruned
-  }
+  } catch {}
 }
 
 function updateAccountMenuUI(user) {
@@ -849,7 +1002,7 @@ function renderFirstPlayerModal() {
 
     const label = document.createElement("div");
     label.className = "seat-label";
-    label.textContent = `${index + 1}. ${players[uid].name}${uid === currentUser.uid ? " (You)" : ""}${players[uid].eliminated ? " 💀" : ""}`;
+    label.textContent = `${index + 1}. ${players[uid].name}${uid === currentUser.uid ? " (You)" : ""}${players[uid].eliminated ? " — OUT —" : ""}`;
 
     const actions = document.createElement("div");
     actions.className = "seat-actions";
@@ -922,8 +1075,8 @@ document.getElementById("firstPlayerModal").onclick = (e) => {
   }
 };
 
-// --- HOST-ONLY: NEW GAME MODAL ---
-document.getElementById("newGameBtn").onclick = () => {
+// --- HOST-ONLY: NEW GAME / REMATCH MODAL ---
+function openNewGameModal() {
   dropdownMenu.classList.add("hidden");
   if (!currentPodCode || !latestPodData || latestPodData.hostUid !== currentUser.uid) return;
 
@@ -932,7 +1085,13 @@ document.getElementById("newGameBtn").onclick = () => {
     btn.classList.toggle("selected", parseInt(btn.dataset.life, 10) === selectedNewGameLife);
   });
   newGameModal.classList.remove("hidden");
-};
+}
+
+document.getElementById("newGameBtn").onclick = openNewGameModal;
+const bannerRematchBtn = document.getElementById("bannerRematchBtn");
+if (bannerRematchBtn) {
+  bannerRematchBtn.onclick = openNewGameModal;
+}
 
 document.getElementById("closeNewGameModalBtn").onclick = () => newGameModal.classList.add("hidden");
 newGameModal.onclick = (e) => {
@@ -943,6 +1102,7 @@ document.getElementById("confirmNewGameBtn").onclick = async () => {
   if (!currentPodCode || !latestPodData || latestPodData.hostUid !== currentUser.uid) return;
 
   lastRecordedPodMatchKey = "";
+  activeGameMatchRecord = null;
   const players = latestPodData.players || {};
   const resetUpdates = {
     startingLife: selectedNewGameLife,
@@ -958,9 +1118,12 @@ document.getElementById("confirmNewGameBtn").onclick = async () => {
     resetUpdates[`players/${uid}`] = {
       name: p.name,
       deckName: p.deckName || "",
+      commander: p.commander || "",
+      artCrop: p.artCrop || "",
       theme: p.theme || "blue",
       hasPartner: Boolean(p.hasPartner),
       eliminated: false,
+      eliminatedTurn: null,
       online: p.online !== false,
       pinnedCounters: Array.isArray(p.pinnedCounters) ? p.pinnedCounters : [],
       joinedAt: p.joinedAt || Date.now(),
@@ -1007,7 +1170,7 @@ function renderOpponentModal() {
   const isHost = latestPodData.hostUid === currentUser.uid;
   const isEliminated = Boolean(target.eliminated);
 
-  document.getElementById("modalPlayerName").textContent = `${isMonarch ? "👑 " : ""}${target.name}${isEliminated ? " (Knocked Out)" : ""}`;
+  document.getElementById("modalPlayerName").textContent = `${isMonarch ? "👑 " : ""}${target.name}${isEliminated ? " (- OUT -)" : ""}`;
   document.getElementById("modalLifeVal").textContent = target.life ?? (latestPodData.startingLife || 40);
   document.getElementById("modalPoisonVal").textContent = target.poison ?? 0;
   document.getElementById("modalTaxVal").textContent = `+${target.tax ?? 0}`;
@@ -1140,10 +1303,12 @@ async function syncMyLethalCheck(extraUpdates = {}) {
   if (!currentPodCode || !currentUser) return;
   const shouldBeKo = hasLethalStats(myCurrentLife, myPoison, myCommanderDamage);
   const wasEliminated = myEliminated;
+  const currentTurn = latestPodData?.turnNumber || 1;
 
   if (shouldBeKo !== myEliminated) {
     myEliminated = shouldBeKo;
     extraUpdates.eliminated = shouldBeKo;
+    extraUpdates.eliminatedTurn = shouldBeKo ? currentTurn : null;
   }
 
   await update(ref(db, `pods/${currentPodCode}/players/${currentUser.uid}`), extraUpdates);
@@ -1261,6 +1426,10 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
   const podRef = ref(db, `pods/${code}`);
   const selectedDeckObj = activeDeckId ? userDecks[activeDeckId] : null;
   const selectedDeckLabel = selectedDeckObj ? selectedDeckObj.name : "";
+  const selectedCommander = selectedDeckObj ? (selectedDeckObj.commander || "") : "";
+  const selectedArtCrop = selectedDeckObj ? (selectedDeckObj.artCrop || "") : "";
+
+  applyHeroCommanderBackdrop(selectedArtCrop);
 
   let podStartingLife = selectedLobbyStartingLife;
 
@@ -1289,9 +1458,12 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
     await set(playerRef, {
       name: name,
       deckName: selectedDeckLabel,
+      commander: selectedCommander,
+      artCrop: selectedArtCrop,
       theme: myTheme,
       hasPartner: false,
       eliminated: false,
+      eliminatedTurn: null,
       online: true,
       pinnedCounters: [],
       joinedAt: Date.now(),
@@ -1311,15 +1483,17 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
     myExtraCounters = { energy: 0, experience: 0, storm: 0, rad: 0, ...(existing.extraCounters || {}) };
     myPinnedCounters = Array.isArray(existing.pinnedCounters) ? existing.pinnedCounters : [];
     if (existing.theme) applyMyThemeUI(existing.theme);
+    if (existing.artCrop && !selectedArtCrop) applyHeroCommanderBackdrop(existing.artCrop);
 
     const patchUpdates = { online: true };
     if (selectedDeckLabel && existing.deckName !== selectedDeckLabel) {
       patchUpdates.deckName = selectedDeckLabel;
+      patchUpdates.commander = selectedCommander;
+      patchUpdates.artCrop = selectedArtCrop;
     }
     await update(playerRef, patchUpdates);
   }
 
-  // Phase 1: Presence hook so closed tabs mark offline automatically
   const myOnlineRef = ref(db, `pods/${code}/players/${currentUser.uid}/online`);
   onDisconnect(myOnlineRef).set(false);
 
@@ -1356,25 +1530,66 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
     document.getElementById("hostCrownTag").classList.toggle("hidden", !isHost);
     document.getElementById("openFirstPlayerBtn").classList.toggle("hidden", !isHost);
     document.getElementById("newGameBtn").classList.toggle("hidden", !isHost);
+    if (bannerRematchBtn) {
+      bannerRematchBtn.classList.toggle("hidden", !isHost);
+    }
 
-    // Check for Pod Winner & Auto-Log Win/Loss + Turn Count to Active Deck
+    // Turn-change haptic & gold border pulse when turn passes to you
+    if (activeTurnUid && activeTurnUid !== previousActiveTurnUid) {
+      if (activeTurnUid === currentUser.uid && previousActiveTurnUid !== null) {
+        triggerHaptic([20, 45, 20]);
+        const heroCard = document.getElementById("heroTracker");
+        if (heroCard) {
+          heroCard.classList.remove("turn-pulse-alert");
+          void heroCard.offsetWidth;
+          heroCard.classList.add("turn-pulse-alert");
+        }
+      }
+      previousActiveTurnUid = activeTurnUid;
+    }
+
+    const me = players[currentUser.uid];
     const aliveUids = orderedUids.filter((uid) => !players[uid]?.eliminated);
     const winnerBanner = document.getElementById("podWinnerBanner");
     const winnerDeckNote = document.getElementById("podWinnerDeckNote");
+    const matchUniqueKey = `${code}_g${gameNum}`;
 
+    // Early Elimination Loss Logging (captures myExitTurn immediately, then patches gameEndTurn later)
+    if (
+      orderedUids.length >= 2 &&
+      aliveUids.length > 1 &&
+      me?.eliminated &&
+      activeDeckId &&
+      userDecks[activeDeckId] &&
+      lastRecordedPodMatchKey !== matchUniqueKey
+    ) {
+      lastRecordedPodMatchKey = matchUniqueKey;
+      const exitTurn = me.eliminatedTurn || turnNumber;
+      const meta = buildPodMatchMeta(podData, "loss", exitTurn, null);
+      activeGameMatchRecord = recordDeckMatchOutcome(activeDeckId, "loss", `Pod ${code}`, exitTurn, meta);
+    }
+
+    // Final Pod Winner & End-of-Game Logging
     if (orderedUids.length >= 2 && aliveUids.length === 1) {
       const winnerUid = aliveUids[0];
       const winnerName = players[winnerUid]?.name || "Player";
       document.getElementById("podWinnerText").textContent = `🏆 ${winnerName} Wins the Pod!`;
       winnerBanner.classList.remove("hidden");
 
-      const matchUniqueKey = `${code}_g${gameNum}`;
-      if (activeDeckId && userDecks[activeDeckId] && lastRecordedPodMatchKey !== matchUniqueKey) {
-        lastRecordedPodMatchKey = matchUniqueKey;
-        const iWon = winnerUid === currentUser.uid;
-        recordDeckMatchOutcome(activeDeckId, iWon ? "win" : "loss", `Pod ${code}`, turnNumber);
-        winnerDeckNote.textContent = `📊 Logged ${iWon ? "+1 Win" : "+1 Loss"} (Turn ${turnNumber}) to ${userDecks[activeDeckId].name}`;
-        winnerDeckNote.classList.remove("hidden");
+      if (activeDeckId && userDecks[activeDeckId]) {
+        if (lastRecordedPodMatchKey !== matchUniqueKey) {
+          lastRecordedPodMatchKey = matchUniqueKey;
+          const iWon = winnerUid === currentUser.uid;
+          const exitTurn = iWon ? turnNumber : (me?.eliminatedTurn || turnNumber);
+          const meta = buildPodMatchMeta(podData, iWon ? "win" : "loss", exitTurn, turnNumber);
+          activeGameMatchRecord = recordDeckMatchOutcome(activeDeckId, iWon ? "win" : "loss", `Pod ${code}`, turnNumber, meta);
+          winnerDeckNote.textContent = `📊 Logged ${iWon ? "+1 Win" : "+1 Loss"} (Turn ${turnNumber}) to ${userDecks[activeDeckId].name}`;
+          winnerDeckNote.classList.remove("hidden");
+        } else if (activeGameMatchRecord && activeGameMatchRecord.gameEndTurn !== turnNumber) {
+          patchMatchGameEndTurn(activeGameMatchRecord, turnNumber);
+          winnerDeckNote.textContent = `📊 Logged Loss (Out T${activeGameMatchRecord.myExitTurn} • Pod ended T${turnNumber}) to ${userDecks[activeDeckId].name}`;
+          winnerDeckNote.classList.remove("hidden");
+        }
       }
     } else {
       winnerBanner.classList.add("hidden");
@@ -1406,7 +1621,7 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
         const isCurrent = uid === activeTurnUid;
         const isNext = uid === nextAliveUid && aliveUids.length > 1;
         chip.className = `order-chip ${isCurrent ? "active" : ""} ${isNext ? "next-up" : ""} ${p.eliminated ? "eliminated-chip" : ""}`;
-        chip.textContent = `${idx + 1}. ${p.name}${p.eliminated ? " 💀" : ""}`;
+        chip.textContent = `${idx + 1}. ${p.name}${p.eliminated ? " — OUT" : ""}`;
         strip.appendChild(chip);
 
         if (idx < orderedUids.length - 1) {
@@ -1425,7 +1640,6 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
     opponentsGrid.innerHTML = "";
     cmdrDamageList.innerHTML = "";
 
-    const me = players[currentUser.uid];
     if (me) {
       myCurrentLife = me.life ?? activeStartLife;
       myPoison = me.poison ?? 0;
@@ -1437,6 +1651,7 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
       myPinnedCounters = Array.isArray(me.pinnedCounters) ? me.pinnedCounters : [];
 
       if (me.theme && me.theme !== myTheme) applyMyThemeUI(me.theme);
+      if (me.artCrop) applyHeroCommanderBackdrop(me.artCrop);
 
       const partnerBtn = document.getElementById("togglePartnerBtn");
       partnerBtn.textContent = myHasPartner ? "🤝 Partner Commander: ON" : "🤝 Partner Commander: OFF";
@@ -1488,7 +1703,7 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
       const oppTheme = VALID_THEMES.includes(p.theme) ? p.theme : "blue";
 
       const badges = [];
-      if (oppIsEliminated) badges.push("💀 OUT");
+      if (oppIsEliminated) badges.push(`<span class="out-pill-tag">- OUT -</span>`);
       else if (p.deckName) badges.push(p.deckName);
       else if (oppIsHost) badges.push("Host");
       if (p.poison > 0) badges.push(`☠${p.poison}`);
@@ -1734,7 +1949,7 @@ function renderTableGrid() {
 
         <div class="seat-center-stack">
           <div id="table-life-${idx}" class="seat-life-num ${p.eliminated || p.life <= 0 ? "dead" : ""}">${p.life}</div>
-          ${p.eliminated ? `<div class="seat-ko-tag">💀 DEFEATED</div>` : isWinner ? `<div class="seat-winner-tag">🏆 WINNER</div>` : ""}
+          ${p.eliminated ? `<div class="seat-ko-tag">- OUT -</div>` : isWinner ? `<div class="seat-winner-tag">🏆 WINNER</div>` : ""}
           <div id="table-delta-${idx}" class="seat-delta"></div>
         </div>
 
@@ -1846,7 +2061,19 @@ function renderTablePlayerTray() {
   const target = tablePlayers[activeTraySeatIdx];
   const isMonarch = tableMonarchIdx === activeTraySeatIdx;
 
-  document.getElementById("trayPlayerTitle").textContent = `${target.name} — Command Tray`;
+  const titleEl = document.getElementById("trayPlayerTitle");
+  if (titleEl) {
+    titleEl.textContent = `${target.name} — Command Tray`;
+  }
+  const nameInputEl = document.getElementById("trayPlayerNameInput");
+  if (nameInputEl) {
+    nameInputEl.value = target.name;
+    nameInputEl.oninput = (e) => {
+      const cleaned = e.target.value.trim();
+      target.name = cleaned || `Player ${activeTraySeatIdx + 1}`;
+      renderTableGrid();
+    };
+  }
 
   const monarchBtn = document.getElementById("trayMonarchBtn");
   monarchBtn.classList.toggle("active", isMonarch);
@@ -1967,16 +2194,33 @@ document.getElementById("trayMonarchBtn").onclick = () => {
 document.getElementById("trayEliminatedBtn").onclick = () => {
   if (activeTraySeatIdx === null) return;
   triggerHaptic(15);
-  const p = tablePlayers[activeTraySeatIdx];
-  p.eliminated = !p.eliminated;
-  if (!p.eliminated && p.life <= 0) {
+  const seatIdx = activeTraySeatIdx;
+  const p = tablePlayers[seatIdx];
+  const nextKo = !p.eliminated;
+  const prevLife = p.life;
+  const prevMonarch = tableMonarchIdx;
+
+  p.eliminated = nextKo;
+  if (!nextKo && p.life <= 0) {
     p.life = 1;
   }
-  if (p.eliminated && tableMonarchIdx === activeTraySeatIdx) {
+  if (nextKo && tableMonarchIdx === seatIdx) {
     tableMonarchIdx = null;
   }
   renderTableGrid();
   renderTablePlayerTray();
+
+  if (nextKo) {
+    showUndoToast(`${p.name} marked — OUT —`, () => {
+      p.eliminated = false;
+      p.life = prevLife;
+      tableMonarchIdx = prevMonarch;
+      renderTableGrid();
+      if (!tablePlayerModal.classList.contains("hidden") && activeTraySeatIdx === seatIdx) {
+        renderTablePlayerTray();
+      }
+    });
+  }
 };
 
 document.getElementById("trayPartnerToggleBtn").onclick = () => {
@@ -2043,6 +2287,10 @@ document.getElementById("tableDiceBtn").onclick = () => {
 document.getElementById("tableResetBtn").onclick = () => {
   tableHubMenu.classList.add("hidden");
   triggerHaptic(18);
+
+  const snapshotPlayers = JSON.parse(JSON.stringify(tablePlayers));
+  const snapshotMonarch = tableMonarchIdx;
+
   tableMonarchIdx = null;
   tablePlayers.forEach((p) => {
     p.life = tableStartingLife;
@@ -2055,6 +2303,12 @@ document.getElementById("tableResetBtn").onclick = () => {
     p.cmdrDamage = {};
   });
   renderTableGrid();
+
+  showUndoToast("Table reset to starting life", () => {
+    tablePlayers = snapshotPlayers;
+    tableMonarchIdx = snapshotMonarch;
+    renderTableGrid();
+  });
 };
 
 document.getElementById("tableSetupAgainBtn").onclick = () => {
@@ -2115,7 +2369,11 @@ document.getElementById("saveTableLogBtn").onclick = () => {
   const turnsRaw = parseInt(document.getElementById("tableLogTurnsInput").value, 10);
   const turns = !isNaN(turnsRaw) && turnsRaw > 0 ? turnsRaw : null;
   if (deckId) {
-    recordDeckMatchOutcome(deckId, tableLogOutcome, "Table Mode", turns);
+    recordDeckMatchOutcome(deckId, tableLogOutcome, "Table Mode", turns, {
+      podSize: tablePlayerCount,
+      myExitTurn: turns,
+      gameEndTurn: turns
+    });
   }
   finishExitingTableMode();
 };

@@ -1,4 +1,4 @@
-const CACHE_NAME = "commander-pod-v22";
+const CACHE_NAME = "commander-pod-v23";
 const ASSETS = [
   "./",
   "./index.html",
