@@ -4,7 +4,21 @@ import {
   signInAnonymously,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-import { getDatabase, ref, set, get, push, update, remove, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+import {
+  getDatabase,
+  ref,
+  set,
+  get,
+  push,
+  update,
+  remove,
+  onValue,
+  onDisconnect,
+  serverTimestamp,
+  query,
+  orderByChild,
+  endAt
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCh_fJv3mMlQQ2teHyryAxtd0x_mCmMzTU",
@@ -555,6 +569,31 @@ const auth = getAuth(app);
 const db = getDatabase(app);
 let hasBootstrappedSession = false;
 
+// --- PHASE 1: AUTOMATIC 24-HOUR STALE POD CLEANUP ---
+async function pruneStalePods() {
+  try {
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    const staleQuery = query(
+      ref(db, "pods"),
+      orderByChild("createdAt"),
+      endAt(cutoff)
+    );
+    const snap = await get(staleQuery);
+    if (!snap.exists()) return;
+
+    const deletions = {};
+    snap.forEach((childSnap) => {
+      deletions[`pods/${childSnap.key}`] = null;
+    });
+
+    if (Object.keys(deletions).length > 0) {
+      await update(ref(db), deletions);
+    }
+  } catch {
+    // Ignore silently if offline or already pruned
+  }
+}
+
 function updateAccountMenuUI(user) {
   const badge = document.getElementById("lobbyAccountBadge");
   if (!badge) return;
@@ -610,6 +649,7 @@ onAuthStateChanged(auth, async (user) => {
 
   currentUser = user;
   updateAccountMenuUI(user);
+  pruneStalePods();
 
   if (!user.isAnonymous && user.displayName && !playerNameInput.value.trim()) {
     playerNameInput.value = user.displayName.split(" ")[0];
@@ -681,6 +721,9 @@ document.getElementById("inlineHideQrBtn").onclick = toggleQrDrawer;
 // --- LEAVE POD ---
 document.getElementById("leavePodBtn").onclick = async () => {
   if (currentPodCode && currentUser && latestPodData) {
+    const myOnlineRef = ref(db, `pods/${currentPodCode}/players/${currentUser.uid}/online`);
+    await onDisconnect(myOnlineRef).cancel().catch(() => {});
+
     const remainingUids = getOrderedPlayerUids(latestPodData).filter((uid) => uid !== currentUser.uid);
 
     if (latestPodData.hostUid === currentUser.uid && remainingUids.length > 0) {
@@ -918,6 +961,7 @@ document.getElementById("confirmNewGameBtn").onclick = async () => {
       theme: p.theme || "blue",
       hasPartner: Boolean(p.hasPartner),
       eliminated: false,
+      online: p.online !== false,
       pinnedCounters: Array.isArray(p.pinnedCounters) ? p.pinnedCounters : [],
       joinedAt: p.joinedAt || Date.now(),
       life: selectedNewGameLife,
@@ -1248,6 +1292,7 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
       theme: myTheme,
       hasPartner: false,
       eliminated: false,
+      online: true,
       pinnedCounters: [],
       joinedAt: Date.now(),
       life: podStartingLife,
@@ -1266,10 +1311,17 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
     myExtraCounters = { energy: 0, experience: 0, storm: 0, rad: 0, ...(existing.extraCounters || {}) };
     myPinnedCounters = Array.isArray(existing.pinnedCounters) ? existing.pinnedCounters : [];
     if (existing.theme) applyMyThemeUI(existing.theme);
+
+    const patchUpdates = { online: true };
     if (selectedDeckLabel && existing.deckName !== selectedDeckLabel) {
-      update(playerRef, { deckName: selectedDeckLabel });
+      patchUpdates.deckName = selectedDeckLabel;
     }
+    await update(playerRef, patchUpdates);
   }
+
+  // Phase 1: Presence hook so closed tabs mark offline automatically
+  const myOnlineRef = ref(db, `pods/${code}/players/${currentUser.uid}/online`);
+  onDisconnect(myOnlineRef).set(false);
 
   saveSession(code, name);
 
@@ -2067,7 +2119,6 @@ document.getElementById("saveTableLogBtn").onclick = () => {
   }
   finishExitingTableMode();
 };
-
 
 // --- REGISTER SERVICE WORKER (AUTO-RELOADS APK ON NEW CACHE VERSION) ---
 if ("serviceWorker" in navigator) {
