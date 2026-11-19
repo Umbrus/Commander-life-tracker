@@ -41,7 +41,10 @@
 
       <!-- FEATURED SET THEMES & SUPPORTER PACK -->
       <div class="profile-card">
-        <h2 class="profile-card-title">Featured Set Themes &amp; Supporter</h2>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;">
+          <h2 class="profile-card-title" style="margin:0;">Featured Set Themes &amp; Supporter</h2>
+          <span id="supporterActiveBadge" class="supporter-badge-pill hidden">Supporter Active</span>
+        </div>
         <p class="profile-card-sub">Customize your CommandSync accent palette and unlock foil card treatments.</p>
 
         <div class="input-group">
@@ -51,22 +54,31 @@
               <span class="palette-dot" style="background:linear-gradient(135deg,#be123c,#eab308);"></span>
               <span>Mythic Crimson</span>
             </button>
-            <button type="button" class="palette-btn" data-palette="teal">
+            <button type="button" class="palette-btn supporter-only" data-palette="teal">
               <span class="palette-dot" style="background:linear-gradient(135deg,#0d9488,#38bdf8);"></span>
               <span>Starfleet Teal</span>
             </button>
-            <button type="button" class="palette-btn" data-palette="abyssal">
+            <button type="button" class="palette-btn supporter-only" data-palette="abyssal">
               <span class="palette-dot" style="background:linear-gradient(135deg,#4f46e5,#c084fc);"></span>
               <span>Abyssal Nautilus</span>
             </button>
           </div>
         </div>
 
-        <div class="input-group" style="margin-top:12px;">
+        <div class="input-group supporter-only" style="margin-top:12px;">
           <button type="button" id="toggleFoilFrameBtn" class="toggle-counter-row">
             <span>Supporter Foil Card Frame</span>
             <span id="badgeFoilFrame" class="toggle-state">OFF</span>
           </button>
+        </div>
+
+        <!-- VIP / BETA TESTER CODE REDEMPTION (Hides automatically once unlocked) -->
+        <div id="supporterRedeemBox" class="input-group" style="margin-top:12px;">
+          <label for="supporterCodeInput" class="input-label">Have a Supporter or Tester Code?</label>
+          <div class="join-row" style="grid-template-columns: 1fr auto;">
+            <input id="supporterCodeInput" type="text" maxlength="20" placeholder="Enter VIP code" style="text-align:left;text-transform:uppercase;font-size:0.86rem;" />
+            <button id="redeemSupporterCodeBtn" type="button" class="btn-secondary btn-small" style="padding:0 14px;">Unlock</button>
+          </div>
         </div>
       </div>
 
@@ -95,7 +107,7 @@
         </div>
 
         <div class="input-group" style="margin-top:12px;">
-          <label class="input-label">Default Card Frame Color (Standard &amp; Supporter)</label>
+          <label class="input-label">Default Card Frame Color</label>
           <div id="defaultThemeSwatches" class="profile-swatch-row">
             <button type="button" class="swatch-btn" data-theme="blue" title="Azorius Blue"></button>
             <button type="button" class="swatch-btn" data-theme="red" title="Rakdos Crimson"></button>
@@ -103,10 +115,10 @@
             <button type="button" class="swatch-btn" data-theme="gold" title="Boros Gold"></button>
             <button type="button" class="swatch-btn" data-theme="purple" title="Dimir Violet"></button>
             <button type="button" class="swatch-btn" data-theme="slate" title="Eldrazi Obsidian"></button>
-            <button type="button" class="swatch-btn" data-theme="aether" title="Prismatic Aether (Supporter)"></button>
-            <button type="button" class="swatch-btn" data-theme="phyrexian" title="Phyrexian Oil (Supporter)"></button>
-            <button type="button" class="swatch-btn" data-theme="ivory" title="Celestial Ivory (Supporter)"></button>
-            <button type="button" class="swatch-btn" data-theme="bronze" title="Guildpact Bronze (Supporter)"></button>
+            <button type="button" class="swatch-btn supporter-only" data-theme="aether" title="Prismatic Aether (Supporter)"></button>
+            <button type="button" class="swatch-btn supporter-only" data-theme="phyrexian" title="Phyrexian Oil (Supporter)"></button>
+            <button type="button" class="swatch-btn supporter-only" data-theme="ivory" title="Celestial Ivory (Supporter)"></button>
+            <button type="button" class="swatch-btn supporter-only" data-theme="bronze" title="Guildpact Bronze (Supporter)"></button>
           </div>
         </div>
       </div>

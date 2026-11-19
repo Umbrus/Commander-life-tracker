@@ -3042,3 +3042,32 @@ button:active { transform: scale(0.97); }
 .hero-tracker.supporter-foil {
   animation: foilShimmer 4s ease-in-out infinite;
 }
+/* =========================================================
+   SUPPORTER ENTITLEMENT GATING (HIDDEN UNTIL UNLOCKED)
+   ========================================================= */
+.supporter-only {
+  display: none !important;
+}
+
+body.is-supporter .supporter-only {
+  display: flex !important;
+}
+
+body.is-supporter .swatch-btn.supporter-only {
+  display: block !important;
+}
+
+.supporter-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(190, 18, 60, 0.25));
+  border: 1px solid var(--gold-foil);
+  color: var(--gold-foil);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
