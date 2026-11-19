@@ -29,7 +29,7 @@
 
       <div id="deckLockerList" class="deck-locker-list">
         <div class="empty-card-box">
-          <div style="font-size:1.8rem;margin-bottom:6px;">📚</div>
+          <div style="font-size:1.8rem;margin-bottom:6px;"></div>
           <strong>No Decks Saved Yet</strong>
           <p>Tap <strong>+ Add Deck</strong> to link an Archidekt or Moxfield decklist or import by Commander name.</p>
         </div>
@@ -42,7 +42,7 @@
         <button type="button" id="backToLockerBtn" class="btn-secondary btn-small">← All Decks</button>
         <div style="display:flex;gap:6px;">
           <a id="detailExternalLink" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-small external-deck-link hidden">↗ Open Site</a>
-          <button type="button" id="detailDeleteDeckBtn" class="btn-secondary btn-small" style="color:#f87171;">🗑 Delete</button>
+          <button type="button" id="detailDeleteDeckBtn" class="btn-secondary btn-small" style="color:#f87171;">Delete</button>
         </div>
       </div>
 
@@ -58,7 +58,7 @@
 
       <!-- Primary Deck Action Bar -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
-        <button type="button" id="detailPilotBtn" class="btn-primary" style="margin:0;padding:11px;">⚔️ Pilot Deck</button>
+        <button type="button" id="detailPilotBtn" class="btn-primary" style="margin:0;padding:11px;">Pilot Deck</button>
         <button type="button" id="detailToggleArtBtn" class="btn-secondary" style="margin:0;padding:11px;border-color:var(--border-gold);color:var(--gold-foil);">🎨 Change Art</button>
       </div>
 
@@ -134,26 +134,26 @@
         <textarea id="deckListTextarea" class="deck-textarea" rows="5" placeholder="1 Sol Ring&#10;1 Arcane Signet&#10;1 Command Tower&#10;..."></textarea>
       </div>
 
-      <button id="saveDeckBtn" type="button" class="btn-primary" style="margin-bottom: 0;">💾 Save to Deck Locker</button>
+      <button id="saveDeckBtn" type="button" class="btn-primary" style="margin-bottom: 0;">Save to Deck Locker</button>
     </div>
   </div>
 
   <!-- 4-TAB BOTTOM NAVIGATION BAR -->
   <nav class="bottom-nav" aria-label="Primary Navigation">
     <a href="index.html" class="bottom-nav-item">
-      <span class="nav-icon">⚔️</span>
+      <span class="cs-icon cs-icon-play"></span>
       <span class="nav-label">Play</span>
     </a>
     <a href="decks.html" class="bottom-nav-item active">
-      <span class="nav-icon">📚</span>
+      <span class="cs-icon cs-icon-decks"></span>
       <span class="nav-label">Decks</span>
     </a>
     <a href="stats.html" class="bottom-nav-item">
-      <span class="nav-icon">🏆</span>
+      <span class="cs-icon cs-icon-stats"></span>
       <span class="nav-label">Stats</span>
     </a>
     <a href="profile.html" class="bottom-nav-item">
-      <span class="nav-icon">⚙️</span>
+      <span class="cs-icon cs-icon-profile"></span>
       <span class="nav-label">Profile</span>
     </a>
   </nav>

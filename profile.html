@@ -26,16 +26,16 @@
 
       <!-- GOOGLE CLOUD SYNC CARD -->
       <div class="profile-card">
-        <h2 class="profile-card-title">☁️ Cloud Sync &amp; Google Account</h2>
+        <h2 class="profile-card-title">Cloud Sync &amp; Google Account</h2>
         <p id="profileSyncStatus" class="profile-card-sub">Checking account status...</p>
         <button id="googleAuthBtn" type="button" class="btn-primary" style="margin-bottom:0;">
-          🔐 Sign in with Google
+          Sign in with Google
         </button>
       </div>
 
       <!-- STANDALONE SCRYFALL ORACLE & RULINGS LOOKUP -->
       <div class="profile-card">
-        <h2 class="profile-card-title">🔍 Scryfall Card &amp; Oracle Lookup</h2>
+        <h2 class="profile-card-title">Scryfall Card &amp; Oracle Lookup</h2>
         <p class="profile-card-sub">Check exact Oracle wording, Commander legality, and official Gatherer rulings.</p>
         <div class="join-row" style="grid-template-columns: 1fr auto; margin-bottom: 10px;">
           <input id="profileOracleInput" type="text" placeholder="e.g. Panglacial Wurm" style="text-align: left; font-size: 0.88rem; padding: 10px 12px;" />
@@ -46,7 +46,7 @@
 
       <!-- PLAYER DEFAULTS CARD -->
       <div class="profile-card">
-        <h2 class="profile-card-title">⚔️ Player Defaults</h2>
+        <h2 class="profile-card-title">Player Defaults</h2>
         <p class="profile-card-sub">Automatically pre-fills your name and card frame when joining pods.</p>
 
         <div class="input-group">
@@ -72,28 +72,28 @@
 
       <!-- STANDALONE DICE & COIN ROLLER -->
       <div class="profile-card">
-        <h2 class="profile-card-title">🎲 Tabletop Dice &amp; Coin Roller</h2>
+        <h2 class="profile-card-title">Tabletop Dice &amp; Coin Roller</h2>
         <div class="dice-stage" style="margin-bottom:10px;padding:14px;">
           <div id="diceTypeLabel" class="dice-type-label">Tap a die or coin below</div>
           <div id="diceBigResult" class="dice-big-result">—</div>
         </div>
 
         <div class="dice-grid">
-          <button type="button" class="die-btn" data-die="coin">🪙 Coin</button>
-          <button type="button" class="die-btn" data-die="4">d4</button>
-          <button type="button" class="die-btn" data-die="6">d6</button>
-          <button type="button" class="die-btn" data-die="8">d8</button>
-          <button type="button" class="die-btn" data-die="10">d10</button>
-          <button type="button" class="die-btn" data-die="12">d12</button>
-          <button type="button" class="die-btn" data-die="20">d20</button>
-          <button type="button" class="die-btn" data-die="planar">⬡ Planar</button>
+          <button type="button" class="die-btn" data-die="coin"><span class="cs-icon cs-icon-coin"></span> Coin</button>
+     <button type="button" class="die-btn" data-die="4">d4</button>
+     <button type="button" class="die-btn" data-die="6">d6</button>
+     <button type="button" class="die-btn" data-die="8">d8</button>
+     <button type="button" class="die-btn" data-die="10">d10</button>
+     <button type="button" class="die-btn" data-die="12">d12</button>
+     <button type="button" class="die-btn" data-die="20"><span class="cs-icon cs-icon-d20"></span> d20</button>
+     <button type="button" class="die-btn" data-die="planar"><span class="cs-icon cs-icon-planar"></span> Planar</button>
         </div>
         <div id="recentRollsBar" class="recent-rolls-bar"></div>
       </div>
 
       <!-- LOCAL JSON BACKUP / RESTORE -->
       <div class="profile-card">
-        <h2 class="profile-card-title">💾 Data Backup &amp; Restore</h2>
+        <h2 class="profile-card-title">Data Backup &amp; Restore</h2>
         <p class="profile-card-sub">Export your Deck Locker and Match History as a backup file or restore from a previous export.</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           <button id="exportBackupBtn" type="button" class="btn-secondary btn-small" style="padding:10px;">⬇ Export JSON</button>
@@ -145,19 +145,19 @@
   <!-- 4-TAB BOTTOM NAVIGATION BAR -->
   <nav class="bottom-nav" aria-label="Primary Navigation">
     <a href="index.html" class="bottom-nav-item">
-      <span class="nav-icon">⚔️</span>
+      <span class="cs-icon cs-icon-play"></span>
       <span class="nav-label">Play</span>
     </a>
     <a href="decks.html" class="bottom-nav-item">
-      <span class="nav-icon">📚</span>
+      <span class="cs-icon cs-icon-decks"></span>
       <span class="nav-label">Decks</span>
     </a>
     <a href="stats.html" class="bottom-nav-item">
-      <span class="nav-icon">🏆</span>
+      <span class="cs-icon cs-icon-stats"></span>
       <span class="nav-label">Stats</span>
     </a>
     <a href="profile.html" class="bottom-nav-item active">
-      <span class="nav-icon">⚙️</span>
+      <span class="cs-icon cs-icon-profile"></span>
       <span class="nav-label">Profile</span>
     </a>
   </nav>

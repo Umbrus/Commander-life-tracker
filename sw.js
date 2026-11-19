@@ -1,4 +1,4 @@
-const CACHE_NAME = "commander-pod-v25";
+const CACHE_NAME = "commander-pod-v26";
 const ASSETS = [
   "./",
   "./index.html",
@@ -12,12 +12,23 @@ const ASSETS = [
   "./profile.js",
   "./manifest.json",
   "./images/icon.svg",
-  "./images/icon-512.png"
+  "./images/icons/nav-play.svg",
+  "./images/icons/nav-decks.svg",
+  "./images/icons/nav-stats.svg",
+  "./images/icons/nav-profile.svg",
+  "./images/icons/glyph-cmdr.svg",
+  "./images/icons/glyph-poison.svg",
+  "./images/icons/glyph-tax.svg",
+  "./images/icons/glyph-monarch.svg",
+  "./images/icons/glyph-ko.svg",
+  "./images/icons/die-d20.svg",
+  "./images/icons/die-coin.svg",
+  "./images/icons/die-planar.svg"
 ];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).catch(() => {})
   );
   self.skipWaiting();
 });
@@ -25,23 +36,25 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+      Promise.all(
+        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+      )
     )
   );
   self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET" || !event.request.url.startsWith(self.location.origin)) {
-    return;
-  }
+  if (event.request.method !== "GET") return;
+  const url = new URL(event.request.url);
+  if (url.origin !== location.origin) return;
 
   event.respondWith(
     fetch(event.request)
-      .then((response) => {
-        const clone = response.clone();
+      .then((networkResponse) => {
+        const clone = networkResponse.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        return response;
+        return networkResponse;
       })
       .catch(() => caches.match(event.request))
   );

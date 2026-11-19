@@ -2992,3 +2992,46 @@ button:active { transform: scale(0.97); }
   color: #d6d3d1;
   margin-top: 2px;
 }
+/* =========================================================
+   PHASE 4: CUSTOM ILLUSTRATOR VECTOR ICONS (CSS MASK-IMAGE)
+   ========================================================= */
+.cs-icon {
+  display: inline-block;
+  width: 1.15em;
+  height: 1.15em;
+  background-color: currentColor;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  vertical-align: -0.18em;
+  flex-shrink: 0;
+}
+
+.bottom-nav-item .cs-icon {
+  width: 22px;
+  height: 22px;
+  vertical-align: middle;
+}
+
+.die-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.cs-icon-play    { -webkit-mask-image: url("images/icons/nav-play.svg");    mask-image: url("images/icons/nav-play.svg"); }
+.cs-icon-decks   { -webkit-mask-image: url("images/icons/nav-decks.svg");   mask-image: url("images/icons/nav-decks.svg"); }
+.cs-icon-stats   { -webkit-mask-image: url("images/icons/nav-stats.svg");   mask-image: url("images/icons/nav-stats.svg"); }
+.cs-icon-profile { -webkit-mask-image: url("images/icons/nav-profile.svg"); mask-image: url("images/icons/nav-profile.svg"); }
+.cs-icon-cmdr    { -webkit-mask-image: url("images/icons/glyph-cmdr.svg");  mask-image: url("images/icons/glyph-cmdr.svg"); }
+.cs-icon-poison  { -webkit-mask-image: url("images/icons/glyph-poison.svg");mask-image: url("images/icons/glyph-poison.svg"); }
+.cs-icon-tax     { -webkit-mask-image: url("images/icons/glyph-tax.svg");   mask-image: url("images/icons/glyph-tax.svg"); }
+.cs-icon-monarch { -webkit-mask-image: url("images/icons/glyph-monarch.svg");mask-image: url("images/icons/glyph-monarch.svg"); }
+.cs-icon-ko      { -webkit-mask-image: url("images/icons/glyph-ko.svg");    mask-image: url("images/icons/glyph-ko.svg"); }
+.cs-icon-d20     { -webkit-mask-image: url("images/icons/die-d20.svg");     mask-image: url("images/icons/die-d20.svg"); }
+.cs-icon-coin    { -webkit-mask-image: url("images/icons/die-coin.svg");    mask-image: url("images/icons/die-coin.svg"); }
+.cs-icon-planar  { -webkit-mask-image: url("images/icons/die-planar.svg");  mask-image: url("images/icons/die-planar.svg"); }

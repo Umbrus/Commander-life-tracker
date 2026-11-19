@@ -217,7 +217,7 @@
       <!-- Primary Personal Counters: Poison & Commander Tax -->
       <div class="counters-row">
         <div id="poisonBox" class="counter-pill">
-          <div class="counter-title">Poison</div>
+          <div class="counter-title"><span class="cs-icon cs-icon-poison"></span> Poison</div>
           <div class="counter-controls">
             <button id="poisonMinusBtn" class="mini-btn">−</button>
             <span id="poisonDisplay" class="counter-val">0</span>
@@ -226,7 +226,7 @@
         </div>
 
         <div class="counter-pill">
-          <div class="counter-title">Cmdr Tax</div>
+          <div class="counter-title"><span class="cs-icon cs-icon-tax"></span> Cmdr Tax</div>
           <div class="counter-controls">
             <button id="taxMinusBtn" class="mini-btn">−</button>
             <span id="taxDisplay" class="counter-val">+0</span>
@@ -250,7 +250,7 @@
       <!-- Commander Damage Taken From Each Opponent -->
       <div class="cmdr-dmg-section">
         <div class="section-header-row">
-          <div class="section-label" style="margin:0;">Commander Damage Taken</div>
+          <div class="section-label" style="margin:0;"><span class="cs-icon cs-icon-cmdr"></span> Commander Damage Taken</div>
           <button id="quickCountersBtn" type="button" class="chip-action-btn">+ Counters</button>
         </div>
         <div id="cmdrDamageList" class="cmdr-dmg-list">
@@ -311,7 +311,7 @@
     </div>
   </div>
 
-  <!-- TABLE MODE PLAYER COMMAND TRAY (WITH INLINE PLAYER RENAME) -->
+  <!-- TABLE MODE PLAYER COMMAND TRAY (WITH CUSTOM VECTOR ICONS & INLINE RENAME) -->
   <div id="tablePlayerModal" class="modal-backdrop hidden">
     <div class="modal-card table-tray-card">
       <div class="modal-header">
@@ -325,17 +325,17 @@
       <div class="tray-section-label">Table Status &amp; Counters</div>
       <div class="tray-counters-grid">
         <button id="trayMonarchBtn" type="button" class="tray-monarch-pill">
-          <span>👑 Monarch</span>
+          <span><span class="cs-icon cs-icon-monarch"></span> Monarch</span>
           <strong id="trayMonarchState">OFF</strong>
         </button>
 
         <button id="trayEliminatedBtn" type="button" class="tray-monarch-pill">
-          <span>💀 Knocked Out</span>
+          <span><span class="cs-icon cs-icon-ko"></span> Knocked Out</span>
           <strong id="trayEliminatedState">NO</strong>
         </button>
 
         <div class="tray-counter-box">
-          <span class="tray-counter-name">☠ Poison</span>
+          <span class="tray-counter-name"><span class="cs-icon cs-icon-poison"></span> Poison</span>
           <div class="tray-stepper">
             <button type="button" class="tray-step-btn" data-counter="poison" data-delta="-1">−</button>
             <strong id="trayVal-poison">0</strong>
@@ -344,7 +344,7 @@
         </div>
 
         <div class="tray-counter-box">
-          <span class="tray-counter-name">🛡️ Cmdr Tax</span>
+          <span class="tray-counter-name"><span class="cs-icon cs-icon-tax"></span> Cmdr Tax</span>
           <div class="tray-stepper">
             <button type="button" class="tray-step-btn" data-counter="tax" data-delta="-2">−</button>
             <strong id="trayVal-tax">+0</strong>
@@ -484,14 +484,14 @@
       </div>
 
       <div class="dice-grid">
-        <button type="button" class="die-btn" data-die="coin">🪙 Coin</button>
+        <button type="button" class="die-btn" data-die="coin"><span class="cs-icon cs-icon-coin"></span> Coin</button>
         <button type="button" class="die-btn" data-die="4">d4</button>
         <button type="button" class="die-btn" data-die="6">d6</button>
         <button type="button" class="die-btn" data-die="8">d8</button>
         <button type="button" class="die-btn" data-die="10">d10</button>
         <button type="button" class="die-btn" data-die="12">d12</button>
-        <button type="button" class="die-btn" data-die="20">d20</button>
-        <button type="button" class="die-btn" data-die="planar">⬡ Planar</button>
+        <button type="button" class="die-btn" data-die="20"><span class="cs-icon cs-icon-d20"></span> d20</button>
+        <button type="button" class="die-btn" data-die="planar"><span class="cs-icon cs-icon-planar"></span> Planar</button>
       </div>
 
       <div id="recentRollsBar" class="recent-rolls-bar"></div>
@@ -635,19 +635,19 @@
   <!-- 4-TAB BOTTOM NAVIGATION BAR (Hidden during active Pod or Table Mode) -->
   <nav id="mainBottomNav" class="bottom-nav" aria-label="Primary Navigation">
     <a href="index.html" class="bottom-nav-item active">
-      <span class="nav-icon">⚔️</span>
+      <span class="cs-icon cs-icon-play"></span>
       <span class="nav-label">Play</span>
     </a>
     <a href="decks.html" class="bottom-nav-item">
-      <span class="nav-icon">📚</span>
+      <span class="cs-icon cs-icon-decks"></span>
       <span class="nav-label">Decks</span>
     </a>
     <a href="stats.html" class="bottom-nav-item">
-      <span class="nav-icon">🏆</span>
+      <span class="cs-icon cs-icon-stats"></span>
       <span class="nav-label">Stats</span>
     </a>
     <a href="profile.html" class="bottom-nav-item">
-      <span class="nav-icon">⚙️</span>
+      <span class="cs-icon cs-icon-profile"></span>
       <span class="nav-label">Profile</span>
     </a>
   </nav>

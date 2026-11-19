@@ -378,7 +378,7 @@ howItWorksModal.onclick = (e) => {
 };
 
 // =========================================================
-// PHASE 3: IN-POD SCRYFALL ORACLE & RULINGS LOOKUP
+// IN-POD SCRYFALL ORACLE & RULINGS LOOKUP
 // =========================================================
 async function lookupOracleCard(queryStr) {
   const resultsEl = document.getElementById("podOracleResults");
@@ -1896,7 +1896,7 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
 
       const heroDeckTag = document.getElementById("heroDeckTag");
       if (me.deckName) {
-        heroDeckTag.textContent = `⚔️ ${me.deckName}`;
+        heroDeckTag.innerHTML = `<span class="cs-icon cs-icon-cmdr"></span> ${me.deckName}`;
         heroDeckTag.classList.remove("hidden");
       } else {
         heroDeckTag.classList.add("hidden");
@@ -1936,10 +1936,10 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
       if (oppIsEliminated) badges.push(`<span class="out-pill-tag">- OUT -</span>`);
       else if (p.deckName) badges.push(p.deckName);
       else if (oppIsHost) badges.push("Host");
-      if (p.poison > 0) badges.push(`☠${p.poison}`);
+      if (p.poison > 0) badges.push(`<span class="cs-icon cs-icon-poison"></span>${p.poison}`);
       const cmdrValues = Object.values(p.commanderDamage || {});
       const maxCmdr = cmdrValues.length > 0 ? Math.max(...cmdrValues) : 0;
-      if (maxCmdr > 0) badges.push(`⚔${maxCmdr}`);
+      if (maxCmdr > 0) badges.push(`<span class="cs-icon cs-icon-cmdr"></span>${maxCmdr}`);
 
       const card = document.createElement("button");
       card.type = "button";
@@ -2145,8 +2145,8 @@ function renderTableGrid() {
     seat.className = `table-seat theme-${p.theme} ${faceClass} ${p.isFirst ? "first-player-glow" : ""} ${isMonarch ? "is-monarch" : ""} ${p.eliminated ? "is-eliminated" : ""} ${isWinner ? "is-winner" : ""}`;
 
     const statusPills = [];
-    if (p.poison > 0) statusPills.push(`<span class="seat-mini-badge poison">☠${p.poison}</span>`);
-    if (p.tax > 0) statusPills.push(`<span class="seat-mini-badge">+${p.tax}</span>`);
+    if (p.poison > 0) statusPills.push(`<span class="seat-mini-badge poison"><span class="cs-icon cs-icon-poison"></span>${p.poison}</span>`);
+    if (p.tax > 0) statusPills.push(`<span class="seat-mini-badge"><span class="cs-icon cs-icon-tax"></span>+${p.tax}</span>`);
     if (p.energy > 0) statusPills.push(`<span class="seat-mini-badge">⚡${p.energy}</span>`);
     if (p.rad > 0) statusPills.push(`<span class="seat-mini-badge">☢️${p.rad}</span>`);
 
