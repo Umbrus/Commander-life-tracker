@@ -24,6 +24,10 @@ const SAVED_NAME_KEY = "mtg_saved_player_name";
 const THEME_PREF_KEY = "mtg_preferred_theme";
 const LOCAL_DECKS_KEY = "mtg_local_deck_locker";
 const LOCAL_MATCHES_KEY = "mtg_local_match_history";
+const APP_PALETTE_KEY = "mtg_app_palette";
+const FOIL_FRAME_KEY = "mtg_supporter_foil_frame";
+const SUPPORTER_KEY = "mtg_is_supporter";
+const STANDARD_THEMES = ["blue", "red", "green", "gold", "purple", "slate"];
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -36,6 +40,85 @@ function triggerHaptic(pattern) {
   }
 }
 
+// =========================================================
+// SUPPORTER ENTITLEMENT GATING & VIP CODE REDEMPTION
+// =========================================================
+function applySupporterState(isSupporter) {
+  localStorage.setItem(SUPPORTER_KEY, isSupporter ? "true" : "false");
+  document.body.classList.toggle("is-supporter", isSupporter);
+
+  const badge = document.getElementById("supporterActiveBadge");
+  const redeemBox = document.getElementById("supporterRedeemBox");
+  if (badge) badge.classList.toggle("hidden", !isSupporter);
+  if (redeemBox) redeemBox.classList.toggle("hidden", isSupporter);
+
+  if (!isSupporter) {
+    isFoilFrame = false;
+    localStorage.setItem(FOIL_FRAME_KEY, "false");
+    renderFoilToggleUI();
+
+    const savedPalette = localStorage.getItem(APP_PALETTE_KEY);
+    if (savedPalette && savedPalette !== "crimson") {
+      applyAppPalette("crimson");
+    }
+    if (!STANDARD_THEMES.includes(currentTheme)) {
+      currentTheme = "blue";
+      localStorage.setItem(THEME_PREF_KEY, "blue");
+      renderThemeSwatches();
+    }
+  }
+}
+
+async function verifySupporterStatus(user) {
+  if (!user) {
+    applySupporterState(false);
+    return false;
+  }
+
+  let entitled = localStorage.getItem(SUPPORTER_KEY) === "true";
+
+  try {
+    const uidSnap = await get(ref(db, `supporters/${user.uid}`));
+    if (uidSnap.exists() && uidSnap.val() === true) {
+      entitled = true;
+    }
+
+    if (!entitled && user.email) {
+      const emailKey = user.email.toLowerCase().replace(/\./g, ",");
+      const emailSnap = await get(ref(db, `supporterEmails/${emailKey}`));
+      if (emailSnap.exists() && emailSnap.val() === true) {
+        entitled = true;
+      }
+    }
+  } catch {}
+
+  applySupporterState(entitled);
+  return entitled;
+}
+
+const redeemBtn = document.getElementById("redeemSupporterCodeBtn");
+if (redeemBtn) {
+  redeemBtn.onclick = async () => {
+    const input = document.getElementById("supporterCodeInput");
+    const code = (input?.value || "").trim().toUpperCase();
+    if (!code) return;
+
+    triggerHaptic(12);
+    try {
+      const codeSnap = await get(ref(db, `supporterCodes/${code}`));
+      if (codeSnap.exists() && codeSnap.val() === true) {
+        applySupporterState(true);
+        if (input) input.value = "";
+        alert("Supporter Pack unlocked! All exclusive card frames, themes, and foil treatments are now active.");
+      } else {
+        alert("Invalid supporter or tester code.");
+      }
+    } catch {
+      alert("Could not verify code while offline.");
+    }
+  };
+}
+
 // Guide Modal
 const howItWorksModal = document.getElementById("howItWorksModal");
 document.getElementById("openGuideBtn").onclick = () => howItWorksModal.classList.remove("hidden");
@@ -44,6 +127,48 @@ document.getElementById("gotItBtn").onclick = () => howItWorksModal.classList.ad
 howItWorksModal.onclick = (e) => {
   if (e.target === howItWorksModal) howItWorksModal.classList.add("hidden");
 };
+
+// Featured Set Themes & Supporter Foil Frame
+let currentPalette = localStorage.getItem(APP_PALETTE_KEY) || "crimson";
+function applyAppPalette(paletteName) {
+  currentPalette = paletteName;
+  localStorage.setItem(APP_PALETTE_KEY, paletteName);
+  if (paletteName === "crimson") {
+    document.documentElement.removeAttribute("data-palette");
+  } else {
+    document.documentElement.setAttribute("data-palette", paletteName);
+  }
+  document.querySelectorAll("#appPaletteSelector .palette-btn").forEach((btn) => {
+    btn.classList.toggle("selected", btn.dataset.palette === paletteName);
+  });
+}
+applyAppPalette(currentPalette);
+
+document.querySelectorAll("#appPaletteSelector .palette-btn").forEach((btn) => {
+  btn.onclick = () => {
+    triggerHaptic(12);
+    applyAppPalette(btn.dataset.palette);
+  };
+});
+
+let isFoilFrame = localStorage.getItem(FOIL_FRAME_KEY) === "true";
+function renderFoilToggleUI() {
+  const btn = document.getElementById("toggleFoilFrameBtn");
+  const badge = document.getElementById("badgeFoilFrame");
+  if (btn) btn.classList.toggle("pinned", isFoilFrame);
+  if (badge) badge.textContent = isFoilFrame ? "ON" : "OFF";
+}
+renderFoilToggleUI();
+
+const foilToggleBtn = document.getElementById("toggleFoilFrameBtn");
+if (foilToggleBtn) {
+  foilToggleBtn.onclick = () => {
+    triggerHaptic(14);
+    isFoilFrame = !isFoilFrame;
+    localStorage.setItem(FOIL_FRAME_KEY, String(isFoilFrame));
+    renderFoilToggleUI();
+  };
+}
 
 // Standalone Scryfall Oracle & Rulings Lookup
 async function runProfileOracleSearch(queryStr) {
@@ -163,12 +288,12 @@ function rollDie(type) {
 
   if (type === "coin") {
     label = "Coin Flip";
-    result = Math.random() < 0.5 ? "🪙 Heads" : "🪙 Tails";
+    result = Math.random() < 0.5 ? "Heads" : "Tails";
   } else if (type === "planar") {
     label = "Planar Die (d6)";
     const r = Math.floor(Math.random() * 6) + 1;
-    if (r === 1) result = "⬡ Planeswalk";
-    else if (r === 6) result = "⚡ Chaos";
+    if (r === 1) result = "Planeswalk";
+    else if (r === 6) result = "Chaos";
     else result = "Blank";
   } else {
     const sides = parseInt(type, 10);
@@ -182,7 +307,7 @@ function rollDie(type) {
   void resultEl.offsetWidth;
   resultEl.classList.add("dice-pop");
 
-  const shortTag = type === "coin" ? result.replace("🪙 ", "") : type === "planar" ? result : `d${type}: ${result}`;
+  const shortTag = type === "coin" || type === "planar" ? result : `d${type}: ${result}`;
   recentRolls.unshift(shortTag);
   if (recentRolls.length > 5) recentRolls.pop();
   document.getElementById("recentRollsBar").textContent = `Recent: ${recentRolls.join("  •  ")}`;
@@ -222,6 +347,7 @@ document.getElementById("googleAuthBtn").onclick = async () => {
   try {
     const res = await linkWithPopup(auth.currentUser, googleProvider);
     updateProfileAuthUI(res.user);
+    await verifySupporterStatus(res.user);
     const localDecks = JSON.parse(localStorage.getItem(LOCAL_DECKS_KEY) || "{}");
     if (Object.keys(localDecks).length > 0) {
       await update(ref(db, `users/${res.user.uid}/decks`), localDecks).catch(() => {});
@@ -238,6 +364,7 @@ document.getElementById("googleAuthBtn").onclick = async () => {
           await update(ref(db, `users/${signInRes.user.uid}/decks`), merged).catch(() => {});
         }
         updateProfileAuthUI(signInRes.user);
+        await verifySupporterStatus(signInRes.user);
       } catch (innerErr) {
         alert(`Google Sign-In failed: ${innerErr.message}`);
       }
@@ -247,12 +374,16 @@ document.getElementById("googleAuthBtn").onclick = async () => {
   }
 };
 
+// Apply cached supporter state immediately on load, then verify with Firebase
+applySupporterState(localStorage.getItem(SUPPORTER_KEY) === "true");
+
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     try { await signInAnonymously(auth); } catch {}
     return;
   }
   updateProfileAuthUI(user);
+  await verifySupporterStatus(user);
 });
 
 // JSON Export / Import Backup
@@ -287,8 +418,8 @@ document.getElementById("importBackupInput").onchange = async (e) => {
     if (Array.isArray(parsed.matches)) {
       localStorage.setItem(LOCAL_MATCHES_KEY, JSON.stringify(parsed.matches));
     }
-    alert("✅ Backup restored successfully!");
+    alert("Backup restored successfully!");
   } catch {
-    alert("⚠️ Invalid backup JSON file.");
+    alert("Invalid backup JSON file.");
   }
 };

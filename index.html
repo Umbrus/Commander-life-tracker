@@ -15,6 +15,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    (function() {
+      const p = localStorage.getItem("mtg_app_palette");
+      if (p && p !== "crimson") document.documentElement.setAttribute("data-palette", p);
+    })();
+  </script>
 </head>
 <body>
 
@@ -32,7 +38,7 @@
       </a>
     </header>
 
-    <!-- LOBBY / JOIN SCREEN -->
+    <!-- CLEAN LOBBY / JOIN SCREEN -->
     <div id="lobbyView" class="lobby-wrapper">
       <div class="lobby-hero">
         <div class="hero-emblem" aria-hidden="true">
@@ -52,17 +58,6 @@
         <div class="input-group">
           <label for="playerNameInput" class="input-label">Planeswalker Name</label>
           <input id="playerNameInput" type="text" maxlength="18" placeholder="e.g. Gideon" autocomplete="off" />
-        </div>
-
-        <!-- ACTIVE DECK PILOTING SELECTOR -->
-        <div class="input-group">
-          <div class="label-action-row">
-            <label for="activeDeckSelect" class="input-label" style="margin:0;">Piloting Deck (Optional)</label>
-            <a href="decks.html" class="inline-text-link" style="text-decoration:none;">+ Manage Decks</a>
-          </div>
-          <select id="activeDeckSelect" class="deck-select">
-            <option value="">No Deck Selected (Casual / Unranked)</option>
-          </select>
         </div>
 
         <div id="standardCreateSection">
@@ -98,12 +93,6 @@
           <small>2–4 player split-screen counter — no codes needed</small>
         </button>
       </div>
-
-      <div class="lobby-footer">
-        <button id="openHowItWorksBtn" type="button" class="link-btn">
-          <span>?</span> How does CommandSync work?
-        </button>
-      </div>
     </div>
 
     <!-- ACTIVE TABLE SCREEN (SYNCED POD MODE) -->
@@ -127,21 +116,25 @@
               <button type="button" class="swatch-btn" data-theme="gold" title="Boros Gold"></button>
               <button type="button" class="swatch-btn" data-theme="purple" title="Dimir Violet"></button>
               <button type="button" class="swatch-btn" data-theme="slate" title="Eldrazi Obsidian"></button>
+              <button type="button" class="swatch-btn" data-theme="slate" title="aether"></button>
+              <button type="button" class="swatch-btn" data-theme="slate" title="phyrexian"></button>
+              <button type="button" class="swatch-btn" data-theme="slate" title="ivory"></button>
+              <button type="button" class="swatch-btn" data-theme="slate" title="bronze"></button>
             </div>
 
             <div class="menu-divider"></div>
-            <button id="openOracleLookupBtn" class="menu-item">🔍 Card &amp; Oracle Lookup</button>
-            <button id="togglePartnerBtn" class="menu-item">🤝 Partner Commander: OFF</button>
-            <button id="openCountersBtn" class="menu-item">⚡ Extra Counters &amp; Mana</button>
-            <button id="openDiceRollerBtn" class="menu-item">🎲 Dice &amp; Coin Roller</button>
-            <button id="openHistoryBtn" class="menu-item">📜 Life History Log</button>
-            <button id="becomeMonarchBtn" class="menu-item">👑 Claim the Monarch</button>
-            <button id="toggleEliminatedBtn" class="menu-item">🏳️ Scoop / Knocked Out</button>
-            <button id="toggleQrBtn" class="menu-item">📱 Hide QR Invite</button>
-            <button id="openFirstPlayerBtn" class="menu-item hidden">🧭 Turn Order &amp; 1st Player</button>
-            <button id="newGameBtn" class="menu-item warning hidden">↻ Start New Game</button>
+            <button id="openOracleLookupBtn" class="menu-item">Card &amp; Oracle Lookup</button>
+            <button id="togglePartnerBtn" class="menu-item">Partner Commander: OFF</button>
+            <button id="openCountersBtn" class="menu-item">Extra Counters &amp; Mana</button>
+            <button id="openDiceRollerBtn" class="menu-item">Dice &amp; Coin Roller</button>
+            <button id="openHistoryBtn" class="menu-item">Life History Log</button>
+            <button id="becomeMonarchBtn" class="menu-item">Claim the Monarch</button>
+            <button id="toggleEliminatedBtn" class="menu-item">Scoop / Knocked Out</button>
+            <button id="toggleQrBtn" class="menu-item">Hide QR Invite</button>
+            <button id="openFirstPlayerBtn" class="menu-item hidden">Turn Order &amp; 1st Player</button>
+            <button id="newGameBtn" class="menu-item warning hidden">Start New Game</button>
             <div class="menu-divider"></div>
-            <button id="leavePodBtn" class="menu-item danger">✕ Leave Pod</button>
+            <button id="leavePodBtn" class="menu-item danger">Leave Pod</button>
           </div>
         </div>
       </header>
@@ -158,9 +151,9 @@
 
       <!-- POD WINNER BANNER + QUICK REMATCH -->
       <div id="podWinnerBanner" class="winner-banner hidden">
-        <div id="podWinnerText">🏆 Player Wins the Pod!</div>
+        <div id="podWinnerText">Player Wins the Pod!</div>
         <div id="podWinnerDeckNote" class="winner-sub-note hidden"></div>
-        <button id="bannerRematchBtn" type="button" class="btn-primary btn-small hidden" style="margin-top: 8px;">↻ Quick Rematch</button>
+        <button id="bannerRematchBtn" type="button" class="btn-primary btn-small hidden" style="margin-top: 8px;">Quick Rematch</button>
       </div>
 
       <!-- HOST PRE-GAME TURN ORDER SETUP CARD -->
@@ -180,7 +173,7 @@
         <div class="turn-top-row">
           <div class="turn-info">
             <span id="turnNumberLabel" class="turn-pill">TURN 1</span>
-            <span id="activePlayerLabel" class="active-turn-name">Nathan's Turn</span>
+            <span id="activePlayerLabel" class="active-turn-name">Your Turn</span>
           </div>
           <button id="passTurnBtn" class="btn-primary btn-small hidden">Pass Turn →</button>
         </div>
@@ -205,7 +198,7 @@
         <div id="heroEliminatedOverlay" class="hero-eliminated-overlay hidden">
           <div class="eliminated-skull">- OUT -</div>
           <div class="eliminated-sub">Skipped in turn rotation</div>
-          <button id="reviveSelfBtn" type="button" class="btn-secondary btn-small">↺ Revive / Still Alive</button>
+          <button id="reviveSelfBtn" type="button" class="btn-secondary btn-small">Revive / Still Alive</button>
         </div>
 
         <div class="tap-zones">
@@ -238,7 +231,7 @@
       <!-- OPTIONAL FLOATING MANA POOL BAR (W U B R G C) -->
       <div id="floatingManaStrip" class="floating-mana-card hidden">
         <div class="mana-strip-header">
-          <span>💧 Floating Mana <small>(Tap +1 • Hold −1)</small></span>
+          <span>Floating Mana <small>(Tap +1 • Hold −1)</small></span>
           <button id="clearManaPoolBtn" type="button" class="chip-action-btn">Empty</button>
         </div>
         <div id="manaPillsRow" class="mana-pills-row"></div>
@@ -259,6 +252,19 @@
       </div>
 
       <div id="wakeStatus" class="wake-status">Screen Wake Lock: Checking...</div>
+    </div>
+  </div>
+
+  <!-- VISUAL DECK PILOTING PICKER MODAL (Triggers after Create or Join Pod) -->
+  <div id="deckSelectModal" class="modal-backdrop hidden">
+    <div class="modal-card" style="max-height: 86vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <h2>Select Your Deck</h2>
+        <button id="closeDeckSelectModalBtn" type="button" class="btn-secondary btn-small">✕</button>
+      </div>
+      <p class="modal-sub">Choose which Commander deck you are piloting in this pod:</p>
+
+      <div id="visualDeckPickerGrid" class="visual-deck-picker-grid"></div>
     </div>
   </div>
 
@@ -290,7 +296,7 @@
       </div>
 
       <button id="startTableGameBtn" type="button" class="btn-primary" style="margin-top: 16px; margin-bottom: 0;">
-        ⚔️ Launch Table Mode
+        Launch Table Mode
       </button>
     </div>
   </div>
@@ -304,14 +310,14 @@
       <div id="tableHubMenu" class="table-hub-menu hidden">
         <button id="tableRollFirstBtn" type="button" class="hub-action-btn">Roll 1st Player</button>
         <button id="tableDiceBtn" type="button" class="hub-action-btn">Dice &amp; Coin</button>
-        <button id="tableResetBtn" type="button" class="hub-action-btn">↻ Reset Life</button>
+        <button id="tableResetBtn" type="button" class="hub-action-btn">Reset Life</button>
         <button id="tableSetupAgainBtn" type="button" class="hub-action-btn">Players / Life</button>
-        <button id="tableExitBtn" type="button" class="hub-action-btn danger">✕ Exit to Lobby</button>
+        <button id="tableExitBtn" type="button" class="hub-action-btn danger">Exit to Lobby</button>
       </div>
     </div>
   </div>
 
-  <!-- TABLE MODE PLAYER COMMAND TRAY (WITH CUSTOM VECTOR ICONS & INLINE RENAME) -->
+  <!-- TABLE MODE PLAYER COMMAND TRAY -->
   <div id="tablePlayerModal" class="modal-backdrop hidden">
     <div class="modal-card table-tray-card">
       <div class="modal-header">
@@ -353,7 +359,7 @@
         </div>
 
         <div class="tray-counter-box">
-          <span class="tray-counter-name">⚡ Energy</span>
+          <span class="tray-counter-name">Energy</span>
           <div class="tray-stepper">
             <button type="button" class="tray-step-btn" data-counter="energy" data-delta="-1">−</button>
             <strong id="trayVal-energy">0</strong>
@@ -362,7 +368,7 @@
         </div>
 
         <div class="tray-counter-box">
-          <span class="tray-counter-name">☢️ Rad</span>
+          <span class="tray-counter-name">Rad</span>
           <div class="tray-stepper">
             <button type="button" class="tray-step-btn" data-counter="rad" data-delta="-1">−</button>
             <strong id="trayVal-rad">0</strong>
@@ -371,7 +377,7 @@
         </div>
 
         <button id="trayPartnerToggleBtn" type="button" class="tray-partner-pill" style="grid-column: 1 / span 2;">
-          <span>🤝 Partner Commander (Two Commanders)</span>
+          <span>Partner Commander (Two Commanders)</span>
           <strong id="trayPartnerState">OFF</strong>
         </button>
       </div>
@@ -417,7 +423,7 @@
         <button type="button" class="preset-btn selected" data-life="40">40<span>Commander</span></button>
       </div>
 
-      <button id="confirmNewGameBtn" class="btn-primary" style="margin-bottom: 0;">↻ Reset Table &amp; Start</button>
+      <button id="confirmNewGameBtn" class="btn-primary" style="margin-bottom: 0;">Reset Table &amp; Start</button>
     </div>
   </div>
 
@@ -432,23 +438,23 @@
 
       <div class="counter-toggle-list">
         <button type="button" class="toggle-counter-row" data-counter="mana">
-          <span>💧 Floating Mana (W U B R G C)</span>
+          <span>Floating Mana (W U B R G C)</span>
           <span id="badge-mana" class="toggle-state">OFF</span>
         </button>
         <button type="button" class="toggle-counter-row" data-counter="energy">
-          <span>⚡ Energy Counters</span>
+          <span>Energy Counters</span>
           <span id="badge-energy" class="toggle-state">OFF</span>
         </button>
         <button type="button" class="toggle-counter-row" data-counter="experience">
-          <span>🎓 Experience Counters</span>
+          <span>Experience Counters</span>
           <span id="badge-experience" class="toggle-state">OFF</span>
         </button>
         <button type="button" class="toggle-counter-row" data-counter="storm">
-          <span>🌪️ Storm Count</span>
+          <span>Storm Count</span>
           <span id="badge-storm" class="toggle-state">OFF</span>
         </button>
         <button type="button" class="toggle-counter-row" data-counter="rad">
-          <span>☢️ Rad Counters</span>
+          <span>Rad Counters</span>
           <span id="badge-rad" class="toggle-state">OFF</span>
         </button>
       </div>
@@ -498,44 +504,6 @@
     </div>
   </div>
 
-  <!-- HOW IT WORKS MODAL -->
-  <div id="howItWorksModal" class="modal-backdrop hidden">
-    <div class="modal-card guide-modal">
-      <div class="modal-header">
-        <h2>How CommandSync Works</h2>
-        <button id="closeHowItWorksBtn" class="btn-secondary btn-small">✕</button>
-      </div>
-
-      <div class="guide-steps">
-        <div class="guide-step">
-          <div class="step-badge">1</div>
-          <div class="step-body">
-            <h3>Start or Scan Into a Pod</h3>
-            <p>Choose your starting life (<strong>20, 30, or 40</strong>) and tap <strong>Create New Pod</strong> to generate a 4-letter code and scannable QR invite. Everyone else scans to join—no accounts required.</p>
-          </div>
-        </div>
-
-        <div class="guide-step">
-          <div class="step-badge">2</div>
-          <div class="step-body">
-            <h3>Track Life, Eliminations &amp; Turns</h3>
-            <p>Tap left or right for <strong>−1 / +1</strong>, or <strong>press &amp; hold</strong> to accelerate through <strong>±5</strong> and <strong>±10</strong> increments. Reaching 0 life, 10 poison, or 21 Commander damage automatically marks a player knocked out and skips their turn.</p>
-          </div>
-        </div>
-
-        <div class="guide-step">
-          <div class="step-badge">3</div>
-          <div class="step-body">
-            <h3>Deck Locker, Google Sync &amp; Stats</h3>
-            <p>Use the bottom tabs to save Moxfield or Archidekt decks, customize Secret Lair Commander art, sign in with Google for cloud backup, and inspect matchup stats.</p>
-          </div>
-        </div>
-      </div>
-
-      <button id="gotItBtn" class="btn-primary" style="margin-top: 14px; margin-bottom: 0;">Got It</button>
-    </div>
-  </div>
-
   <!-- OPPONENT INSPECTOR MODAL -->
   <div id="inspectModal" class="modal-backdrop hidden">
     <div class="modal-card">
@@ -565,13 +533,13 @@
       <div id="modalCmdrList" class="cmdr-dmg-list"></div>
 
       <button id="modalMakeMonarchBtn" class="btn-monarch" style="margin-top: 14px; margin-bottom: 0;">
-        👑 Give Monarch to Player
+        Give Monarch to Player
       </button>
       <button id="modalToggleEliminateBtn" class="btn-secondary" style="margin-top: 8px; margin-bottom: 0;">
-        💀 Mark Knocked Out
+        Mark Knocked Out
       </button>
       <button id="modalTransferHostBtn" class="btn-secondary hidden" style="margin-top: 8px; margin-bottom: 0;">
-        🛡️ Make Pod Owner
+        Make Pod Owner
       </button>
     </div>
   </div>
@@ -612,8 +580,8 @@
       <div class="input-group">
         <label class="input-label">Your Result</label>
         <div class="outcome-toggle-grid">
-          <button type="button" id="tableLogWinBtn" class="outcome-btn selected-win">🏆 Win</button>
-          <button type="button" id="tableLogLossBtn" class="outcome-btn">💀 Loss</button>
+          <button type="button" id="tableLogWinBtn" class="outcome-btn selected-win">Win</button>
+          <button type="button" id="tableLogLossBtn" class="outcome-btn">Loss</button>
         </div>
       </div>
 

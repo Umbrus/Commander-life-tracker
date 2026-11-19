@@ -36,14 +36,18 @@ const THEME_PREF_KEY = "mtg_preferred_theme";
 const ACTIVE_DECK_KEY = "mtg_active_deck_id";
 const LOCAL_DECKS_KEY = "mtg_local_deck_locker";
 const LOCAL_MATCHES_KEY = "mtg_local_match_history";
+const FOIL_FRAME_KEY = "mtg_supporter_foil_frame";
+const SUPPORTER_KEY = "mtg_is_supporter";
 const SESSION_MAX_AGE_MS = 4 * 60 * 60 * 1000;
-const VALID_THEMES = ["blue", "red", "green", "gold", "purple", "slate"];
+
+const STANDARD_THEMES = ["blue", "red", "green", "gold", "purple", "slate"];
+const VALID_THEMES = ["blue", "red", "green", "gold", "purple", "slate", "aether", "phyrexian", "ivory", "bronze"];
 
 const EXTRA_COUNTER_META = {
-  energy: { label: "⚡ Energy", icon: "⚡" },
-  experience: { label: "🎓 Experience", icon: "🎓" },
-  storm: { label: "🌪️ Storm", icon: "🌪️" },
-  rad: { label: "☢️ Rad", icon: "☢️" }
+  energy: { label: "Energy", icon: "Energy" },
+  experience: { label: "Experience", icon: "XP" },
+  storm: { label: "Storm", icon: "Storm" },
+  rad: { label: "Rad", icon: "Rad" }
 };
 
 const MANA_COLORS = [
@@ -66,12 +70,12 @@ const mainBottomNav = document.getElementById("mainBottomNav");
 const roomCodeInput = document.getElementById("roomCodeInput");
 const playerNameInput = document.getElementById("playerNameInput");
 const dropdownMenu = document.getElementById("podDropdownMenu");
-const howItWorksModal = document.getElementById("howItWorksModal");
 const historyModal = document.getElementById("historyModal");
 const diceModal = document.getElementById("diceModal");
 const extraCountersModal = document.getElementById("extraCountersModal");
 const newGameModal = document.getElementById("newGameModal");
 const oracleLookupModal = document.getElementById("oracleLookupModal");
+const deckSelectModal = document.getElementById("deckSelectModal");
 const offlineBanner = document.getElementById("offlineBanner");
 
 const undoToast = document.getElementById("undoToast");
@@ -82,6 +86,7 @@ let currentUser = null;
 let currentPodCode = null;
 let latestPodData = null;
 let inspectedOpponentUid = null;
+let pendingPodLaunch = null;
 
 let selectedLobbyStartingLife = 40;
 let selectedNewGameLife = 40;
@@ -160,7 +165,7 @@ if (undoToastBtn) {
 }
 
 // =========================================================
-// COMMANDER ART BACKDROP FOR HERO TILE
+// COMMANDER ART BACKDROP & SUPPORTER FOIL FRAME
 // =========================================================
 function applyHeroCommanderBackdrop(artUrl) {
   const backdrop = document.getElementById("heroArtBackdrop");
@@ -172,8 +177,16 @@ function applyHeroCommanderBackdrop(artUrl) {
   }
 }
 
+function applySupporterFoilFrame() {
+  const hero = document.getElementById("heroTracker");
+  if (!hero) return;
+  const isSupporter = localStorage.getItem(SUPPORTER_KEY) === "true";
+  const isFoil = isSupporter && localStorage.getItem(FOIL_FRAME_KEY) === "true";
+  hero.classList.toggle("supporter-foil", isFoil);
+}
+
 // =========================================================
-// DECK DROPDOWN & RICH MATCHUP / DUAL-TURN RECORDING
+// VISUAL DECK PICKER MODAL & MATCH RECORDING
 // =========================================================
 function loadLocalUserProfile() {
   try {
@@ -183,7 +196,10 @@ function loadLocalUserProfile() {
     userDecks = {};
     userMatches = [];
   }
-  syncActiveDeckDropdown();
+  if (activeDeckId && !userDecks[activeDeckId]) {
+    activeDeckId = "";
+    localStorage.removeItem(ACTIVE_DECK_KEY);
+  }
 }
 
 function saveLocalUserProfile() {
@@ -191,31 +207,86 @@ function saveLocalUserProfile() {
   localStorage.setItem(LOCAL_MATCHES_KEY, JSON.stringify(userMatches));
 }
 
-function syncActiveDeckDropdown() {
-  const select = document.getElementById("activeDeckSelect");
-  if (!select) return;
+function launchPodWithDeckSelection(code, isNew) {
+  const deckList = Object.values(userDecks).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  if (deckList.length === 0 || !deckSelectModal) {
+    enterPod(code, isNew);
+    return;
+  }
 
-  select.innerHTML = `<option value="">No Deck Selected (Casual / Unranked)</option>`;
-  Object.entries(userDecks).forEach(([id, deck]) => {
-    const opt = document.createElement("option");
-    opt.value = id;
-    const wins = deck.wins || 0;
-    const losses = deck.losses || 0;
-    opt.textContent = `${deck.name} (${wins}W - ${losses}L)`;
-    if (id === activeDeckId) opt.selected = true;
-    select.appendChild(opt);
+  pendingPodLaunch = { code, isNew };
+  const grid = document.getElementById("visualDeckPickerGrid");
+  grid.innerHTML = "";
+
+  deckList.forEach((deck) => {
+    const isSelected = deck.id === activeDeckId;
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = `visual-deck-card ${isSelected ? "selected" : ""}`;
+
+    const artHtml = deck.artCrop
+      ? `<img src="${deck.artCrop}" alt="${deck.commander}" class="visual-deck-art" />`
+      : `<div class="visual-deck-art-fallback"><span class="cs-icon cs-icon-decks"></span></div>`;
+
+    card.innerHTML = `
+      ${artHtml}
+      <div class="visual-deck-meta">
+        <div class="visual-deck-name">${deck.name}</div>
+        <div class="visual-deck-cmdr">${deck.commander || "Commander"}</div>
+        <div class="visual-deck-rec">${deck.wins || 0}W - ${deck.losses || 0}L</div>
+      </div>
+    `;
+
+    card.onclick = () => {
+      triggerHaptic(14);
+      activeDeckId = deck.id;
+      localStorage.setItem(ACTIVE_DECK_KEY, deck.id);
+      deckSelectModal.classList.add("hidden");
+      const launch = pendingPodLaunch;
+      pendingPodLaunch = null;
+      if (launch) enterPod(launch.code, launch.isNew);
+    };
+    grid.appendChild(card);
   });
 
-  if (activeDeckId && !userDecks[activeDeckId]) {
+  const casualBtn = document.createElement("button");
+  casualBtn.type = "button";
+  casualBtn.className = `visual-deck-card casual-card ${!activeDeckId ? "selected" : ""}`;
+  casualBtn.innerHTML = `
+    <div class="visual-deck-art-fallback"><span class="cs-icon cs-icon-play"></span></div>
+    <div class="visual-deck-meta">
+      <div class="visual-deck-name">Casual / No Deck</div>
+      <div class="visual-deck-cmdr">Play without logging deck stats</div>
+    </div>
+  `;
+  casualBtn.onclick = () => {
+    triggerHaptic(12);
     activeDeckId = "";
     localStorage.removeItem(ACTIVE_DECK_KEY);
-  }
+    deckSelectModal.classList.add("hidden");
+    const launch = pendingPodLaunch;
+    pendingPodLaunch = null;
+    if (launch) enterPod(launch.code, launch.isNew);
+  };
+  grid.appendChild(casualBtn);
+
+  deckSelectModal.classList.remove("hidden");
 }
 
-document.getElementById("activeDeckSelect").onchange = (e) => {
-  activeDeckId = e.target.value;
-  localStorage.setItem(ACTIVE_DECK_KEY, activeDeckId);
-};
+if (document.getElementById("closeDeckSelectModalBtn")) {
+  document.getElementById("closeDeckSelectModalBtn").onclick = () => {
+    deckSelectModal.classList.add("hidden");
+    pendingPodLaunch = null;
+  };
+}
+if (deckSelectModal) {
+  deckSelectModal.onclick = (e) => {
+    if (e.target === deckSelectModal) {
+      deckSelectModal.classList.add("hidden");
+      pendingPodLaunch = null;
+    }
+  };
+}
 
 function detectWinCondition(podData) {
   const players = podData?.players || {};
@@ -304,7 +375,6 @@ function recordDeckMatchOutcome(deckId, outcome, podLabel = "", turns = null, ex
   if (userMatches.length > 100) userMatches.pop();
 
   saveLocalUserProfile();
-  syncActiveDeckDropdown();
 
   if (currentUser) {
     update(ref(db, `users/${currentUser.uid}/decks/${deckId}`), {
@@ -362,20 +432,6 @@ document.querySelectorAll("#newGameLifeSelector .preset-btn").forEach((btn) => {
     });
   };
 });
-
-// --- HOW IT WORKS MODAL ---
-document.getElementById("openHowItWorksBtn").onclick = () => {
-  howItWorksModal.classList.remove("hidden");
-};
-document.getElementById("closeHowItWorksBtn").onclick = () => {
-  howItWorksModal.classList.add("hidden");
-};
-document.getElementById("gotItBtn").onclick = () => {
-  howItWorksModal.classList.add("hidden");
-};
-howItWorksModal.onclick = (e) => {
-  if (e.target === howItWorksModal) howItWorksModal.classList.add("hidden");
-};
 
 // =========================================================
 // IN-POD SCRYFALL ORACLE & RULINGS LOOKUP
@@ -660,7 +716,7 @@ document.getElementById("togglePartnerBtn").onclick = () => {
   });
 };
 
-// --- SCOOP / KNOCKED OUT TOGGLE & REVIVE (WITH UNDO TOAST & EXIT TURN) ---
+// --- SCOOP / KNOCKED OUT TOGGLE & REVIVE ---
 async function setPlayerEliminatedState(targetUid, nextState) {
   if (!currentPodCode || !latestPodData) return;
   triggerHaptic(nextState ? [20, 40, 20] : 15);
@@ -778,12 +834,12 @@ function rollDie(type) {
 
   if (type === "coin") {
     label = "Coin Flip";
-    result = Math.random() < 0.5 ? "🪙 Heads" : "🪙 Tails";
+    result = Math.random() < 0.5 ? "Heads" : "Tails";
   } else if (type === "planar") {
     label = "Planar Die (d6)";
     const roll = Math.floor(Math.random() * 6) + 1;
-    if (roll === 1) result = "⬡ Planeswalk";
-    else if (roll === 6) result = "⚡ Chaos";
+    if (roll === 1) result = "Planeswalk";
+    else if (roll === 6) result = "Chaos";
     else result = "Blank";
   } else {
     const sides = parseInt(type, 10);
@@ -798,7 +854,7 @@ function rollDie(type) {
   void resultEl.offsetWidth;
   resultEl.classList.add("dice-pop");
 
-  const shortTag = type === "coin" ? result.replace("🪙 ", "") : type === "planar" ? result : `d${type}: ${result}`;
+  const shortTag = type === "coin" || type === "planar" ? result : `d${type}: ${result}`;
   recentDiceRolls.unshift(shortTag);
   if (recentDiceRolls.length > 5) recentDiceRolls.pop();
   document.getElementById("recentRollsBar").textContent = `Recent: ${recentDiceRolls.join("  •  ")}`;
@@ -833,7 +889,10 @@ document.addEventListener("click", (e) => {
 
 // --- TILE THEME PICKER ---
 function applyMyThemeUI(themeName) {
-  const safeTheme = VALID_THEMES.includes(themeName) ? themeName : "blue";
+  const isSupporter = localStorage.getItem(SUPPORTER_KEY) === "true";
+  const allowedList = isSupporter ? VALID_THEMES : STANDARD_THEMES;
+  const safeTheme = allowedList.includes(themeName) ? themeName : "blue";
+
   myTheme = safeTheme;
   localStorage.setItem(THEME_PREF_KEY, safeTheme);
 
@@ -852,13 +911,14 @@ document.querySelectorAll(".swatch-btn").forEach((btn) => {
     applyMyThemeUI(chosen);
     if (currentPodCode && currentUser) {
       update(ref(db, `pods/${currentPodCode}/players/${currentUser.uid}`), {
-        theme: chosen
+        theme: myTheme
       });
     }
   };
 });
 
 applyMyThemeUI(myTheme);
+applySupporterFoilFrame();
 
 // --- SESSION STORAGE HELPERS ---
 function saveSession(code, name) {
@@ -921,11 +981,43 @@ if (invitedPodCode) {
 
 loadLocalUserProfile();
 
-// --- INITIALIZE FIREBASE ---
+// --- INITIALIZE FIREBASE & SUPPORTER ENTITLEMENT CHECK ---
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 let hasBootstrappedSession = false;
+
+async function verifySupporterInPod(user) {
+  let entitled = localStorage.getItem(SUPPORTER_KEY) === "true";
+  try {
+    if (user) {
+      const uidSnap = await get(ref(db, `supporters/${user.uid}`));
+      if (uidSnap.exists() && uidSnap.val() === true) entitled = true;
+
+      if (!entitled && user.email) {
+        const emailKey = user.email.toLowerCase().replace(/\./g, ",");
+        const emailSnap = await get(ref(db, `supporterEmails/${emailKey}`));
+        if (emailSnap.exists() && emailSnap.val() === true) entitled = true;
+      }
+    }
+  } catch {}
+
+  localStorage.setItem(SUPPORTER_KEY, entitled ? "true" : "false");
+  document.body.classList.toggle("is-supporter", entitled);
+
+  if (!entitled) {
+    localStorage.setItem(FOIL_FRAME_KEY, "false");
+    const savedPalette = localStorage.getItem("mtg_app_palette");
+    if (savedPalette && savedPalette !== "crimson") {
+      localStorage.setItem("mtg_app_palette", "crimson");
+      document.documentElement.removeAttribute("data-palette");
+    }
+    if (!STANDARD_THEMES.includes(myTheme)) {
+      applyMyThemeUI("blue");
+    }
+  }
+  applySupporterFoilFrame();
+}
 
 async function pruneStalePods() {
   try {
@@ -953,9 +1045,9 @@ function updateAccountMenuUI(user) {
   const badge = document.getElementById("lobbyAccountBadge");
   if (!badge) return;
   if (user && !user.isAnonymous) {
-    badge.textContent = `☁️ ${user.displayName ? user.displayName.split(" ")[0] : "Synced"}`;
+    badge.textContent = user.displayName ? user.displayName.split(" ")[0] : "Synced";
   } else {
-    badge.textContent = "☁️ Sign In";
+    badge.textContent = "Sign In";
   }
 }
 
@@ -981,13 +1073,14 @@ async function syncCloudProfileForUser(uid) {
           .sort((a, b) => (b.at || 0) - (a.at || 0));
       }
       saveLocalUserProfile();
-      syncActiveDeckDropdown();
     }
     if (Object.keys(userDecks).length > 0) {
       await update(ref(db, `users/${uid}/decks`), userDecks).catch(() => {});
     }
   } catch {}
 }
+
+document.body.classList.toggle("is-supporter", localStorage.getItem(SUPPORTER_KEY) === "true");
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
@@ -1004,6 +1097,7 @@ onAuthStateChanged(auth, async (user) => {
 
   currentUser = user;
   updateAccountMenuUI(user);
+  await verifySupporterInPod(user);
   pruneStalePods();
 
   if (!user.isAnonymous && user.displayName && !playerNameInput.value.trim()) {
@@ -1066,7 +1160,7 @@ function toggleQrDrawer() {
   const drawer = document.getElementById("qrDrawer");
   const menuBtn = document.getElementById("toggleQrBtn");
   drawer.classList.toggle("hidden");
-  menuBtn.textContent = drawer.classList.contains("hidden") ? "📱 Show QR Invite" : "📱 Hide QR Invite";
+  menuBtn.textContent = drawer.classList.contains("hidden") ? "Show QR Invite" : "Hide QR Invite";
   dropdownMenu.classList.add("hidden");
 }
 
@@ -1252,7 +1346,7 @@ function renderFirstPlayerModal() {
     const winnerName = await rollRandomFirstPlayer();
     if (!winnerName) return;
     const resultBox = document.getElementById("diceResultBox");
-    resultBox.textContent = `🎲 ${winnerName} goes first!`;
+    resultBox.textContent = `${winnerName} goes first!`;
     resultBox.classList.remove("hidden");
     setTimeout(() => {
       document.getElementById("firstPlayerModal").classList.add("hidden");
@@ -1374,7 +1468,7 @@ function renderOpponentModal() {
   const isHost = latestPodData.hostUid === currentUser.uid;
   const isEliminated = Boolean(target.eliminated);
 
-  document.getElementById("modalPlayerName").textContent = `${isMonarch ? "👑 " : ""}${target.name}${isEliminated ? " (- OUT -)" : ""}`;
+  document.getElementById("modalPlayerName").textContent = `${isMonarch ? "[Monarch] " : ""}${target.name}${isEliminated ? " (- OUT -)" : ""}`;
   document.getElementById("modalLifeVal").textContent = target.life ?? (latestPodData.startingLife || 40);
   document.getElementById("modalPoisonVal").textContent = target.poison ?? 0;
   document.getElementById("modalTaxVal").textContent = `+${target.tax ?? 0}`;
@@ -1390,7 +1484,7 @@ function renderOpponentModal() {
       hasExtraVals = true;
       const chip = document.createElement("span");
       chip.className = "modal-extra-chip";
-      chip.textContent = `${meta.icon} ${val}`;
+      chip.textContent = `${meta.icon}: ${val}`;
       extraStrip.appendChild(chip);
     }
   });
@@ -1439,7 +1533,7 @@ function renderOpponentModal() {
   };
 
   const koBtn = document.getElementById("modalToggleEliminateBtn");
-  koBtn.textContent = isEliminated ? "↺ Revive Player" : "💀 Mark Knocked Out";
+  koBtn.textContent = isEliminated ? "Revive Player" : "Mark Knocked Out";
   koBtn.onclick = async () => {
     await setPlayerEliminatedState(inspectedOpponentUid, !isEliminated);
     renderOpponentModal();
@@ -1657,6 +1751,7 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
   const selectedArtCrop = selectedDeckObj ? (selectedDeckObj.artCrop || "") : "";
 
   applyHeroCommanderBackdrop(selectedArtCrop);
+  applySupporterFoilFrame();
 
   let podStartingLife = selectedLobbyStartingLife;
 
@@ -1717,7 +1812,7 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
     if (existing.artCrop && !selectedArtCrop) applyHeroCommanderBackdrop(existing.artCrop);
 
     const patchUpdates = { online: true };
-    if (selectedDeckLabel && existing.deckName !== selectedDeckLabel) {
+    if (existing.deckName !== selectedDeckLabel) {
       patchUpdates.deckName = selectedDeckLabel;
       patchUpdates.commander = selectedCommander;
       patchUpdates.artCrop = selectedArtCrop;
@@ -1741,7 +1836,7 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
 
   if (!isNew) {
     document.getElementById("qrDrawer").classList.add("hidden");
-    document.getElementById("toggleQrBtn").textContent = "📱 Show QR Invite";
+    document.getElementById("toggleQrBtn").textContent = "Show QR Invite";
   }
 
   onValue(podRef, (snapshot) => {
@@ -1801,7 +1896,7 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
     if (orderedUids.length >= 2 && aliveUids.length === 1) {
       const winnerUid = aliveUids[0];
       const winnerName = players[winnerUid]?.name || "Player";
-      document.getElementById("podWinnerText").textContent = `🏆 ${winnerName} Wins the Pod!`;
+      document.getElementById("podWinnerText").textContent = `${winnerName} Wins the Pod!`;
       winnerBanner.classList.remove("hidden");
 
       if (activeDeckId && userDecks[activeDeckId]) {
@@ -1811,11 +1906,11 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
           const exitTurn = iWon ? turnNumber : (me?.eliminatedTurn || turnNumber);
           const meta = buildPodMatchMeta(podData, iWon ? "win" : "loss", exitTurn, turnNumber);
           activeGameMatchRecord = recordDeckMatchOutcome(activeDeckId, iWon ? "win" : "loss", `Pod ${code}`, turnNumber, meta);
-          winnerDeckNote.textContent = `📊 Logged ${iWon ? "+1 Win" : "+1 Loss"} (Turn ${turnNumber}) to ${userDecks[activeDeckId].name}`;
+          winnerDeckNote.textContent = `Logged ${iWon ? "+1 Win" : "+1 Loss"} (Turn ${turnNumber}) to ${userDecks[activeDeckId].name}`;
           winnerDeckNote.classList.remove("hidden");
         } else if (activeGameMatchRecord && activeGameMatchRecord.gameEndTurn !== turnNumber) {
           patchMatchGameEndTurn(activeGameMatchRecord, turnNumber);
-          winnerDeckNote.textContent = `📊 Logged Loss (Out T${activeGameMatchRecord.myExitTurn} • Pod ended T${turnNumber}) to ${userDecks[activeDeckId].name}`;
+          winnerDeckNote.textContent = `Logged Loss (Out T${activeGameMatchRecord.myExitTurn} • Pod ended T${turnNumber}) to ${userDecks[activeDeckId].name}`;
           winnerDeckNote.classList.remove("hidden");
         }
       }
@@ -1884,15 +1979,15 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
       if (me.artCrop) applyHeroCommanderBackdrop(me.artCrop);
 
       const partnerBtn = document.getElementById("togglePartnerBtn");
-      partnerBtn.textContent = myHasPartner ? "🤝 Partner Commander: ON" : "🤝 Partner Commander: OFF";
+      partnerBtn.textContent = myHasPartner ? "Partner Commander: ON" : "Partner Commander: OFF";
       partnerBtn.classList.toggle("active-opt", myHasPartner);
 
       const koMenuBtn = document.getElementById("toggleEliminatedBtn");
-      koMenuBtn.textContent = myEliminated ? "↺ Revive / Rejoin Game" : "🏳️ Scoop / Knocked Out";
+      koMenuBtn.textContent = myEliminated ? "Revive / Rejoin Game" : "Scoop / Knocked Out";
       koMenuBtn.classList.toggle("warning", myEliminated);
 
       const iAmMonarch = monarchUid === currentUser.uid;
-      document.getElementById("heroPlayerName").textContent = `${iAmMonarch ? "👑 " : ""}${me.name} (You)${myHasPartner ? " • Partners" : ""}`;
+      document.getElementById("heroPlayerName").innerHTML = `${iAmMonarch ? `<span class="cs-icon cs-icon-monarch"></span> ` : ""}${me.name} (You)${myHasPartner ? " • Partners" : ""}`;
 
       const heroDeckTag = document.getElementById("heroDeckTag");
       if (me.deckName) {
@@ -1909,7 +2004,7 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
 
       const monarchBtn = document.getElementById("becomeMonarchBtn");
       monarchBtn.classList.toggle("warning", iAmMonarch);
-      monarchBtn.textContent = iAmMonarch ? "👑 Give Up Monarch" : "👑 Claim the Monarch";
+      monarchBtn.textContent = iAmMonarch ? "Give Up Monarch" : "Claim the Monarch";
 
       document.getElementById("heroLifeDisplay").textContent = myCurrentLife;
       document.getElementById("poisonDisplay").textContent = myPoison;
@@ -1945,7 +2040,7 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
       card.type = "button";
       card.className = `opponent-card theme-${oppTheme} ${oppIsMonarch ? "is-monarch" : ""} ${oppIsActiveTurn ? "is-active-turn" : ""} ${oppIsEliminated ? "is-eliminated" : ""}`;
       card.innerHTML = `
-        <div class="opponent-name">${oppIsMonarch ? "👑 " : ""}${p.name}</div>
+        <div class="opponent-name">${oppIsMonarch ? `<span class="cs-icon cs-icon-monarch"></span> ` : ""}${p.name}</div>
         <div class="opponent-life ${oppIsEliminated || p.life <= 0 ? "dead" : ""}">${p.life}</div>
         <div class="opponent-badges">${badges.join(" • ")}</div>
       `;
@@ -2024,10 +2119,14 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
   return true;
 }
 
-document.getElementById("createPodBtn").onclick = () => enterPod(generateCode(), true);
+document.getElementById("createPodBtn").onclick = () => {
+  launchPodWithDeckSelection(generateCode(), true);
+};
 document.getElementById("joinPodBtn").onclick = () => {
   const code = roomCodeInput.value.trim().toUpperCase();
-  if (code.length === 4) enterPod(code, false);
+  if (code.length === 4) {
+    launchPodWithDeckSelection(code, false);
+  }
 };
 
 // =========================================================
@@ -2147,8 +2246,8 @@ function renderTableGrid() {
     const statusPills = [];
     if (p.poison > 0) statusPills.push(`<span class="seat-mini-badge poison"><span class="cs-icon cs-icon-poison"></span>${p.poison}</span>`);
     if (p.tax > 0) statusPills.push(`<span class="seat-mini-badge"><span class="cs-icon cs-icon-tax"></span>+${p.tax}</span>`);
-    if (p.energy > 0) statusPills.push(`<span class="seat-mini-badge">⚡${p.energy}</span>`);
-    if (p.rad > 0) statusPills.push(`<span class="seat-mini-badge">☢️${p.rad}</span>`);
+    if (p.energy > 0) statusPills.push(`<span class="seat-mini-badge">E:${p.energy}</span>`);
+    if (p.rad > 0) statusPills.push(`<span class="seat-mini-badge">Rad:${p.rad}</span>`);
 
     const radarCellsHtml = tablePlayers
       .map((other, otherIdx) => {
@@ -2172,14 +2271,14 @@ function renderTableGrid() {
       <div class="seat-hud">
         <div class="seat-top-bar">
           <span class="seat-name-tag" id="table-name-${idx}" title="Open Command Tray">
-            ${isMonarch ? "👑 " : ""}${p.isFirst ? "🎲 " : ""}${p.name}
+            ${isMonarch ? `<span class="cs-icon cs-icon-monarch"></span> ` : ""}${p.isFirst ? "1st • " : ""}${p.name}
           </span>
-          <button type="button" class="seat-color-btn" data-idx="${idx}" title="Cycle Color">🎨</button>
+          <button type="button" class="seat-color-btn" data-idx="${idx}" title="Cycle Color">●</button>
         </div>
 
         <div class="seat-center-stack">
           <div id="table-life-${idx}" class="seat-life-num ${p.eliminated || p.life <= 0 ? "dead" : ""}">${p.life}</div>
-          ${p.eliminated ? `<div class="seat-ko-tag">- OUT -</div>` : isWinner ? `<div class="seat-winner-tag">🏆 WINNER</div>` : ""}
+          ${p.eliminated ? `<div class="seat-ko-tag">- OUT -</div>` : isWinner ? `<div class="seat-winner-tag">WINNER</div>` : ""}
           <div id="table-delta-${idx}" class="seat-delta"></div>
         </div>
 
@@ -2210,8 +2309,10 @@ function renderTableGrid() {
     colorBtn.onclick = (e) => {
       e.stopPropagation();
       triggerHaptic(10);
-      const currentThemeIdx = VALID_THEMES.indexOf(p.theme);
-      p.theme = VALID_THEMES[(currentThemeIdx + 1) % VALID_THEMES.length];
+      const isSupporter = localStorage.getItem(SUPPORTER_KEY) === "true";
+      const pool = isSupporter ? VALID_THEMES : STANDARD_THEMES;
+      const currentThemeIdx = pool.indexOf(p.theme);
+      p.theme = pool[(currentThemeIdx + 1) % pool.length];
       renderTableGrid();
     };
 
@@ -2291,10 +2392,6 @@ function renderTablePlayerTray() {
   const target = tablePlayers[activeTraySeatIdx];
   const isMonarch = tableMonarchIdx === activeTraySeatIdx;
 
-  const titleEl = document.getElementById("trayPlayerTitle");
-  if (titleEl) {
-    titleEl.textContent = `${target.name} — Command Tray`;
-  }
   const nameInputEl = document.getElementById("trayPlayerNameInput");
   if (nameInputEl) {
     nameInputEl.value = target.name;
@@ -2333,7 +2430,7 @@ function renderTablePlayerTray() {
       tile.className = `matrix-tile self-tile ${spanClass}`;
       tile.innerHTML = `
         <div class="matrix-tile-header">${target.name} (You)</div>
-        <div class="matrix-dmg-big">${target.life} ❤️</div>
+        <div class="matrix-dmg-big">${target.life}</div>
       `;
       matrix.appendChild(tile);
       return;

@@ -11,6 +11,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
+  <script>
+    (function() {
+      const p = localStorage.getItem("mtg_app_palette");
+      if (p && p !== "crimson") document.documentElement.setAttribute("data-palette", p);
+    })();
+  </script>
 </head>
 <body>
 
@@ -21,7 +27,7 @@
           <div class="brand-mark" style="margin-bottom:2px;">SETTINGS &amp; UTILITIES</div>
           <h1 class="subpage-title">Profile &amp; Tools</h1>
         </div>
-        <button id="openGuideBtn" type="button" class="btn-secondary btn-small">❓ Guide</button>
+        <button id="openGuideBtn" type="button" class="btn-secondary btn-small">Guide</button>
       </div>
 
       <!-- GOOGLE CLOUD SYNC CARD -->
@@ -31,6 +37,37 @@
         <button id="googleAuthBtn" type="button" class="btn-primary" style="margin-bottom:0;">
           Sign in with Google
         </button>
+      </div>
+
+      <!-- FEATURED SET THEMES & SUPPORTER PACK -->
+      <div class="profile-card">
+        <h2 class="profile-card-title">Featured Set Themes &amp; Supporter</h2>
+        <p class="profile-card-sub">Customize your CommandSync accent palette and unlock foil card treatments.</p>
+
+        <div class="input-group">
+          <label class="input-label">App Accent Palette</label>
+          <div id="appPaletteSelector" class="palette-grid">
+            <button type="button" class="palette-btn selected" data-palette="crimson">
+              <span class="palette-dot" style="background:linear-gradient(135deg,#be123c,#eab308);"></span>
+              <span>Mythic Crimson</span>
+            </button>
+            <button type="button" class="palette-btn" data-palette="teal">
+              <span class="palette-dot" style="background:linear-gradient(135deg,#0d9488,#38bdf8);"></span>
+              <span>Starfleet Teal</span>
+            </button>
+            <button type="button" class="palette-btn" data-palette="abyssal">
+              <span class="palette-dot" style="background:linear-gradient(135deg,#4f46e5,#c084fc);"></span>
+              <span>Abyssal Nautilus</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="input-group" style="margin-top:12px;">
+          <button type="button" id="toggleFoilFrameBtn" class="toggle-counter-row">
+            <span>Supporter Foil Card Frame</span>
+            <span id="badgeFoilFrame" class="toggle-state">OFF</span>
+          </button>
+        </div>
       </div>
 
       <!-- STANDALONE SCRYFALL ORACLE & RULINGS LOOKUP -->
@@ -44,7 +81,7 @@
         <div id="profileOracleResults" class="oracle-results-scroll" style="max-height: 290px;"></div>
       </div>
 
-      <!-- PLAYER DEFAULTS CARD -->
+      <!-- PLAYER DEFAULTS CARD (ALL 10 CARD FRAME COLORS) -->
       <div class="profile-card">
         <h2 class="profile-card-title">Player Defaults</h2>
         <p class="profile-card-sub">Automatically pre-fills your name and card frame when joining pods.</p>
@@ -58,7 +95,7 @@
         </div>
 
         <div class="input-group" style="margin-top:12px;">
-          <label class="input-label">Default Card Frame Color</label>
+          <label class="input-label">Default Card Frame Color (Standard &amp; Supporter)</label>
           <div id="defaultThemeSwatches" class="profile-swatch-row">
             <button type="button" class="swatch-btn" data-theme="blue" title="Azorius Blue"></button>
             <button type="button" class="swatch-btn" data-theme="red" title="Rakdos Crimson"></button>
@@ -66,6 +103,10 @@
             <button type="button" class="swatch-btn" data-theme="gold" title="Boros Gold"></button>
             <button type="button" class="swatch-btn" data-theme="purple" title="Dimir Violet"></button>
             <button type="button" class="swatch-btn" data-theme="slate" title="Eldrazi Obsidian"></button>
+            <button type="button" class="swatch-btn" data-theme="aether" title="Prismatic Aether (Supporter)"></button>
+            <button type="button" class="swatch-btn" data-theme="phyrexian" title="Phyrexian Oil (Supporter)"></button>
+            <button type="button" class="swatch-btn" data-theme="ivory" title="Celestial Ivory (Supporter)"></button>
+            <button type="button" class="swatch-btn" data-theme="bronze" title="Guildpact Bronze (Supporter)"></button>
           </div>
         </div>
       </div>
@@ -80,13 +121,13 @@
 
         <div class="dice-grid">
           <button type="button" class="die-btn" data-die="coin"><span class="cs-icon cs-icon-coin"></span> Coin</button>
-     <button type="button" class="die-btn" data-die="4">d4</button>
-     <button type="button" class="die-btn" data-die="6">d6</button>
-     <button type="button" class="die-btn" data-die="8">d8</button>
-     <button type="button" class="die-btn" data-die="10">d10</button>
-     <button type="button" class="die-btn" data-die="12">d12</button>
-     <button type="button" class="die-btn" data-die="20"><span class="cs-icon cs-icon-d20"></span> d20</button>
-     <button type="button" class="die-btn" data-die="planar"><span class="cs-icon cs-icon-planar"></span> Planar</button>
+          <button type="button" class="die-btn" data-die="4">d4</button>
+          <button type="button" class="die-btn" data-die="6">d6</button>
+          <button type="button" class="die-btn" data-die="8">d8</button>
+          <button type="button" class="die-btn" data-die="10">d10</button>
+          <button type="button" class="die-btn" data-die="12">d12</button>
+          <button type="button" class="die-btn" data-die="20"><span class="cs-icon cs-icon-d20"></span> d20</button>
+          <button type="button" class="die-btn" data-die="planar"><span class="cs-icon cs-icon-planar"></span> Planar</button>
         </div>
         <div id="recentRollsBar" class="recent-rolls-bar"></div>
       </div>
@@ -96,12 +137,16 @@
         <h2 class="profile-card-title">Data Backup &amp; Restore</h2>
         <p class="profile-card-sub">Export your Deck Locker and Match History as a backup file or restore from a previous export.</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <button id="exportBackupBtn" type="button" class="btn-secondary btn-small" style="padding:10px;">⬇ Export Data</button>
+          <button id="exportBackupBtn" type="button" class="btn-secondary btn-small" style="padding:10px;">Export JSON</button>
           <label for="importBackupInput" class="btn-secondary btn-small" style="padding:10px;text-align:center;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-            ⬆ Import Data
+            Import JSON
           </label>
           <input id="importBackupInput" type="file" accept=".json" class="hidden" />
         </div>
+      </div>
+
+      <div class="wake-status" style="margin-top:4px;">
+        CommandSync • Custom UI Icons &amp; Base Glyphs via Game-Icons.net (CC BY 3.0)
       </div>
     </div>
   </div>
@@ -119,7 +164,7 @@
           <div class="step-badge">1</div>
           <div class="step-body">
             <h3>Start or Scan Into a Pod</h3>
-            <p>Choose your starting life (<strong>20, 30, or 40</strong>) on the <strong>Play</strong> tab and tap <strong>Create New Pod</strong> to generate a 4-letter code and scannable QR invite.</p>
+            <p>Choose your starting life (<strong>20, 30, or 40</strong>) on the <strong>Play</strong> tab and tap <strong>Create New Pod</strong> to select your deck and generate a 4-letter code &amp; QR invite.</p>
           </div>
         </div>
         <div class="guide-step">
