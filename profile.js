@@ -198,12 +198,12 @@ function updateProfileAuthUI(user) {
   const authBtn = document.getElementById("googleAuthBtn");
   if (!user || user.isAnonymous) {
     statusEl.textContent = "Currently using an anonymous Device ID. Sign in with Google to sync decks and stats across your phone and PC.";
-    authBtn.textContent = "🔐 Sign in with Google";
+    authBtn.textContent = "Sign in with Google";
     authBtn.className = "btn-primary";
     authBtn.style.marginBottom = "0";
   } else {
     statusEl.textContent = `Signed in as ${user.displayName || "Planeswalker"} (${user.email}). Your decks and match stats are backed up.`;
-    authBtn.textContent = "🚪 Sign Out of Google";
+    authBtn.textContent = "Sign Out of Google";
     authBtn.className = "btn-secondary";
     authBtn.style.marginBottom = "0";
   }
