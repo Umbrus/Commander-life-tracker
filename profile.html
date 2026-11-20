@@ -15,7 +15,7 @@
     (function() {
       const p = localStorage.getItem("mtg_app_palette");
       const meta = document.querySelector('meta[name="theme-color"]');
-      const colors = { crimson: "#070606", teal: "#03080c", abyssal: "#05040a", fracture: "#060409" };
+      const colors = { crimson: "#070606", teal: "#03080c", abyssal: "#030b0e", fracture: "#040811" };
       if (p && p !== "crimson") {
         document.documentElement.setAttribute("data-palette", p);
         if (meta && colors[p]) meta.setAttribute("content", colors[p]);
@@ -66,14 +66,14 @@
               <small>Orbital HUD • Orbitron</small>
             </button>
             <button type="button" class="palette-btn supporter-only" data-palette="abyssal">
-              <span class="palette-dot" style="background:linear-gradient(135deg,#4f46e5,#c084fc);"></span>
+              <span class="palette-dot" style="background:linear-gradient(135deg,#0891b2,#2dd4bf,#fb7185);"></span>
               <span>Abyssal Nautilus</span>
-              <small>Arcane Trench • Serif</small>
+              <small>Coral Reef • Teal &amp; Rose</small>
             </button>
             <button type="button" class="palette-btn supporter-only" data-palette="fracture">
-              <span class="palette-dot" style="background:linear-gradient(135deg,#d946ef,#38bdf8);"></span>
+              <span class="palette-dot" style="background:linear-gradient(135deg,#f0f9ff,#38bdf8,#1e3a8a);"></span>
               <span>Reality Fracture</span>
-              <small>Planar Rift • Shattered</small>
+              <small>Jace Rift • Crystal Blue</small>
             </button>
           </div>
         </div>

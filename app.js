@@ -564,25 +564,47 @@ function renderFloatingManaStrip() {
 
     let holdTimer = null;
     let didHold = false;
+    let isPressing = false;
+
+    const clearHold = () => {
+      clearTimeout(holdTimer);
+      holdTimer = null;
+    };
+
+    pip.addEventListener("contextmenu", (e) => e.preventDefault());
+
     pip.addEventListener("pointerdown", (e) => {
       e.preventDefault();
+      if (pip.setPointerCapture) {
+        try { pip.setPointerCapture(e.pointerId); } catch {}
+      }
+      isPressing = true;
       didHold = false;
+      clearHold();
+
       holdTimer = setTimeout(() => {
+        if (!isPressing) return;
         didHold = true;
-        triggerHaptic(15);
+        triggerHaptic([15, 25, 15]);
         adjustManaPool(m.key, -1);
-      }, 420);
+      }, 380);
     });
+
     pip.addEventListener("pointerup", (e) => {
       e.preventDefault();
-      clearTimeout(holdTimer);
+      if (!isPressing) return;
+      isPressing = false;
+      clearHold();
       if (!didHold) {
         triggerHaptic(10);
         adjustManaPool(m.key, 1);
       }
     });
-    pip.addEventListener("pointerleave", () => clearTimeout(holdTimer));
-    pip.addEventListener("pointercancel", () => clearTimeout(holdTimer));
+
+    pip.addEventListener("pointercancel", () => {
+      isPressing = false;
+      clearHold();
+    });
 
     pillsWrap.appendChild(pip);
   });

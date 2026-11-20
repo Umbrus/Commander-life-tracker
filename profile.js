@@ -31,8 +31,8 @@ const STANDARD_THEMES = ["blue", "red", "green", "gold", "purple", "slate"];
 const PALETTE_THEME_COLORS = {
   crimson: "#070606",
   teal: "#03080c",
-  abyssal: "#05040a",
-  fracture: "#060409"
+  abyssal: "#030b0e",
+  fracture: "#040811"
 };
 
 const app = initializeApp(firebaseConfig);
