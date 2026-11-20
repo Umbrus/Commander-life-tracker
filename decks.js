@@ -175,9 +175,8 @@ function renderDeckLocker() {
   if (decks.length === 0) {
     list.innerHTML = `
       <div class="empty-card-box">
-        <div style="font-size:1.8rem;margin-bottom:6px;">📚</div>
-        <strong>No Decks Saved Yet</strong>
-        <p>Tap <strong>+ Add Deck</strong> to link an Archidekt or Moxfield decklist or import by Commander name.</p>
+        <strong>Your Deck Locker Is Empty</strong>
+        <p>Add a Commander deck to track wins and customize its card art.</p>
       </div>
     `;
     return;
@@ -195,6 +194,9 @@ function renderDeckLocker() {
       : `<div class="deck-thumb-placeholder">⚔️</div>`;
 
     const cmdrText = deck.partner ? `${deck.commander} + ${deck.partner}` : deck.commander;
+    cardEl.setAttribute("role", "button");
+    cardEl.tabIndex = 0;
+    cardEl.setAttribute("aria-label", `${deck.name}, commander ${cmdrText}. ${deck.wins || 0} wins and ${deck.losses || 0} losses. Open deck details.`);
 
     cardEl.innerHTML = `
       ${thumbHtml}
@@ -212,6 +214,12 @@ function renderDeckLocker() {
     `;
 
     cardEl.onclick = () => openDeckDetail(deck.id);
+    cardEl.addEventListener("keydown", (event) => {
+      if ((event.key === "Enter" || event.key === " ") && !event.repeat) {
+        event.preventDefault();
+        cardEl.click();
+      }
+    });
     list.appendChild(cardEl);
   });
 }
@@ -284,6 +292,9 @@ function openDeckDetail(deckId) {
       cardsArr.forEach((c) => {
         const line = document.createElement("div");
         line.className = "deck-card-line";
+        line.setAttribute("role", "button");
+        line.tabIndex = 0;
+        line.setAttribute("aria-label", `View card art for ${c.name}`);
         line.innerHTML = `
           <span class="deck-card-qty">${c.qty}x</span>
           <span class="deck-card-name-btn">${c.name}</span>
@@ -306,6 +317,12 @@ function openDeckDetail(deckId) {
             titleEl.textContent = `${c.name} (Art unavailable)`;
           }
         };
+        line.addEventListener("keydown", (event) => {
+          if ((event.key === "Enter" || event.key === " ") && !event.repeat) {
+            event.preventDefault();
+            line.click();
+          }
+        });
         listEl.appendChild(line);
       });
     });

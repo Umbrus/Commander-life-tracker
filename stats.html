@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#070606" />
   <title>Win / Loss Stats — CommandSync</title>
   <link rel="manifest" href="manifest.json" />
@@ -117,12 +117,12 @@
         </div>
       </div>
 
-      <div class="section-label" style="text-align:left;margin:16px 0 8px;">Performance by Deck (Tap to expand)</div>
+      <div class="section-label" style="text-align:left;margin:16px 0 8px;">Performance by Deck (Select a deck to expand)</div>
       <div id="deckStatsBreakdown" class="deck-stats-list">
         <div class="empty-hint">Play or log a game to see per-deck win rates!</div>
       </div>
 
-      <div class="section-label" style="text-align:left;margin:18px 0 8px;">Match History (Tap any match to edit)</div>
+      <div class="section-label" style="text-align:left;margin:18px 0 8px;">Match History (Select a match to edit)</div>
       <div id="matchHistoryList" class="history-list" style="max-height:none;">
         <div class="empty-hint">No completed matches logged in this timeframe.</div>
       </div>
@@ -157,7 +157,7 @@
 
       <div style="display:grid;grid-template-columns: 1fr 1fr;gap:8px;margin-bottom:14px;">
         <div class="input-group" style="margin-bottom:0;">
-          <label for="matchExitTurnInput" class="input-label">Your Exit / Win Turn</label>
+          <label for="matchExitTurnInput" class="input-label">Your Win / Exit Turn</label>
           <input id="matchExitTurnInput" type="number" min="1" max="99" placeholder="e.g. 7" style="padding:11px 10px;font-size:0.95rem;" />
         </div>
         <div class="input-group" style="margin-bottom:0;">
@@ -186,7 +186,7 @@
 
       <div class="input-group">
         <label for="matchNoteInput" class="input-label">Notes (Optional)</label>
-        <input id="matchNoteInput" type="text" maxlength="80" placeholder="e.g. 4-pod at 5oz Knights" style="text-align:left;font-size:0.84rem;" />
+        <input id="matchNoteInput" type="text" maxlength="80" placeholder="e.g. Close game; won on turn 7." style="text-align:left;font-size:0.84rem;" />
       </div>
 
       <button id="saveMatchBtn" type="button" class="btn-primary" style="margin-bottom:8px;">💾 Save Match</button>

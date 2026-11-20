@@ -38,10 +38,12 @@ const LOCAL_DECKS_KEY = "mtg_local_deck_locker";
 const LOCAL_MATCHES_KEY = "mtg_local_match_history";
 const FOIL_FRAME_KEY = "mtg_supporter_foil_frame";
 const SUPPORTER_KEY = "mtg_is_supporter";
+const APP_PALETTE_KEY = "mtg_app_palette";
 const SESSION_MAX_AGE_MS = 4 * 60 * 60 * 1000;
 
 const STANDARD_THEMES = ["blue", "red", "green", "gold", "purple", "slate"];
 const VALID_THEMES = ["blue", "red", "green", "gold", "purple", "slate", "aether", "phyrexian", "ivory", "fracture"];
+const FREE_APP_PALETTES = ["crimson", "rare", "uncommon", "common"];
 
 const EXTRA_COUNTER_META = {
   energy: { label: "Energy", icon: "Energy" },
@@ -61,7 +63,6 @@ const MANA_COLORS = [
 
 const statusBox = document.getElementById("statusBox");
 const statusText = document.getElementById("statusText");
-const topStatusLabel = document.getElementById("topStatusLabel");
 const lobbyTopBar = document.getElementById("lobbyTopBar");
 const lobbyView = document.getElementById("lobbyView");
 const lobbyForm = document.getElementById("lobbyForm");
@@ -73,6 +74,13 @@ const dropdownMenu = document.getElementById("podDropdownMenu");
 const historyModal = document.getElementById("historyModal");
 const diceModal = document.getElementById("diceModal");
 const extraCountersModal = document.getElementById("extraCountersModal");
+const howItWorksModal = document.getElementById("howItWorksModal");
+document.getElementById("openGuideBtn").onclick = () => howItWorksModal.classList.remove("hidden");
+document.getElementById("closeHowItWorksBtn").onclick = () => howItWorksModal.classList.add("hidden");
+document.getElementById("gotItBtn").onclick = () => howItWorksModal.classList.add("hidden");
+howItWorksModal.onclick = (e) => {
+  if (e.target === howItWorksModal) howItWorksModal.classList.add("hidden");
+};
 const newGameModal = document.getElementById("newGameModal");
 const oracleLookupModal = document.getElementById("oracleLookupModal");
 const deckSelectModal = document.getElementById("deckSelectModal");
@@ -89,6 +97,8 @@ let inspectedOpponentUid = null;
 let pendingPodLaunch = null;
 
 let selectedLobbyStartingLife = 40;
+let isCustomLobbyLifeSelected = false;
+let customLobbyStartingLife = null;
 let selectedNewGameLife = 40;
 
 let myCurrentLife = 40;
@@ -417,7 +427,10 @@ function hasLethalStats(life, poison, cmdrDamageObj) {
 // --- STARTING LIFE PRESET SELECTORS ---
 document.querySelectorAll("#lobbyLifeSelector .preset-btn").forEach((btn) => {
   btn.onclick = () => {
-    selectedLobbyStartingLife = parseInt(btn.dataset.life, 10);
+    isCustomLobbyLifeSelected = btn.dataset.life === "custom";
+    if (!isCustomLobbyLifeSelected) {
+      selectedLobbyStartingLife = parseInt(btn.dataset.life, 10);
+    }
     document.querySelectorAll("#lobbyLifeSelector .preset-btn").forEach((b) => {
       b.classList.toggle("selected", b === btn);
     });
@@ -925,6 +938,11 @@ function applyMyThemeUI(themeName) {
   document.querySelectorAll(".swatch-btn").forEach((btn) => {
     btn.classList.toggle("selected", btn.dataset.theme === safeTheme);
   });
+  const selectedSwatch = document.querySelector(`.swatch-btn[data-theme="${safeTheme}"]`);
+  const selectedFrameName = document.getElementById("selectedFrameName");
+  if (selectedFrameName) {
+    selectedFrameName.textContent = `Selected: ${selectedSwatch?.title || safeTheme}`;
+  }
 }
 
 document.querySelectorAll(".swatch-btn").forEach((btn) => {
@@ -1029,10 +1047,12 @@ async function verifySupporterInPod(user) {
 
   if (!entitled) {
     localStorage.setItem(FOIL_FRAME_KEY, "false");
-    const savedPalette = localStorage.getItem("mtg_app_palette");
-    if (savedPalette && savedPalette !== "crimson") {
-      localStorage.setItem("mtg_app_palette", "crimson");
+    const savedPalette = localStorage.getItem(APP_PALETTE_KEY);
+    if (savedPalette && !FREE_APP_PALETTES.includes(savedPalette)) {
+      localStorage.setItem(APP_PALETTE_KEY, "crimson");
       document.documentElement.removeAttribute("data-palette");
+      const metaTheme = document.querySelector('meta[name="theme-color"]');
+      if (metaTheme) metaTheme.setAttribute("content", "#070606");
     }
     if (!STANDARD_THEMES.includes(myTheme)) {
       applyMyThemeUI("blue");
@@ -1110,7 +1130,6 @@ onAuthStateChanged(auth, async (user) => {
       await signInAnonymously(auth);
     } catch {
       statusText.textContent = "Offline — Table Mode Ready";
-      topStatusLabel.textContent = "Offline";
       statusBox.className = "conn-pill err";
       lobbyForm.classList.remove("hidden");
     }
@@ -1133,7 +1152,6 @@ onAuthStateChanged(auth, async (user) => {
     const savedSession = getValidSession();
     if (savedSession && !invitedPodCode) {
       statusText.textContent = `Reconnecting to Pod ${savedSession.code}...`;
-      topStatusLabel.textContent = "Reconnecting...";
       playerNameInput.value = savedSession.name;
       const rejoined = await enterPod(savedSession.code, false, true);
       if (rejoined) return;
@@ -1142,8 +1160,6 @@ onAuthStateChanged(auth, async (user) => {
     statusText.textContent = invitedPodCode
       ? `Invited to Pod ${roomCodeInput.value}`
       : "Pod Network Ready";
-    topStatusLabel.textContent = "Online";
-    document.getElementById("topConnDot").style.background = "#22c55e";
     statusBox.className = "conn-pill ok";
     lobbyForm.classList.remove("hidden");
   }
@@ -1529,7 +1545,7 @@ function renderOpponentModal() {
       row.className = "cmdr-dmg-row";
       row.innerHTML = `
         <div class="cmdr-source-name">From ${otherPlayer.name}</div>
-        <div class="cmdr-dmg-val">
+        <div class="cmdr-dmg-val" role="group" aria-label="Commander damage from ${otherPlayer.name}">
           <span class="${dmgA >= 21 ? "lethal" : ""}">A:${dmgA}</span> /
           <span class="${dmgB >= 21 ? "lethal" : ""}">B:${dmgB}</span>
         </div>
@@ -1709,6 +1725,7 @@ function bindLifeTapZone(element, step, customCallback = null) {
   let repeatInterval = null;
   let didHold = false;
   let holdTicks = 0;
+  let keyboardKey = null;
 
   const invokeChange = customCallback || changeMyLife;
 
@@ -1758,6 +1775,25 @@ function bindLifeTapZone(element, step, customCallback = null) {
   element.addEventListener("pointerup", endPress);
   element.addEventListener("pointerleave", cancelPress);
   element.addEventListener("pointercancel", cancelPress);
+  element.addEventListener("keydown", (e) => {
+    if ((e.key !== "Enter" && e.key !== " ") || e.repeat || keyboardKey) return;
+    keyboardKey = e.key;
+    startPress(e);
+  });
+  element.addEventListener("keyup", (e) => {
+    if (e.key !== keyboardKey) return;
+    keyboardKey = null;
+    endPress(e);
+  });
+  element.addEventListener("blur", () => {
+    keyboardKey = null;
+    cancelPress();
+  });
+  element.addEventListener("click", (e) => {
+    if (e.detail !== 0) return;
+    triggerHaptic(12);
+    invokeChange(step);
+  });
 }
 
 bindLifeTapZone(document.getElementById("minusZone"), -1);
@@ -2075,22 +2111,22 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
         const block = document.createElement("div");
         block.className = "cmdr-partner-block";
         block.innerHTML = `
-          <div class="cmdr-partner-header">From ${p.name} (Partners)</div>
+          <div class="cmdr-partner-header">From ${p.name}</div>
           <div class="cmdr-partner-subgrid">
             <div class="cmdr-sub-pill">
-              <span class="cmdr-sub-tag">Cmdr A</span>
+              <span class="cmdr-sub-tag">Commander A</span>
               <div class="counter-controls" style="gap:5px;">
-                <button class="mini-btn cmdr-btn" style="width:30px;height:30px;" data-key="${uid}" data-uid="${uid}" data-slot="Cmdr A" data-delta="-1">−</button>
+                <button type="button" class="mini-btn cmdr-btn" style="width:30px;height:30px;" aria-label="Subtract 1 Commander A damage from ${p.name}" data-key="${uid}" data-uid="${uid}" data-slot="Commander A" data-delta="-1">−</button>
                 <span class="cmdr-dmg-val ${dmgA >= 21 ? "lethal" : ""}" style="min-width:24px;font-size:1.05rem;">${dmgA}</span>
-                <button class="mini-btn cmdr-btn" style="width:30px;height:30px;" data-key="${uid}" data-uid="${uid}" data-slot="Cmdr A" data-delta="1">+</button>
+                <button type="button" class="mini-btn cmdr-btn" style="width:30px;height:30px;" aria-label="Add 1 Commander A damage from ${p.name}" data-key="${uid}" data-uid="${uid}" data-slot="Commander A" data-delta="1">+</button>
               </div>
             </div>
             <div class="cmdr-sub-pill">
-              <span class="cmdr-sub-tag">Cmdr B</span>
+              <span class="cmdr-sub-tag">Commander B</span>
               <div class="counter-controls" style="gap:5px;">
-                <button class="mini-btn cmdr-btn" style="width:30px;height:30px;" data-key="${uid}_partner" data-uid="${uid}" data-slot="Cmdr B" data-delta="-1">−</button>
+                <button type="button" class="mini-btn cmdr-btn" style="width:30px;height:30px;" aria-label="Subtract 1 Commander B damage from ${p.name}" data-key="${uid}_partner" data-uid="${uid}" data-slot="Commander B" data-delta="-1">−</button>
                 <span class="cmdr-dmg-val ${dmgB >= 21 ? "lethal" : ""}" style="min-width:24px;font-size:1.05rem;">${dmgB}</span>
-                <button class="mini-btn cmdr-btn" style="width:30px;height:30px;" data-key="${uid}_partner" data-uid="${uid}" data-slot="Cmdr B" data-delta="1">+</button>
+                <button type="button" class="mini-btn cmdr-btn" style="width:30px;height:30px;" aria-label="Add 1 Commander B damage from ${p.name}" data-key="${uid}_partner" data-uid="${uid}" data-slot="Commander B" data-delta="1">+</button>
               </div>
             </div>
           </div>
@@ -2103,9 +2139,9 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
         dmgRow.innerHTML = `
           <div class="cmdr-source-name">From ${p.name}</div>
           <div class="counter-controls">
-            <button class="mini-btn cmdr-btn" data-key="${uid}" data-uid="${uid}" data-slot="" data-delta="-1">−</button>
+            <button type="button" class="mini-btn cmdr-btn" aria-label="Subtract 1 commander damage from ${p.name}" data-key="${uid}" data-uid="${uid}" data-slot="" data-delta="-1">−</button>
             <span class="cmdr-dmg-val ${dmgTaken >= 21 ? "lethal" : ""}">${dmgTaken}</span>
-            <button class="mini-btn cmdr-btn" data-key="${uid}" data-uid="${uid}" data-slot="" data-delta="1">+</button>
+            <button type="button" class="mini-btn cmdr-btn" aria-label="Add 1 commander damage from ${p.name}" data-key="${uid}" data-uid="${uid}" data-slot="" data-delta="1">+</button>
           </div>
         `;
         cmdrDamageList.appendChild(dmgRow);
@@ -2141,9 +2177,52 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
   return true;
 }
 
-document.getElementById("createPodBtn").onclick = () => {
+const createPodBtn = document.getElementById("createPodBtn");
+const customLobbyLifeModal = document.getElementById("customLobbyLifeModal");
+const customLobbyLifeForm = document.getElementById("customLobbyLifeForm");
+const customLobbyLifeInput = document.getElementById("customLobbyLifeInput");
+
+function closeCustomLobbyLifeModal(restoreFocus = true) {
+  customLobbyLifeModal.classList.add("hidden");
+  customLobbyLifeInput.setCustomValidity("");
+  if (restoreFocus) createPodBtn.focus();
+}
+
+createPodBtn.onclick = () => {
+  if (isCustomLobbyLifeSelected) {
+    customLobbyLifeInput.value = customLobbyStartingLife ?? "";
+    customLobbyLifeModal.classList.remove("hidden");
+    customLobbyLifeInput.focus();
+    return;
+  }
   launchPodWithDeckSelection(generateCode(), true);
 };
+
+document.getElementById("cancelCustomLobbyLifeBtn").onclick = () => closeCustomLobbyLifeModal();
+customLobbyLifeModal.onclick = (event) => {
+  if (event.target === customLobbyLifeModal) closeCustomLobbyLifeModal();
+};
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !customLobbyLifeModal.classList.contains("hidden")) {
+    closeCustomLobbyLifeModal();
+  }
+});
+customLobbyLifeInput.addEventListener("input", () => customLobbyLifeInput.setCustomValidity(""));
+customLobbyLifeForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const startingLife = customLobbyLifeInput.valueAsNumber;
+  if (!Number.isSafeInteger(startingLife) || startingLife < 1) {
+    customLobbyLifeInput.setCustomValidity("Enter a whole number greater than 0.");
+    customLobbyLifeInput.reportValidity();
+    return;
+  }
+
+  customLobbyStartingLife = startingLife;
+  selectedLobbyStartingLife = startingLife;
+  closeCustomLobbyLifeModal(false);
+  launchPodWithDeckSelection(generateCode(), true);
+});
+
 document.getElementById("joinPodBtn").onclick = () => {
   const code = roomCodeInput.value.trim().toUpperCase();
   if (code.length === 4) {
@@ -2446,7 +2525,10 @@ function renderTablePlayerTray() {
 
   tablePlayers.forEach((sourcePlayer, sourceIdx) => {
     const tile = document.createElement("div");
-    const spanClass = tablePlayerCount === 3 && sourceIdx === 2 ? "span-2" : "";
+    const spanClass = (
+      (tablePlayerCount === 3 && sourceIdx === 2) ||
+      (sourceIdx !== activeTraySeatIdx && sourcePlayer.hasPartner)
+    ) ? "span-2" : "";
 
     if (sourceIdx === activeTraySeatIdx) {
       tile.className = `matrix-tile self-tile ${spanClass}`;
@@ -2458,7 +2540,7 @@ function renderTablePlayerTray() {
       return;
     }
 
-    tile.className = `matrix-tile theme-${sourcePlayer.theme} ${spanClass}`;
+    tile.className = `matrix-tile theme-${sourcePlayer.theme} ${spanClass} ${sourcePlayer.hasPartner ? "partner-source" : "damage-source-tile"}`;
 
     if (sourcePlayer.hasPartner) {
       const dmgA = target.cmdrDamage[sourceIdx] || 0;
@@ -2467,47 +2549,41 @@ function renderTablePlayerTray() {
         <div class="matrix-tile-header">From ${sourcePlayer.name}</div>
         <div class="matrix-partner-split">
           <div class="matrix-partner-sub">
-            <span>Cmdr A</span>
+            <span>Commander A</span>
             <div class="matrix-partner-controls">
-              <button type="button" class="tray-step-btn" data-key="${sourceIdx}" data-delta="-1">−</button>
+              <button type="button" class="matrix-damage-btn" aria-label="Subtract 1 Commander A damage from ${sourcePlayer.name}" data-key="${sourceIdx}" data-delta="-1">−</button>
               <strong class="${dmgA >= 21 ? "lethal" : ""}">${dmgA}</strong>
-              <button type="button" class="tray-step-btn" data-key="${sourceIdx}" data-delta="1">+</button>
+              <button type="button" class="matrix-damage-btn" aria-label="Add 1 Commander A damage from ${sourcePlayer.name}" data-key="${sourceIdx}" data-delta="1">+</button>
             </div>
           </div>
           <div class="matrix-partner-sub">
-            <span>Cmdr B</span>
+            <span>Commander B</span>
             <div class="matrix-partner-controls">
-              <button type="button" class="tray-step-btn" data-key="${sourceIdx}_partner" data-delta="-1">−</button>
+              <button type="button" class="matrix-damage-btn" aria-label="Subtract 1 Commander B damage from ${sourcePlayer.name}" data-key="${sourceIdx}_partner" data-delta="-1">−</button>
               <strong class="${dmgB >= 21 ? "lethal" : ""}">${dmgB}</strong>
-              <button type="button" class="tray-step-btn" data-key="${sourceIdx}_partner" data-delta="1">+</button>
+              <button type="button" class="matrix-damage-btn" aria-label="Add 1 Commander B damage from ${sourcePlayer.name}" data-key="${sourceIdx}_partner" data-delta="1">+</button>
             </div>
           </div>
         </div>
       `;
-
-      tile.querySelectorAll(".tray-step-btn").forEach((btn) => {
-        btn.onclick = (e) => {
-          e.stopPropagation();
-          adjustTableCmdrDamage(activeTraySeatIdx, btn.dataset.key, parseInt(btn.dataset.delta, 10));
-        };
-      });
     } else {
       const dmg = target.cmdrDamage[sourceIdx] || 0;
       tile.innerHTML = `
-        <button type="button" class="matrix-minus-btn" title="Subtract 1">−</button>
         <div class="matrix-tile-header">From ${sourcePlayer.name}</div>
-        <div class="matrix-dmg-big ${dmg >= 21 ? "lethal" : ""}">${dmg}</div>
+        <div class="matrix-damage-stepper">
+          <button type="button" class="matrix-damage-btn" aria-label="Subtract 1 commander damage from ${sourcePlayer.name}" data-key="${sourceIdx}" data-delta="-1">−</button>
+          <strong class="matrix-dmg-big ${dmg >= 21 ? "lethal" : ""}">${dmg}</strong>
+          <button type="button" class="matrix-damage-btn" aria-label="Add 1 commander damage from ${sourcePlayer.name}" data-key="${sourceIdx}" data-delta="1">+</button>
+        </div>
       `;
-
-      tile.onclick = () => {
-        adjustTableCmdrDamage(activeTraySeatIdx, sourceIdx, 1);
-      };
-
-      tile.querySelector(".matrix-minus-btn").onclick = (e) => {
-        e.stopPropagation();
-        adjustTableCmdrDamage(activeTraySeatIdx, sourceIdx, -1);
-      };
     }
+
+    tile.querySelectorAll(".matrix-damage-btn").forEach((btn) => {
+      btn.onclick = (event) => {
+        event.stopPropagation();
+        adjustTableCmdrDamage(activeTraySeatIdx, btn.dataset.key, parseInt(btn.dataset.delta, 10));
+      };
+    });
 
     matrix.appendChild(tile);
   });
@@ -2727,7 +2803,7 @@ document.getElementById("saveTableLogBtn").onclick = () => {
   finishExitingTableMode();
 };
 
-// --- REGISTER SERVICE WORKER (AUTO-RELOADS APK ON NEW CACHE VERSION) ---
+// Register the service worker and reload clients after updates.
 if ("serviceWorker" in navigator) {
   const isLocalhost =
     window.location.hostname === "127.0.0.1" ||
@@ -2753,7 +2829,7 @@ if ("serviceWorker" in navigator) {
       navigator.serviceWorker
         .register("./sw.js", { updateViaCache: "none" })
         .then((reg) => reg.update())
-        .catch(() => {});
+        .catch((error) => console.error("Service worker registration or update failed:", error));
     });
   }
 }

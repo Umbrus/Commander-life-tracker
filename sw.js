@@ -1,4 +1,4 @@
-const CACHE_NAME = "commander-pod-v33";
+const CACHE_NAME = "commander-pod-v36";
 const ASSETS = [
   "./",
   "./index.html",
@@ -11,6 +11,7 @@ const ASSETS = [
   "./stats.js",
   "./profile.js",
   "./manifest.json",
+  "./images/icon-512.png",
   "./images/icon.svg",
   "./images/icons/nav-play.svg",
   "./images/icons/nav-decks.svg",
@@ -28,7 +29,10 @@ const ASSETS = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).catch(() => {})
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).catch((error) => {
+      console.error("Service worker precache failed:", error);
+      throw error;
+    })
   );
   self.skipWaiting();
 });

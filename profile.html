@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#070606" />
   <title>Profile &amp; Tools — CommandSync</title>
   <link rel="manifest" href="manifest.json" />
@@ -15,8 +15,8 @@
     (function() {
       const p = localStorage.getItem("mtg_app_palette");
       const meta = document.querySelector('meta[name="theme-color"]');
-      const colors = { crimson: "#070606", teal: "#03080c", abyssal: "#030b0e", fracture: "#040811" };
-      if (p && p !== "crimson") {
+      const colors = { crimson: "#070606", teal: "#03080c", abyssal: "#030b0e", fracture: "#040811", uncommon: "#080c12", rare: "#100b14", common: "#0b0908" };
+      if (p && p !== "crimson" && colors[p]) {
         document.documentElement.setAttribute("data-palette", p);
         if (meta && colors[p]) meta.setAttribute("content", colors[p]);
       }
@@ -30,9 +30,9 @@
       <div class="subpage-header">
         <div>
           <div class="brand-mark" style="margin-bottom:2px;">SETTINGS &amp; UTILITIES</div>
-          <h1 class="subpage-title">Profile &amp; Tools</h1>
+          <h1 class="subpage-title profile-page-title">Profile &amp; Tools</h1>
         </div>
-        <button id="openGuideBtn" type="button" class="btn-secondary btn-small">Guide</button>
+        <a href="https://mtgcommander.net/index.php/rules/" target="_blank" rel="noopener noreferrer" class="btn-secondary btn-small" style="text-decoration:none;">Commander Rules</a>
       </div>
 
       <!-- GOOGLE CLOUD SYNC CARD -->
@@ -44,37 +44,59 @@
         </button>
       </div>
 
-      <!-- FEATURED SET THEMES & SUPPORTER PACK -->
+      <!-- SET THEMES & SUPPORTER FEATURES -->
       <div class="profile-card">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;">
-          <h2 class="profile-card-title" style="margin:0;">Featured Set Themes &amp; Supporter</h2>
+          <h2 class="profile-card-title" style="margin:0;">Set Themes &amp; Supporter Features</h2>
           <span id="supporterActiveBadge" class="supporter-badge-pill hidden">Supporter Active</span>
         </div>
-        <p class="profile-card-sub">Transform your CommandSync typography, planar backdrop, and foil card frames.</p>
+        <p class="profile-card-sub">Choose an app-wide color theme. Your selection applies immediately and is saved on this device.</p>
 
         <div class="input-group">
-          <label class="input-label">Collector Edition Theme</label>
-          <div id="appPaletteSelector" class="palette-grid">
-            <button type="button" class="palette-btn selected" data-palette="crimson">
-              <span class="palette-dot" style="background:linear-gradient(135deg,#be123c,#eab308);"></span>
-              <span>Mythic Crimson</span>
-              <small>Standard Edition</small>
-            </button>
-            <button type="button" class="palette-btn supporter-only" data-palette="teal">
-              <span class="palette-dot" style="background:linear-gradient(135deg,#0d9488,#38bdf8);"></span>
-              <span>Starfleet Teal</span>
-              <small>Orbital HUD • Orbitron</small>
-            </button>
-            <button type="button" class="palette-btn supporter-only" data-palette="abyssal">
-              <span class="palette-dot" style="background:linear-gradient(135deg,#0891b2,#2dd4bf,#fb7185);"></span>
-              <span>Abyssal Nautilus</span>
-              <small>Coral Reef • Teal &amp; Rose</small>
-            </button>
-            <button type="button" class="palette-btn supporter-only" data-palette="fracture">
-              <span class="palette-dot" style="background:linear-gradient(135deg,#f0f9ff,#38bdf8,#1e3a8a);"></span>
-              <span>Reality Fracture</span>
-              <small>Jace Rift • Crystal Blue</small>
-            </button>
+          <div id="appPaletteLabel" class="input-label">Free Rarity Themes</div>
+          <div id="appPaletteSelector" class="palette-selector" role="group" aria-labelledby="appPaletteLabel">
+            <div class="palette-grid palette-group-grid">
+              <button type="button" class="palette-btn selected" data-palette="crimson" aria-pressed="true">
+                <span class="palette-dot" style="background:linear-gradient(135deg,#be123c,#eab308);"></span>
+                <span>Mythic Crimson</span>
+                <small>Crimson &amp; gold</small>
+              </button>
+              <button type="button" class="palette-btn" data-palette="rare" aria-pressed="false">
+                <span class="palette-dot" style="background:linear-gradient(135deg,#fef08a,#d97706,#4c1d95);"></span>
+                <span>Rare Gilded</span>
+                <small>Gold &amp; midnight</small>
+              </button>
+              <button type="button" class="palette-btn" data-palette="uncommon" aria-pressed="false">
+                <span class="palette-dot" style="background:linear-gradient(135deg,#f8fafc,#94a3b8,#334155);"></span>
+                <span>Uncommon Silver</span>
+                <small>Steel &amp; slate</small>
+              </button>
+              <button type="button" class="palette-btn" data-palette="common" aria-pressed="false">
+                <span class="palette-dot" style="background:linear-gradient(135deg,#fb923c,#9a3412,#17110f);"></span>
+                <span>Common Cinder</span>
+                <small>Charcoal &amp; ember</small>
+              </button>
+            </div>
+            <details id="moreAppPalettes" class="palette-more supporter-palette-group">
+              <summary>Supporter Set Themes <span>3</span></summary>
+              <div class="palette-grid palette-group-grid">
+                <button type="button" class="palette-btn supporter-only" data-palette="teal" aria-pressed="false">
+                  <span class="palette-dot" style="background:linear-gradient(135deg,#0d9488,#38bdf8);"></span>
+                  <span>Starfleet Teal</span>
+                  <small>Orbital HUD</small>
+                </button>
+                <button type="button" class="palette-btn supporter-only" data-palette="abyssal" aria-pressed="false">
+                  <span class="palette-dot" style="background:linear-gradient(135deg,#0891b2,#2dd4bf,#fb7185);"></span>
+                  <span>Abyssal Nautilus</span>
+                  <small>Teal &amp; coral</small>
+                </button>
+                <button type="button" class="palette-btn supporter-only" data-palette="fracture" aria-pressed="false">
+                  <span class="palette-dot" style="background:linear-gradient(135deg,#f0f9ff,#38bdf8,#1e3a8a);"></span>
+                  <span>Reality Fracture</span>
+                  <small>Crystal blue</small>
+                </button>
+              </div>
+            </details>
           </div>
         </div>
 
@@ -89,7 +111,7 @@
         <div id="supporterRedeemBox" class="input-group" style="margin-top:12px;">
           <label for="supporterCodeInput" class="input-label">Have a Supporter or Tester Code?</label>
           <div class="join-row" style="grid-template-columns: 1fr auto;">
-            <input id="supporterCodeInput" type="text" maxlength="20" placeholder="Enter VIP code" style="text-align:left;text-transform:uppercase;font-size:0.86rem;" />
+            <input id="supporterCodeInput" type="text" maxlength="20" placeholder="Supporter or tester code" style="text-align:left;text-transform:uppercase;font-size:0.86rem;" />
             <button id="redeemSupporterCodeBtn" type="button" class="btn-secondary btn-small" style="padding:0 14px;">Unlock</button>
           </div>
         </div>
@@ -103,10 +125,10 @@
           <input id="profileOracleInput" type="text" placeholder="e.g. Panglacial Wurm" style="text-align: left; font-size: 0.88rem; padding: 10px 12px;" />
           <button id="profileOracleSearchBtn" type="button" class="btn-primary btn-small" style="padding: 0 14px;">Search</button>
         </div>
-        <div id="profileOracleResults" class="oracle-results-scroll" style="max-height: 290px;"></div>
+        <div id="profileOracleResults" class="oracle-results-scroll"></div>
       </div>
 
-      <!-- PLAYER DEFAULTS CARD (ALL 10 CARD FRAME COLORS) -->
+      <!-- PLAYER DEFAULTS CARD -->
       <div class="profile-card">
         <h2 class="profile-card-title">Player Defaults</h2>
         <p class="profile-card-sub">Automatically pre-fills your name and card frame when joining pods.</p>
@@ -114,7 +136,7 @@
         <div class="input-group">
           <label for="defaultNameInput" class="input-label">Default Planeswalker Name</label>
           <div class="join-row" style="grid-template-columns: 1fr auto;">
-            <input id="defaultNameInput" type="text" maxlength="18" placeholder="e.g. Nathan" style="text-align:left;" />
+            <input id="defaultNameInput" type="text" maxlength="18" placeholder="e.g. Chandra" style="text-align:left;" />
             <button id="saveDefaultNameBtn" type="button" class="btn-secondary btn-small" style="padding:0 14px;">Save</button>
           </div>
         </div>
@@ -132,6 +154,21 @@
             <button type="button" class="swatch-btn supporter-only" data-theme="phyrexian" title="Phyrexian Oil (Supporter)"></button>
             <button type="button" class="swatch-btn supporter-only" data-theme="ivory" title="Celestial Ivory (Supporter)"></button>
             <button type="button" class="swatch-btn supporter-only" data-theme="fracture" title="Reality Fracture (Supporter)"></button>
+          </div>
+          <div class="profile-frame-preview-wrap">
+            <div class="profile-frame-preview-label">
+              <span>Frame preview</span>
+              <strong id="defaultThemePreviewName">Azorius Blue</strong>
+            </div>
+            <div id="defaultThemePreview" class="profile-frame-preview hero-tracker theme-blue" role="img" aria-label="Sample card frame preview">
+              <div class="hero-inner-frame"></div>
+              <div class="profile-frame-preview-header">
+                <span>YOUR PLANESWALKER</span>
+                <span class="profile-frame-preview-badge">COMMANDER</span>
+              </div>
+              <div class="profile-frame-preview-life">40</div>
+              <div class="profile-frame-preview-footer">Life total • Counters • Turns</div>
+            </div>
           </div>
         </div>
       </div>
@@ -176,39 +213,14 @@
     </div>
   </div>
 
-  <!-- HOW IT WORKS GUIDE MODAL -->
-  <div id="howItWorksModal" class="modal-backdrop hidden">
-    <div class="modal-card guide-modal">
+  <!-- ENLARGED SCRYFALL CARD IMAGE -->
+  <div id="profileCardImageModal" class="modal-backdrop hidden">
+    <div class="modal-card profile-card-image-modal" role="dialog" aria-modal="true" aria-labelledby="profileCardImageTitle">
       <div class="modal-header">
-        <h2>How CommandSync Works</h2>
-        <button id="closeHowItWorksBtn" type="button" class="btn-secondary btn-small">✕</button>
+        <h2 id="profileCardImageTitle">Card Image</h2>
+        <button id="closeProfileCardImageBtn" type="button" class="btn-secondary btn-small" aria-label="Close enlarged card image">✕</button>
       </div>
-
-      <div class="guide-steps">
-        <div class="guide-step">
-          <div class="step-badge">1</div>
-          <div class="step-body">
-            <h3>Start or Scan Into a Pod</h3>
-            <p>Choose your starting life (<strong>20, 30, or 40</strong>) on the <strong>Play</strong> tab and tap <strong>Create New Pod</strong> to select your deck and generate a 4-letter code &amp; QR invite.</p>
-          </div>
-        </div>
-        <div class="guide-step">
-          <div class="step-badge">2</div>
-          <div class="step-body">
-            <h3>Track Life, Eliminations &amp; Turns</h3>
-            <p>Tap left/right for <strong>−1 / +1</strong>, or <strong>press &amp; hold</strong> to accelerate through <strong>±5</strong> and <strong>±10</strong>. Reaching 0 life, 10 poison, or 21 Commander damage automatically marks a player knocked out and skips their turn.</p>
-          </div>
-        </div>
-        <div class="guide-step">
-          <div class="step-badge">3</div>
-          <div class="step-body">
-            <h3>Deck Locker &amp; Match Analytics</h3>
-            <p>Use the <strong>Decks</strong> tab to import Archidekt/Moxfield lists and customize Secret Lair art, and check <strong>Stats</strong> to view monthly, quarterly, and yearly win rates.</p>
-          </div>
-        </div>
-      </div>
-
-      <button id="gotItBtn" type="button" class="btn-primary" style="margin-top: 14px; margin-bottom: 0;">Got It</button>
+      <img id="profileCardLargeImage" class="profile-card-large-image" alt="" />
     </div>
   </div>
 

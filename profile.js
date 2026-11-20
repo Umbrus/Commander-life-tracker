@@ -28,11 +28,15 @@ const APP_PALETTE_KEY = "mtg_app_palette";
 const FOIL_FRAME_KEY = "mtg_supporter_foil_frame";
 const SUPPORTER_KEY = "mtg_is_supporter";
 const STANDARD_THEMES = ["blue", "red", "green", "gold", "purple", "slate"];
+const FREE_APP_PALETTES = ["crimson", "rare", "uncommon", "common"];
 const PALETTE_THEME_COLORS = {
   crimson: "#070606",
   teal: "#03080c",
   abyssal: "#030b0e",
-  fracture: "#040811"
+  fracture: "#040811",
+  uncommon: "#080c12",
+  rare: "#100b14",
+  common: "#0b0908"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -64,7 +68,7 @@ function applySupporterState(isSupporter) {
     renderFoilToggleUI();
 
     const savedPalette = localStorage.getItem(APP_PALETTE_KEY);
-    if (savedPalette && savedPalette !== "crimson") {
+    if (savedPalette && !FREE_APP_PALETTES.includes(savedPalette)) {
       applyAppPalette("crimson");
     }
     if (!STANDARD_THEMES.includes(currentTheme)) {
@@ -115,7 +119,7 @@ if (redeemBtn) {
       if (codeSnap.exists() && codeSnap.val() === true) {
         applySupporterState(true);
         if (input) input.value = "";
-        alert("Supporter Pack unlocked! All exclusive themes, card frames, and foil treatments are now active.");
+        alert("Supporter Pack unlocked! Exclusive set themes, card frames, and foil treatments are now active.");
       } else {
         alert("Invalid supporter or tester code.");
       }
@@ -125,18 +129,12 @@ if (redeemBtn) {
   };
 }
 
-// Guide Modal
-const howItWorksModal = document.getElementById("howItWorksModal");
-document.getElementById("openGuideBtn").onclick = () => howItWorksModal.classList.remove("hidden");
-document.getElementById("closeHowItWorksBtn").onclick = () => howItWorksModal.classList.add("hidden");
-document.getElementById("gotItBtn").onclick = () => howItWorksModal.classList.add("hidden");
-howItWorksModal.onclick = (e) => {
-  if (e.target === howItWorksModal) howItWorksModal.classList.add("hidden");
-};
-
 // Collector Edition App Themes & Supporter Foil Frame
 let currentPalette = localStorage.getItem(APP_PALETTE_KEY) || "crimson";
 function applyAppPalette(paletteName) {
+  if (!Object.prototype.hasOwnProperty.call(PALETTE_THEME_COLORS, paletteName)) {
+    paletteName = "crimson";
+  }
   currentPalette = paletteName;
   localStorage.setItem(APP_PALETTE_KEY, paletteName);
   if (paletteName === "crimson") {
@@ -149,8 +147,15 @@ function applyAppPalette(paletteName) {
     metaTheme.setAttribute("content", PALETTE_THEME_COLORS[paletteName]);
   }
   document.querySelectorAll("#appPaletteSelector .palette-btn").forEach((btn) => {
-    btn.classList.toggle("selected", btn.dataset.palette === paletteName);
+    const selected = btn.dataset.palette === paletteName;
+    btn.classList.toggle("selected", selected);
+    btn.setAttribute("aria-pressed", String(selected));
   });
+  const morePalettes = document.getElementById("moreAppPalettes");
+  if (morePalettes) {
+    morePalettes.open = Array.from(morePalettes.querySelectorAll(".palette-btn"))
+      .some((btn) => btn.dataset.palette === paletteName);
+  }
 }
 applyAppPalette(currentPalette);
 
@@ -206,14 +211,17 @@ async function runProfileOracleSearch(queryStr) {
       resultsEl.innerHTML = `
         <div class="oracle-card-result">
           <div class="oracle-card-header">
-            ${imgUris.normal ? `<img src="${imgUris.normal}" alt="${card.name}" class="oracle-card-thumb" />` : ""}
+            ${imgUris.normal || imgUris.large ? `<button type="button" class="oracle-card-image-button" data-large-image="${imgUris.large || imgUris.normal}" title="View larger card image" aria-label="Enlarge image of ${card.name}"><img src="${imgUris.normal || imgUris.large}" alt="${card.name}" class="oracle-card-thumb" /></button>` : ""}
             <div class="oracle-card-meta">
               <div class="oracle-card-name">${card.name}</div>
               <div class="oracle-card-cost">${card.mana_cost || ""} • ${card.type_line || ""}</div>
               <div class="oracle-card-legality">Commander: <strong>${(card.legalities?.commander || "unknown").toUpperCase()}</strong></div>
             </div>
           </div>
-          <div class="oracle-text-box">${oracleText.replace(/\n/g, "<br/>")}</div>
+          <div class="oracle-text-section">
+            <div class="oracle-section-title">Oracle Text</div>
+            <div class="oracle-text-box">${oracleText.replace(/\n/g, "<br/>")}</div>
+          </div>
           <div class="oracle-rulings-section">${rulingsSection}</div>
         </div>
       `;
@@ -247,6 +255,46 @@ async function runProfileOracleSearch(queryStr) {
 
 const profileOracleInput = document.getElementById("profileOracleInput");
 const profileOracleSearchBtn = document.getElementById("profileOracleSearchBtn");
+const profileOracleResults = document.getElementById("profileOracleResults");
+const profileCardImageModal = document.getElementById("profileCardImageModal");
+const profileCardLargeImage = document.getElementById("profileCardLargeImage");
+const profileCardImageTitle = document.getElementById("profileCardImageTitle");
+const closeProfileCardImageBtn = document.getElementById("closeProfileCardImageBtn");
+let lastClickedCardImageButton = null;
+
+function closeProfileCardImageModal() {
+  profileCardImageModal.classList.add("hidden");
+  profileCardLargeImage.removeAttribute("src");
+  if (lastClickedCardImageButton?.isConnected) lastClickedCardImageButton.focus();
+  lastClickedCardImageButton = null;
+}
+
+profileOracleResults.addEventListener("click", (event) => {
+  const imageButton = event.target.closest(".oracle-card-image-button");
+  if (!imageButton) return;
+
+  const thumbnail = imageButton.querySelector("img");
+  const largeImageUrl = imageButton.dataset.largeImage || thumbnail?.src;
+  if (!largeImageUrl || !thumbnail) return;
+
+  lastClickedCardImageButton = imageButton;
+  profileCardImageTitle.textContent = thumbnail.alt;
+  profileCardLargeImage.src = largeImageUrl;
+  profileCardLargeImage.alt = thumbnail.alt;
+  profileCardImageModal.classList.remove("hidden");
+  closeProfileCardImageBtn.focus();
+});
+
+closeProfileCardImageBtn.onclick = closeProfileCardImageModal;
+profileCardImageModal.onclick = (event) => {
+  if (event.target === profileCardImageModal) closeProfileCardImageModal();
+};
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !profileCardImageModal.classList.contains("hidden")) {
+    closeProfileCardImageModal();
+  }
+});
+
 if (profileOracleSearchBtn && profileOracleInput) {
   profileOracleSearchBtn.onclick = () => runProfileOracleSearch(profileOracleInput.value);
   profileOracleInput.addEventListener("keydown", (e) => {
@@ -271,10 +319,29 @@ document.getElementById("saveDefaultNameBtn").onclick = () => {
 };
 
 let currentTheme = localStorage.getItem(THEME_PREF_KEY) || "blue";
+const THEME_DISPLAY_NAMES = {
+  blue: "Azorius Blue",
+  red: "Rakdos Crimson",
+  green: "Golgari Emerald",
+  gold: "Boros Gold",
+  purple: "Dimir Violet",
+  slate: "Eldrazi Obsidian",
+  aether: "Prismatic Aether",
+  phyrexian: "Phyrexian Oil",
+  ivory: "Celestial Ivory",
+  fracture: "Reality Fracture"
+};
 function renderThemeSwatches() {
   document.querySelectorAll("#defaultThemeSwatches .swatch-btn").forEach((btn) => {
     btn.classList.toggle("selected", btn.dataset.theme === currentTheme);
   });
+  const preview = document.getElementById("defaultThemePreview");
+  const previewName = document.getElementById("defaultThemePreviewName");
+  if (preview) {
+    preview.classList.remove(...Object.keys(THEME_DISPLAY_NAMES).map((theme) => `theme-${theme}`));
+    preview.classList.add(`theme-${currentTheme}`);
+  }
+  if (previewName) previewName.textContent = THEME_DISPLAY_NAMES[currentTheme] || THEME_DISPLAY_NAMES.blue;
 }
 renderThemeSwatches();
 

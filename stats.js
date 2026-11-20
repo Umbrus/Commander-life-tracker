@@ -376,6 +376,11 @@ function renderStats() {
 
         const wrapper = document.createElement("div");
         wrapper.className = "deck-stat-card-expandable";
+        wrapper.dataset.deckId = String(d.id);
+        wrapper.setAttribute("role", "button");
+        wrapper.tabIndex = 0;
+        wrapper.setAttribute("aria-expanded", String(isExpanded));
+        wrapper.setAttribute("aria-label", `Toggle matchup statistics for ${d.name}, ${d.wins} wins and ${d.losses} losses.`);
         wrapper.innerHTML = `
           <div class="deck-stat-row">
             <div class="history-main">
@@ -394,8 +399,19 @@ function renderStats() {
         wrapper.onclick = () => {
           triggerHaptic(10);
           expandedDeckId = expandedDeckId === d.id ? null : d.id;
-          renderStats();
+          breakdownEl.querySelectorAll(".deck-stat-card-expandable").forEach((card) => {
+            const expanded = card.dataset.deckId === String(expandedDeckId);
+            card.setAttribute("aria-expanded", String(expanded));
+            const drawer = card.querySelector(".deck-stat-drawer");
+            if (drawer) drawer.classList.toggle("hidden", !expanded);
+          });
         };
+        wrapper.addEventListener("keydown", (event) => {
+          if ((event.key === "Enter" || event.key === " ") && !event.repeat) {
+            event.preventDefault();
+            wrapper.click();
+          }
+        });
         breakdownEl.appendChild(wrapper);
       });
   }
@@ -432,6 +448,9 @@ function renderStats() {
 
       const row = document.createElement("div");
       row.className = "history-row editable-match-row";
+      row.setAttribute("role", "button");
+      row.tabIndex = 0;
+      row.setAttribute("aria-label", `Edit ${m.deckName}, ${isWin ? "win" : "loss"} match from ${dateStr}`);
       row.innerHTML = `
         <div class="history-main">
           <div class="history-player">${m.deckName}</div>
@@ -444,6 +463,12 @@ function renderStats() {
         </div>
       `;
       row.onclick = () => openMatchEditor(globalIdx);
+      row.addEventListener("keydown", (event) => {
+        if ((event.key === "Enter" || event.key === " ") && !event.repeat) {
+          event.preventDefault();
+          row.click();
+        }
+      });
       matchList.appendChild(row);
     });
   }

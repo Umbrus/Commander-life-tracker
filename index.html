@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#070606" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -19,8 +19,8 @@
     (function() {
       const p = localStorage.getItem("mtg_app_palette");
       const meta = document.querySelector('meta[name="theme-color"]');
-      const colors = { crimson: "#070606", teal: "#03080c", abyssal: "#05040a", fracture: "#060409" };
-      if (p && p !== "crimson") {
+      const colors = { crimson: "#070606", teal: "#03080c", abyssal: "#05040a", fracture: "#060409", uncommon: "#080c12", rare: "#100b14", common: "#0b0908" };
+      if (p && p !== "crimson" && colors[p]) {
         document.documentElement.setAttribute("data-palette", p);
         if (meta && colors[p]) meta.setAttribute("content", colors[p]);
       }
@@ -32,12 +32,9 @@
   <div class="app-shell">
     <div id="offlineBanner" class="offline-banner hidden">Offline — waiting to reconnect...</div>
 
-    <!-- TOP LOBBY STATUS BAR -->
+    <!-- TOP LOBBY ACTION BAR -->
     <header id="lobbyTopBar" class="lobby-top-bar">
-      <div id="appModeBadge" class="app-mode-badge">
-        <span class="conn-dot" id="topConnDot"></span>
-        <span id="topStatusLabel">Connecting...</span>
-      </div>
+      <button id="openGuideBtn" type="button" class="btn-secondary btn-small">Guide</button>
       <a href="profile.html" class="app-mode-badge" id="lobbyAccountBadge" style="text-decoration:none;color:var(--gold-foil);">
         Sign In
       </a>
@@ -70,14 +67,14 @@
             <label class="input-label">Starting Life Total</label>
             <div id="lobbyLifeSelector" class="life-preset-row">
               <button type="button" class="preset-btn" data-life="20">20<span>Standard</span></button>
-              <button type="button" class="preset-btn" data-life="30">30<span>Brawl / 2HG</span></button>
               <button type="button" class="preset-btn selected" data-life="40">40<span>Commander</span></button>
+              <button type="button" class="preset-btn" data-life="custom">Custom<span>Set total</span></button>
             </div>
           </div>
 
           <button id="createPodBtn" class="btn-primary btn-hero">
-            <span>＋ Create New Pod</span>
-            <small>Generate a 4-letter code &amp; QR invite</small>
+            <span>Host New Pod</span>
+            <small>Get a pod code &amp; QR invite</small>
           </button>
 
           <div class="divider"><span>OR JOIN AN ACTIVE POD</span></div>
@@ -91,11 +88,11 @@
           </div>
         </div>
 
-        <div class="divider"><span>OR SINGLE-DEVICE PASS &amp; PLAY</span></div>
+        <div class="divider"><span>OR PASS &amp; PLAY</span></div>
 
         <button id="openTableSetupBtn" type="button" class="btn-secondary table-mode-launch-btn">
-          <span>Table Mode (One Device)</span>
-          <small>2–4 player split-screen counter — no codes needed</small>
+          <span>Table Mode</span>
+          <small>Pass-and-play for 2–4 players</small>
         </button>
       </div>
     </div>
@@ -115,24 +112,29 @@
           <div id="podDropdownMenu" class="dropdown-menu hidden">
             <div class="menu-section-title">Your Card Frame</div>
             <div id="colorSwatchRow" class="swatch-row">
-              <button type="button" class="swatch-btn" data-theme="blue" title="Azorius Blue"></button>
-              <button type="button" class="swatch-btn" data-theme="red" title="Rakdos Crimson"></button>
-              <button type="button" class="swatch-btn" data-theme="green" title="Golgari Emerald"></button>
-              <button type="button" class="swatch-btn" data-theme="gold" title="Boros Gold"></button>
-              <button type="button" class="swatch-btn" data-theme="purple" title="Dimir Violet"></button>
-              <button type="button" class="swatch-btn" data-theme="slate" title="Eldrazi Obsidian"></button>
-              <button type="button" class="swatch-btn supporter-only" data-theme="aether" title="Prismatic Aether (Supporter)"></button>
-              <button type="button" class="swatch-btn supporter-only" data-theme="phyrexian" title="Phyrexian Oil (Supporter)"></button>
-              <button type="button" class="swatch-btn supporter-only" data-theme="ivory" title="Celestial Ivory (Supporter)"></button>
-              <button type="button" class="swatch-btn supporter-only" data-theme="fracture" title="Reality Fracture (Supporter)"></button>
+              <button type="button" class="swatch-btn" data-theme="blue" title="Azorius Blue" aria-label="Azorius Blue"></button>
+              <button type="button" class="swatch-btn" data-theme="red" title="Rakdos Crimson" aria-label="Rakdos Crimson"></button>
+              <button type="button" class="swatch-btn" data-theme="green" title="Golgari Emerald" aria-label="Golgari Emerald"></button>
+              <button type="button" class="swatch-btn" data-theme="gold" title="Boros Gold" aria-label="Boros Gold"></button>
+              <button type="button" class="swatch-btn" data-theme="purple" title="Dimir Violet" aria-label="Dimir Violet"></button>
+              <button type="button" class="swatch-btn" data-theme="slate" title="Eldrazi Obsidian" aria-label="Eldrazi Obsidian"></button>
+              <button type="button" class="swatch-btn supporter-only" data-theme="aether" title="Prismatic Aether (Supporter)" aria-label="Prismatic Aether, supporter"></button>
+              <button type="button" class="swatch-btn supporter-only" data-theme="phyrexian" title="Phyrexian Oil (Supporter)" aria-label="Phyrexian Oil, supporter"></button>
+              <button type="button" class="swatch-btn supporter-only" data-theme="ivory" title="Celestial Ivory (Supporter)" aria-label="Celestial Ivory, supporter"></button>
+              <button type="button" class="swatch-btn supporter-only" data-theme="fracture" title="Reality Fracture (Supporter)" aria-label="Reality Fracture, supporter"></button>
             </div>
+            <div id="selectedFrameName" class="selected-frame-name" aria-live="polite">Selected: Azorius Blue</div>
 
             <div class="menu-divider"></div>
+            <div class="menu-section-title">Tools</div>
             <button id="openOracleLookupBtn" class="menu-item">Card &amp; Oracle Lookup</button>
-            <button id="togglePartnerBtn" class="menu-item">Partner Commander: OFF</button>
             <button id="openCountersBtn" class="menu-item">Extra Counters &amp; Mana</button>
             <button id="openDiceRollerBtn" class="menu-item">Dice &amp; Coin Roller</button>
             <button id="openHistoryBtn" class="menu-item">Life History Log</button>
+
+            <div class="menu-divider"></div>
+            <div class="menu-section-title">Pod Actions</div>
+            <button id="togglePartnerBtn" class="menu-item">Partner Commander: OFF</button>
             <button id="becomeMonarchBtn" class="menu-item">Claim the Monarch</button>
             <button id="toggleEliminatedBtn" class="menu-item">Scoop / Knocked Out</button>
             <button id="toggleQrBtn" class="menu-item">Hide QR Invite</button>
@@ -207,8 +209,8 @@
         </div>
 
         <div class="tap-zones">
-          <div id="minusZone" class="tap-zone left">−</div>
-          <div id="plusZone" class="tap-zone right">+</div>
+          <div id="minusZone" class="tap-zone left" role="button" tabindex="0" aria-label="Decrease life total. Hold for larger changes.">−</div>
+          <div id="plusZone" class="tap-zone right" role="button" tabindex="0" aria-label="Increase life total. Hold for larger changes.">+</div>
         </div>
       </div>
 
@@ -251,6 +253,7 @@
           <div class="section-label" style="margin:0;"><span class="cs-icon cs-icon-cmdr"></span> Commander Damage Taken</div>
           <button id="quickCountersBtn" type="button" class="chip-action-btn">+ Counters</button>
         </div>
+        <div class="cmdr-damage-hint">21 combat damage from one commander is lethal.</div>
         <div id="cmdrDamageList" class="cmdr-dmg-list">
           <div class="empty-hint">Waiting for opponents to join...</div>
         </div>
@@ -388,7 +391,7 @@
       </div>
 
       <div class="tray-section-label" style="margin-top: 12px;">
-        Commander Damage Taken <small>(Tap tile for +1, or − to subtract)</small>
+        Commander Damage Taken <small>Use +/− controls; 21 combat damage from one commander is lethal.</small>
       </div>
       <div id="trayCmdrMatrix" class="tray-cmdr-matrix"></div>
     </div>
@@ -410,6 +413,26 @@
       <div id="podOracleResults" class="oracle-results-scroll">
         <div class="empty-hint">Search any Magic card to read its official Oracle text, Commander legality, and Gatherer rulings.</div>
       </div>
+    </div>
+  </div>
+
+  <!-- CUSTOM POD STARTING LIFE MODAL -->
+  <div id="customLobbyLifeModal" class="modal-backdrop hidden">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="customLobbyLifeTitle">
+      <div class="modal-header">
+        <h2 id="customLobbyLifeTitle">Custom Starting Life</h2>
+      </div>
+      <p class="modal-sub">Choose a whole number above 0.</p>
+      <form id="customLobbyLifeForm">
+        <div class="input-group">
+          <label for="customLobbyLifeInput" class="input-label">Starting Life Total</label>
+          <input id="customLobbyLifeInput" type="number" min="1" step="1" inputmode="numeric" placeholder="e.g. 25" required />
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;">
+          <button id="cancelCustomLobbyLifeBtn" type="button" class="btn-secondary">Cancel</button>
+          <button type="submit" class="btn-primary" style="margin-bottom:0;">Continue</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -603,6 +626,40 @@
   <div id="undoToast" class="undo-toast hidden" role="status" aria-live="polite">
     <span id="undoToastMsg" class="undo-toast-msg">Action completed</span>
     <button id="undoToastBtn" type="button" class="undo-toast-btn">↺ Undo</button>
+  </div>
+
+  <!-- HOW IT WORKS GUIDE MODAL -->
+  <div id="howItWorksModal" class="modal-backdrop hidden">
+    <div class="modal-card guide-modal">
+      <div class="modal-header">
+        <h2>How CommandSync Works</h2>
+        <button id="closeHowItWorksBtn" type="button" class="btn-secondary btn-small">✕</button>
+      </div>
+      <div class="guide-steps">
+        <div class="guide-step">
+          <div class="step-badge">1</div>
+          <div class="step-body">
+            <h3>Start or Scan Into a Pod</h3>
+            <p>Choose <strong>20-life Standard</strong>, <strong>40-life Commander</strong>, or a custom starting total on the <strong>Play</strong> tab, then tap <strong>Host New Pod</strong> to select your deck and generate a pod code &amp; QR invite.</p>
+          </div>
+        </div>
+        <div class="guide-step">
+          <div class="step-badge">2</div>
+          <div class="step-body">
+            <h3>Track Life, Eliminations &amp; Turns</h3>
+            <p>Tap left/right for <strong>−1 / +1</strong>, or <strong>press &amp; hold</strong> to accelerate through <strong>±5</strong> and <strong>±10</strong>. Reaching 0 life, 10 poison, or 21 Commander damage automatically marks a player knocked out and skips their turn.</p>
+          </div>
+        </div>
+        <div class="guide-step">
+          <div class="step-badge">3</div>
+          <div class="step-body">
+            <h3>Deck Locker &amp; Match Analytics</h3>
+            <p>Use the <strong>Decks</strong> tab to import Archidekt/Moxfield lists and customize Secret Lair art, and check <strong>Stats</strong> to view monthly, quarterly, and yearly win rates.</p>
+          </div>
+        </div>
+      </div>
+      <button id="gotItBtn" type="button" class="btn-primary" style="margin-top: 14px; margin-bottom: 0;">Got It</button>
+    </div>
   </div>
 
   <!-- 4-TAB BOTTOM NAVIGATION BAR -->
