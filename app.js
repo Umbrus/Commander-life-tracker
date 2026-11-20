@@ -41,7 +41,7 @@ const SUPPORTER_KEY = "mtg_is_supporter";
 const SESSION_MAX_AGE_MS = 4 * 60 * 60 * 1000;
 
 const STANDARD_THEMES = ["blue", "red", "green", "gold", "purple", "slate"];
-const VALID_THEMES = ["blue", "red", "green", "gold", "purple", "slate", "aether", "phyrexian", "ivory", "bronze"];
+const VALID_THEMES = ["blue", "red", "green", "gold", "purple", "slate", "aether", "phyrexian", "ivory", "fracture"];
 
 const EXTRA_COUNTER_META = {
   energy: { label: "Energy", icon: "Energy" },

@@ -28,6 +28,12 @@ const APP_PALETTE_KEY = "mtg_app_palette";
 const FOIL_FRAME_KEY = "mtg_supporter_foil_frame";
 const SUPPORTER_KEY = "mtg_is_supporter";
 const STANDARD_THEMES = ["blue", "red", "green", "gold", "purple", "slate"];
+const PALETTE_THEME_COLORS = {
+  crimson: "#070606",
+  teal: "#03080c",
+  abyssal: "#05040a",
+  fracture: "#060409"
+};
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -109,7 +115,7 @@ if (redeemBtn) {
       if (codeSnap.exists() && codeSnap.val() === true) {
         applySupporterState(true);
         if (input) input.value = "";
-        alert("Supporter Pack unlocked! All exclusive card frames, themes, and foil treatments are now active.");
+        alert("Supporter Pack unlocked! All exclusive themes, card frames, and foil treatments are now active.");
       } else {
         alert("Invalid supporter or tester code.");
       }
@@ -128,7 +134,7 @@ howItWorksModal.onclick = (e) => {
   if (e.target === howItWorksModal) howItWorksModal.classList.add("hidden");
 };
 
-// Featured Set Themes & Supporter Foil Frame
+// Collector Edition App Themes & Supporter Foil Frame
 let currentPalette = localStorage.getItem(APP_PALETTE_KEY) || "crimson";
 function applyAppPalette(paletteName) {
   currentPalette = paletteName;
@@ -137,6 +143,10 @@ function applyAppPalette(paletteName) {
     document.documentElement.removeAttribute("data-palette");
   } else {
     document.documentElement.setAttribute("data-palette", paletteName);
+  }
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme && PALETTE_THEME_COLORS[paletteName]) {
+    metaTheme.setAttribute("content", PALETTE_THEME_COLORS[paletteName]);
   }
   document.querySelectorAll("#appPaletteSelector .palette-btn").forEach((btn) => {
     btn.classList.toggle("selected", btn.dataset.palette === paletteName);
@@ -374,7 +384,6 @@ document.getElementById("googleAuthBtn").onclick = async () => {
   }
 };
 
-// Apply cached supporter state immediately on load, then verify with Firebase
 applySupporterState(localStorage.getItem(SUPPORTER_KEY) === "true");
 
 onAuthStateChanged(auth, async (user) => {

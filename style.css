@@ -15,41 +15,67 @@
   --text-muted: #78716c;
   --font-display: "Cinzel", Georgia, serif;
   --font-ui: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --card-radius: 20px;
   --bg-glow-top: rgba(185, 28, 28, 0.16);
   --bg-glow-bottom: rgba(127, 29, 29, 0.12);
   --bg-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cg fill='none' stroke='%23d4af37' stroke-opacity='0.055' stroke-width='1'%3E%3Cg transform='translate(28, 22) rotate(-14)'%3E%3Crect x='0' y='0' width='44' height='62' rx='4'/%3E%3Crect x='4' y='5' width='36' height='24' rx='1.5'/%3E%3Crect x='4' y='33' width='36' height='23' rx='1.5'/%3E%3C/g%3E%3Cg transform='translate(116, 94) rotate(12)'%3E%3Crect x='0' y='0' width='44' height='62' rx='4'/%3E%3Crect x='4' y='5' width='36' height='24' rx='1.5'/%3E%3Crect x='4' y='33' width='36' height='23' rx='1.5'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }
 
+/* 1. STARFLEET TEAL — Orbital HUD Typography + Hexagonal Star-Chart Grid + Angular Corners */
 :root[data-palette="teal"] {
-  --bg-base: #04090b;
-  --bg-surface: #0a1418;
-  --bg-elevated: #112026;
-  --bg-glow-top: rgba(13, 148, 136, 0.22);
-  --bg-glow-bottom: rgba(2, 132, 199, 0.14);
-  --bg-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cg fill='none' stroke='%2338bdf8' stroke-opacity='0.06' stroke-width='1'%3E%3Cg transform='translate(28, 22) rotate(-14)'%3E%3Crect x='0' y='0' width='44' height='62' rx='4'/%3E%3Crect x='4' y='5' width='36' height='24' rx='1.5'/%3E%3Crect x='4' y='33' width='36' height='23' rx='1.5'/%3E%3C/g%3E%3Cg transform='translate(116, 94) rotate(12)'%3E%3Crect x='0' y='0' width='44' height='62' rx='4'/%3E%3Crect x='4' y='5' width='36' height='24' rx='1.5'/%3E%3Crect x='4' y='33' width='36' height='23' rx='1.5'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  --bg-base: #03080c;
+  --bg-surface: #081319;
+  --bg-elevated: #0e2029;
   --mythic-primary: #0d9488;
   --mythic-deep: #115e59;
   --mythic-bright: #2dd4bf;
-  --gold-foil: #bae6fd;
+  --gold-foil: #7dd3fc;
   --gold-accent: #38bdf8;
-  --border-gold: rgba(56, 189, 248, 0.34);
-  --border-gold-bright: rgba(186, 230, 253, 0.55);
+  --border-gold: rgba(56, 189, 248, 0.42);
+  --border-gold-bright: rgba(125, 211, 252, 0.72);
+  --font-display: "Orbitron", sans-serif;
+  --card-radius: 10px;
+  --bg-glow-top: rgba(13, 148, 136, 0.28);
+  --bg-glow-bottom: rgba(2, 132, 199, 0.2);
+  --bg-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='104' viewBox='0 0 120 104'%3E%3Cg fill='none' stroke='%2338bdf8' stroke-opacity='0.09' stroke-width='1'%3E%3Cpolygon points='30,2 90,2 118,52 90,102 30,102 2,52'/%3E%3Ccircle cx='60' cy='52' r='16' stroke-dasharray='3 4'/%3E%3Cline x1='0' y1='52' x2='120' y2='52' stroke-opacity='0.05'/%3E%3C/g%3E%3C/svg%3E");
 }
 
+/* 2. ABYSSAL NAUTILUS — Gothic-Antique Serif + Concentric Nautilus Spirals & Sigils */
 :root[data-palette="abyssal"] {
-  --bg-base: #06050b;
-  --bg-surface: #0f0d1a;
-  --bg-elevated: #181429;
-  --bg-glow-top: rgba(79, 70, 229, 0.22);
-  --bg-glow-bottom: rgba(147, 51, 234, 0.14);
-  --bg-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cg fill='none' stroke='%23c084fc' stroke-opacity='0.06' stroke-width='1'%3E%3Cg transform='translate(28, 22) rotate(-14)'%3E%3Crect x='0' y='0' width='44' height='62' rx='4'/%3E%3Crect x='4' y='5' width='36' height='24' rx='1.5'/%3E%3Crect x='4' y='33' width='36' height='23' rx='1.5'/%3E%3C/g%3E%3Cg transform='translate(116, 94) rotate(12)'%3E%3Crect x='0' y='0' width='44' height='62' rx='4'/%3E%3Crect x='4' y='5' width='36' height='24' rx='1.5'/%3E%3Crect x='4' y='33' width='36' height='23' rx='1.5'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  --bg-base: #05040a;
+  --bg-surface: #0e0b1a;
+  --bg-elevated: #17122b;
   --mythic-primary: #4f46e5;
   --mythic-deep: #312e81;
   --mythic-bright: #818cf8;
   --gold-foil: #e9d5ff;
   --gold-accent: #c084fc;
-  --border-gold: rgba(192, 132, 252, 0.34);
-  --border-gold-bright: rgba(233, 213, 255, 0.55);
+  --border-gold: rgba(192, 132, 252, 0.42);
+  --border-gold-bright: rgba(233, 213, 255, 0.68);
+  --font-display: "Cormorant Garamond", Georgia, serif;
+  --card-radius: 22px;
+  --bg-glow-top: rgba(79, 70, 229, 0.28);
+  --bg-glow-bottom: rgba(147, 51, 234, 0.2);
+  --bg-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='none' stroke='%23c084fc' stroke-opacity='0.085' stroke-width='1'%3E%3Ccircle cx='80' cy='80' r='64'/%3E%3Ccircle cx='80' cy='80' r='44' stroke-dasharray='6 4'/%3E%3Ccircle cx='80' cy='80' r='24'/%3E%3Cpath d='M80 16 L80 144 M16 80 L144 80 M35 35 L125 125 M125 35 L35 125' stroke-opacity='0.045'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* 3. REALITY FRACTURE — Shattered Multiverse Typography + Planar Rift Shards + Magenta/Cyan Split */
+:root[data-palette="fracture"] {
+  --bg-base: #060409;
+  --bg-surface: #110b19;
+  --bg-elevated: #1b1128;
+  --mythic-primary: #c026d3;
+  --mythic-deep: #701a75;
+  --mythic-bright: #e879f9;
+  --gold-foil: #67e8f9;
+  --gold-accent: #d946ef;
+  --border-gold: rgba(217, 70, 239, 0.48);
+  --border-gold-bright: rgba(103, 232, 249, 0.72);
+  --font-display: "Chakra Petch", sans-serif;
+  --card-radius: 14px;
+  --bg-glow-top: rgba(217, 70, 239, 0.26);
+  --bg-glow-bottom: rgba(56, 189, 248, 0.22);
+  --bg-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cg fill='none' stroke-width='1'%3E%3Cpolygon points='20,10 85,42 52,95 8,68' stroke='%23e879f9' stroke-opacity='0.095'/%3E%3Cpolygon points='115,25 170,15 155,88 98,64' stroke='%2338bdf8' stroke-opacity='0.095'/%3E%3Cpolygon points='45,118 112,102 138,168 62,172' stroke='%23e879f9' stroke-opacity='0.08'/%3E%3Cline x1='0' y1='140' x2='180' y2='35' stroke='%2338bdf8' stroke-opacity='0.06'/%3E%3C/g%3E%3C/svg%3E");
 }
 
 * {
@@ -114,21 +140,6 @@ body {
   font-weight: 700;
   color: var(--text-secondary);
 }
-.account-status-chip {
-  padding: 6px 10px;
-  text-align: left;
-}
-.account-status-chip span {
-  display: block;
-  font-size: 0.76rem;
-  font-weight: 700;
-  color: var(--gold-foil);
-}
-.account-status-chip small {
-  display: block;
-  font-size: 0.68rem;
-  color: var(--text-muted);
-}
 
 /* POLISHED LOBBY / JOIN SCREEN */
 .lobby-wrapper {
@@ -146,7 +157,7 @@ body {
   width: 74px;
   height: 74px;
   margin: 0 auto 12px;
-  border-radius: 22px;
+  border-radius: var(--card-radius);
   overflow: hidden;
   background: #070606;
   border: 1.5px solid var(--border-gold);
@@ -188,7 +199,6 @@ body {
   color: var(--text-secondary);
 }
 
-/* SUBTLE CONNECTION STATUS PILL */
 .conn-pill {
   display: inline-flex;
   align-items: center;
@@ -219,14 +229,12 @@ body {
   border-color: rgba(239, 68, 68, 0.4);
   color: #fca5a5;
 }
-.conn-pill.err .conn-dot {
-  background: #ef4444;
-}
+.conn-pill.err .conn-dot { background: #ef4444; }
 
 .lobby-card {
   background: linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%);
   border: 1px solid var(--border-gold);
-  border-radius: 22px;
+  border-radius: var(--card-radius);
   padding: 20px 18px;
   box-shadow: 0 22px 50px rgba(0, 0, 0, 0.72), inset 0 1px 0 rgba(253, 230, 138, 0.14);
 }
@@ -247,22 +255,6 @@ body {
   padding-left: 2px;
 }
 
-.label-action-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-.inline-text-link {
-  width: auto;
-  padding: 0;
-  margin: 0;
-  background: transparent;
-  color: var(--gold-foil);
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
 .deck-select {
   width: 100%;
   padding: 12px 14px;
@@ -274,11 +266,8 @@ body {
   font-weight: 700;
   outline: none;
 }
-.deck-select:focus {
-  border-color: var(--gold-accent);
-}
+.deck-select:focus { border-color: var(--gold-accent); }
 
-/* STARTING LIFE PRESET SELECTOR */
 .life-preset-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -310,9 +299,7 @@ body {
   color: #ffffff;
   box-shadow: inset 0 0 12px rgba(234, 179, 8, 0.14);
 }
-.preset-btn.selected span {
-  color: var(--gold-foil);
-}
+.preset-btn.selected span { color: var(--gold-foil); }
 
 input, textarea {
   width: 100%;
@@ -382,7 +369,7 @@ input:focus, textarea:focus {
 .empty-card-box {
   background: var(--bg-surface);
   border: 1px dashed var(--border-gold);
-  border-radius: 18px;
+  border-radius: calc(var(--card-radius) - 4px);
   padding: 26px 18px;
   text-align: center;
 }
@@ -401,7 +388,7 @@ input:focus, textarea:focus {
 .deck-card-item {
   background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-surface) 100%);
   border: 1px solid var(--border-gold);
-  border-radius: 16px;
+  border-radius: calc(var(--card-radius) - 4px);
   padding: 12px;
   display: flex;
   align-items: center;
@@ -409,9 +396,7 @@ input:focus, textarea:focus {
   cursor: pointer;
   transition: transform 0.08s ease, border-color 0.15s ease;
 }
-.deck-card-item:active {
-  transform: scale(0.98);
-}
+.deck-card-item:active { transform: scale(0.98); }
 .deck-card-item.is-piloting {
   border-color: var(--gold-accent);
   box-shadow: 0 0 18px rgba(234, 179, 8, 0.22);
@@ -484,12 +469,6 @@ input:focus, textarea:focus {
 }
 
 /* FULL DECKLIST VIEWER */
-.deck-viewer-card {
-  max-width: 420px;
-  max-height: 88vh;
-  display: flex;
-  flex-direction: column;
-}
 .viewer-deck-hero {
   display: flex;
   align-items: center;
@@ -521,11 +500,6 @@ input:focus, textarea:focus {
   font-size: 0.74rem;
   color: var(--text-secondary);
   margin: 2px 0 6px;
-}
-.viewer-hero-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 .external-deck-link {
   text-decoration: none;
@@ -639,9 +613,7 @@ input:focus, textarea:focus {
   font-size: 0.82rem;
   cursor: pointer;
 }
-.deck-card-line:active {
-  background: rgba(253, 230, 138, 0.1);
-}
+.deck-card-line:active { background: rgba(253, 230, 138, 0.1); }
 .deck-card-qty {
   font-weight: 800;
   color: var(--gold-foil);
@@ -654,11 +626,6 @@ input:focus, textarea:focus {
 .deck-card-eye {
   font-size: 0.72rem;
   color: var(--text-muted);
-}
-.viewer-footer-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px;
 }
 
 /* WIN / LOSS STATS SUMMARY CARDS */
@@ -714,7 +681,7 @@ input:focus, textarea:focus {
 .profile-card {
   background: linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-surface) 100%);
   border: 1px solid var(--border-gold);
-  border-radius: 18px;
+  border-radius: calc(var(--card-radius) - 4px);
   padding: 16px;
   margin-bottom: 12px;
   text-align: left;
@@ -987,7 +954,7 @@ button:active { transform: scale(0.97); }
 .swatch-btn[data-theme="aether"]    { background: linear-gradient(135deg, #22d3ee, #0284c7); }
 .swatch-btn[data-theme="phyrexian"] { background: linear-gradient(135deg, #84cc16, #14532d); }
 .swatch-btn[data-theme="ivory"]     { background: linear-gradient(135deg, #fef3c7, #b45309); }
-.swatch-btn[data-theme="bronze"]    { background: linear-gradient(135deg, #fb923c, #7c2d12); }
+.swatch-btn[data-theme="fracture"]  { background: linear-gradient(135deg, #d946ef 0%, #38bdf8 100%); }
 
 .menu-divider {
   height: 1px;
@@ -1267,9 +1234,7 @@ button:active { transform: scale(0.97); }
   70% { transform: scale(1.08); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
 }
-.dice-pop {
-  animation: popIn 0.22s ease-out;
-}
+.dice-pop { animation: popIn 0.22s ease-out; }
 .dice-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -1305,7 +1270,7 @@ button:active { transform: scale(0.97); }
 .qr-drawer {
   background: var(--bg-surface);
   border: 1px solid var(--border-gold);
-  border-radius: 16px;
+  border-radius: calc(var(--card-radius) - 4px);
   padding: 14px;
   text-align: center;
   margin-bottom: 12px;
@@ -1431,15 +1396,13 @@ button:active { transform: scale(0.97); }
 .opponent-card.theme-aether    { border-top-color: #22d3ee; }
 .opponent-card.theme-phyrexian { border-top-color: #84cc16; }
 .opponent-card.theme-ivory     { border-top-color: #fef3c7; }
-.opponent-card.theme-bronze    { border-top-color: #fb923c; }
+.opponent-card.theme-fracture  { border-top-color: #d946ef; }
 
 .opponent-card.is-monarch {
   background: linear-gradient(180deg, rgba(234, 179, 8, 0.16), var(--bg-surface));
   border-color: rgba(253, 224, 71, 0.55);
 }
-.opponent-card.is-active-turn {
-  box-shadow: 0 0 0 2px var(--gold-accent);
-}
+.opponent-card.is-active-turn { box-shadow: 0 0 0 2px var(--gold-accent); }
 .opponent-card.is-eliminated {
   background: #0c0a0a;
   border-color: rgba(239, 68, 68, 0.28);
@@ -1474,7 +1437,7 @@ button:active { transform: scale(0.97); }
 /* HERO LIFE TRACKER + MYTHIC CARD-FRAME BEVEL */
 .hero-tracker {
   position: relative;
-  border-radius: 22px;
+  border-radius: var(--card-radius);
   overflow: hidden;
   height: 215px;
   display: flex;
@@ -1489,7 +1452,7 @@ button:active { transform: scale(0.97); }
 .hero-inner-frame {
   position: absolute;
   inset: 6px;
-  border-radius: 16px;
+  border-radius: calc(var(--card-radius) - 5px);
   border: 1px solid rgba(253, 230, 138, 0.16);
   pointer-events: none;
   z-index: 2;
@@ -1503,16 +1466,19 @@ button:active { transform: scale(0.97); }
 .hero-tracker.theme-aether    { border-color: #22d3ee; background: radial-gradient(circle at 50% 45%, #0e7490 0%, #06131a 88%); }
 .hero-tracker.theme-phyrexian { border-color: #84cc16; background: radial-gradient(circle at 50% 45%, #365314 0%, #080f06 88%); }
 .hero-tracker.theme-ivory     { border-color: #fef3c7; background: radial-gradient(circle at 50% 45%, #78350f 0%, #17120c 88%); }
-.hero-tracker.theme-bronze    { border-color: #fb923c; background: radial-gradient(circle at 50% 45%, #9a3412 0%, #160b07 88%); }
+.hero-tracker.theme-fracture  {
+  border-color: #e879f9;
+  background:
+    linear-gradient(135deg, rgba(217, 70, 239, 0.34) 0%, transparent 52%),
+    radial-gradient(circle at 75% 75%, rgba(14, 116, 144, 0.55) 0%, #090512 88%);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.65), inset 0 0 0 1px rgba(103, 232, 249, 0.35);
+}
 
 .hero-tracker.is-monarch {
   box-shadow: 0 0 24px rgba(245, 158, 11, 0.35), inset 0 0 0 1px #fde047;
 }
-.hero-tracker.is-eliminated {
-  border-color: rgba(239, 68, 68, 0.45);
-}
+.hero-tracker.is-eliminated { border-color: rgba(239, 68, 68, 0.45); }
 
-/* KNOCKED OUT / DEFEATED OVERLAY */
 .hero-eliminated-overlay {
   position: absolute;
   inset: 0;
@@ -1595,7 +1561,6 @@ button:active { transform: scale(0.97); }
 .tap-zone.right { justify-content: flex-end; }
 .tap-zone:active { background: rgba(255, 255, 255, 0.09); color: rgba(255, 255, 255, 0.8); }
 
-/* MONARCH BUTTON (Inside Modal) */
 .btn-monarch {
   background: rgba(234, 179, 8, 0.14);
   border: 1px solid var(--border-gold);
@@ -1659,7 +1624,7 @@ button:active { transform: scale(0.97); }
 .cmdr-dmg-section {
   background: var(--bg-surface);
   border: 1px solid var(--border-gold);
-  border-radius: 16px;
+  border-radius: calc(var(--card-radius) - 4px);
   padding: 12px 14px;
   margin-bottom: 12px;
 }
@@ -1722,7 +1687,7 @@ button:active { transform: scale(0.97); }
 .modal-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-gold);
-  border-radius: 20px;
+  border-radius: var(--card-radius);
   padding: 20px;
   width: 100%;
   max-width: 390px;
@@ -1849,21 +1814,10 @@ button:active { transform: scale(0.97); }
   gap: 8px;
 }
 
-.table-grid.players-2 {
-  grid-template-columns: 1fr;
-  grid-template-rows: 1fr 1fr;
-}
-.table-grid.players-3 {
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-}
-.table-grid.players-3 .table-seat:nth-child(3) {
-  grid-column: 1 / span 2;
-}
-.table-grid.players-4 {
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-}
+.table-grid.players-2 { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+.table-grid.players-3 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.table-grid.players-3 .table-seat:nth-child(3) { grid-column: 1 / span 2; }
+.table-grid.players-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
 
 .table-seat {
   position: relative;
@@ -1882,16 +1836,13 @@ button:active { transform: scale(0.97); }
   border-color: var(--gold-foil) !important;
   box-shadow: 0 0 24px rgba(253, 230, 138, 0.55), inset 0 0 22px rgba(253, 230, 138, 0.28);
 }
-
 .table-seat.is-monarch {
   box-shadow: 0 0 22px rgba(234, 179, 8, 0.45), inset 0 0 0 1.5px #fde047;
 }
-
 .table-seat.is-eliminated {
   border-color: rgba(239, 68, 68, 0.35) !important;
   filter: grayscale(0.7) brightness(0.55);
 }
-
 .table-seat.is-winner {
   border-color: var(--gold-foil) !important;
   box-shadow: 0 0 28px rgba(234, 179, 8, 0.65), inset 0 0 24px rgba(253, 230, 138, 0.3);
@@ -1903,8 +1854,16 @@ button:active { transform: scale(0.97); }
 .table-seat.theme-gold      { border-color: #f59e0b; background: radial-gradient(circle at 50% 42%, #78350f 0%, #140f08 90%); }
 .table-seat.theme-purple    { border-color: #a855f7; background: radial-gradient(circle at 50% 42%, #581c87 0%, #110a1c 90%); }
 .table-seat.theme-slate     { border-color: #78716c; background: radial-gradient(circle at 50% 42%, #44403c 0%, #0f0e0d 90%); }
+.table-seat.theme-aether    { border-color: #22d3ee; background: radial-gradient(circle at 50% 42%, #0e7490 0%, #06131a 90%); }
+.table-seat.theme-phyrexian { border-color: #84cc16; background: radial-gradient(circle at 50% 42%, #365314 0%, #080f06 90%); }
+.table-seat.theme-ivory     { border-color: #fef3c7; background: radial-gradient(circle at 50% 42%, #78350f 0%, #17120c 90%); }
+.table-seat.theme-fracture  {
+  border-color: #e879f9;
+  background:
+    linear-gradient(135deg, rgba(217, 70, 239, 0.34) 0%, transparent 52%),
+    radial-gradient(circle at 75% 75%, rgba(14, 116, 144, 0.55) 0%, #090512 88%);
+}
 
-/* TAP ZONES FOR TABLE SEATS */
 .seat-tap-zones {
   position: absolute;
   inset: 0;
@@ -1912,13 +1871,9 @@ button:active { transform: scale(0.97); }
   z-index: 1;
 }
 .table-seat.face-left .seat-tap-zones,
-.table-seat.face-right .seat-tap-zones {
-  flex-direction: column;
-}
+.table-seat.face-right .seat-tap-zones { flex-direction: column; }
 .table-seat.face-top .seat-tap-zones,
-.table-seat.face-bottom .seat-tap-zones {
-  flex-direction: row;
-}
+.table-seat.face-bottom .seat-tap-zones { flex-direction: row; }
 
 .seat-tap-zone {
   flex: 1;
@@ -1930,10 +1885,7 @@ button:active { transform: scale(0.97); }
   color: rgba(255, 255, 255, 0.32);
   cursor: pointer;
 }
-.seat-tap-zone:active {
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.85);
-}
+.seat-tap-zone:active { background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.85); }
 
 .table-seat.face-left .seat-tap-zone:first-child,
 .table-seat.face-right .seat-tap-zone:first-child {
@@ -1946,7 +1898,6 @@ button:active { transform: scale(0.97); }
   align-items: flex-end;
   padding-bottom: 12px;
 }
-
 .table-seat.face-top .seat-tap-zone:first-child,
 .table-seat.face-bottom .seat-tap-zone:first-child {
   justify-content: flex-start;
@@ -1959,7 +1910,6 @@ button:active { transform: scale(0.97); }
   padding-right: 20px;
 }
 
-/* ROTATED INNER HUD STACK */
 .seat-hud {
   position: relative;
   z-index: 5;
@@ -1992,6 +1942,9 @@ button:active { transform: scale(0.97); }
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   white-space: nowrap;
+  max-width: 145px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   cursor: pointer;
 }
 .seat-color-btn {
@@ -2055,7 +2008,6 @@ button:active { transform: scale(0.97); }
   margin-top: 2px;
 }
 
-/* SINGLE UNIFIED POD RADAR BUTTON */
 .seat-bottom-dock {
   display: flex;
   flex-direction: column;
@@ -2098,10 +2050,7 @@ button:active { transform: scale(0.97); }
   gap: 4px;
   cursor: pointer;
 }
-.cmdr-radar-btn:active {
-  transform: scale(0.93);
-  border-color: var(--gold-foil);
-}
+.cmdr-radar-btn:active { transform: scale(0.93); border-color: var(--gold-foil); }
 
 .radar-cell {
   border-radius: 5px;
@@ -2125,7 +2074,7 @@ button:active { transform: scale(0.97); }
 .radar-cell.theme-aether    { border-color: #22d3ee; background: rgba(14, 116, 144, 0.55); }
 .radar-cell.theme-phyrexian { border-color: #84cc16; background: rgba(54, 83, 20, 0.55); }
 .radar-cell.theme-ivory     { border-color: #fef3c7; background: rgba(120, 53, 15, 0.55); }
-.radar-cell.theme-bronze    { border-color: #fb923c; background: rgba(154, 52, 18, 0.55); }
+.radar-cell.theme-fracture  { border-color: #e879f9; background: rgba(192, 38, 211, 0.5); }
 
 .radar-cell.self-cell {
   background: rgba(253, 230, 138, 0.16);
@@ -2139,9 +2088,7 @@ button:active { transform: scale(0.97); }
   border-color: #fca5a5 !important;
   color: #ffffff;
 }
-.radar-cell.span-2 {
-  grid-column: 1 / span 2;
-}
+.radar-cell.span-2 { grid-column: 1 / span 2; }
 
 /* TABLE COMMAND TRAY MODAL */
 .table-tray-card {
@@ -2243,7 +2190,6 @@ button:active { transform: scale(0.97); }
   font-size: 0.92rem;
 }
 
-/* SPATIAL COMMANDER DAMAGE MATRIX IN TRAY */
 .tray-cmdr-matrix {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2277,7 +2223,7 @@ button:active { transform: scale(0.97); }
 .matrix-tile.theme-aether    { border-color: #22d3ee; background: radial-gradient(circle at 50% 30%, rgba(14, 116, 144, 0.55), #06131a); }
 .matrix-tile.theme-phyrexian { border-color: #84cc16; background: radial-gradient(circle at 50% 30%, rgba(54, 83, 20, 0.55), #080f06); }
 .matrix-tile.theme-ivory     { border-color: #fef3c7; background: radial-gradient(circle at 50% 30%, rgba(120, 53, 15, 0.55), #17120c); }
-.matrix-tile.theme-bronze    { border-color: #fb923c; background: radial-gradient(circle at 50% 30%, rgba(154, 52, 18, 0.55), #160b07); }
+.matrix-tile.theme-fracture  { border-color: #d946ef; background: radial-gradient(circle at 35% 30%, rgba(192, 38, 211, 0.45), #090512); }
 
 .matrix-tile-header {
   font-size: 0.68rem;
@@ -2625,10 +2571,7 @@ button:active { transform: scale(0.97); }
   color: var(--text-secondary);
   margin-bottom: 8px;
 }
-.mana-strip-header small {
-  color: var(--text-muted);
-  font-weight: 600;
-}
+.mana-strip-header small { color: var(--text-muted); font-weight: 600; }
 .mana-pills-row {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
@@ -2670,7 +2613,6 @@ button:active { transform: scale(0.97); }
   box-shadow: 0 0 10px rgba(234, 179, 8, 0.18);
 }
 
-/* Oracle Lookup Styles */
 .oracle-results-scroll {
   overflow-y: auto;
   max-height: 360px;
@@ -2739,12 +2681,8 @@ button:active { transform: scale(0.97); }
   color: var(--text-muted);
   margin-right: 6px;
 }
-.oracle-ruling-empty {
-  font-size: 0.74rem;
-  color: var(--text-muted);
-}
+.oracle-ruling-empty { font-size: 0.74rem; color: var(--text-muted); }
 
-/* Stats Pace 3-Card Bar & Insights Accordion */
 .stats-pace-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -2808,11 +2746,7 @@ button:active { transform: scale(0.97); }
   border-radius: 10px;
   padding: 9px 10px;
 }
-.insight-box-title {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-}
+.insight-box-title { font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); }
 .insight-box-val {
   font-family: var(--font-display);
   font-size: 1.15rem;
@@ -2820,10 +2754,7 @@ button:active { transform: scale(0.97); }
   color: var(--gold-foil);
   margin: 2px 0;
 }
-.insight-box-sub {
-  font-size: 0.66rem;
-  color: var(--text-muted);
-}
+.insight-box-sub { font-size: 0.66rem; color: var(--text-muted); }
 .insight-sub-section { margin-top: 10px; }
 .insight-sub-header {
   font-size: 0.68rem;
@@ -2833,11 +2764,7 @@ button:active { transform: scale(0.97); }
   color: var(--text-secondary);
   margin-bottom: 5px;
 }
-.insight-chip-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
+.insight-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
 .insight-pill {
   background: var(--bg-base);
   border: 1px solid var(--border-subtle);
@@ -2864,10 +2791,7 @@ button:active { transform: scale(0.97); }
   overflow: hidden;
   cursor: pointer;
 }
-.deck-stat-card-expandable .deck-stat-row {
-  border: none;
-  border-radius: 0;
-}
+.deck-stat-card-expandable .deck-stat-row { border: none; border-radius: 0; }
 .deck-stat-drawer {
   padding: 8px 12px 10px;
   background: rgba(0, 0, 0, 0.35);
@@ -2886,11 +2810,7 @@ button:active { transform: scale(0.97); }
 }
 .deck-streak-pill.win { background: rgba(34, 197, 94, 0.18); color: #4ade80; }
 .deck-streak-pill.loss { background: rgba(239, 68, 68, 0.18); color: #f87171; }
-.match-opponents-tag {
-  font-size: 0.72rem;
-  color: #d6d3d1;
-  margin-top: 2px;
-}
+.match-opponents-tag { font-size: 0.72rem; color: #d6d3d1; margin-top: 2px; }
 
 /* =========================================================
    PHASE 4: CUSTOM ILLUSTRATOR VECTOR ICONS (CSS MASK-IMAGE)
@@ -2930,7 +2850,7 @@ button:active { transform: scale(0.97); }
 .cs-icon-planar  { -webkit-mask-image: url("images/icons/die-planar.svg");  mask-image: url("images/icons/die-planar.svg"); }
 
 /* =========================================================
-   PHASE 5: VISUAL DECK PICKER, PALETTE GRID & FOIL SHIMMER
+   PHASE 5: VISUAL DECK PICKER, COLLECTOR PALETTES & GATING
    ========================================================= */
 .visual-deck-picker-grid {
   display: grid;
@@ -3003,33 +2923,42 @@ button:active { transform: scale(0.97); }
 
 .palette-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
 }
 
 .palette-btn {
   margin: 0;
-  padding: 10px 6px;
+  padding: 12px 8px;
   border-radius: 12px;
   background: var(--bg-base);
   border: 1.5px solid var(--border-subtle);
   color: var(--text-secondary);
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: 0.76rem;
+  font-weight: 800;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+}
+.palette-btn small {
+  font-size: 0.63rem;
+  font-weight: 600;
+  color: var(--text-muted);
 }
 .palette-btn.selected {
   border-color: var(--gold-foil);
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.06);
+}
+.palette-btn.selected small {
+  color: var(--gold-foil);
 }
 .palette-dot {
   width: 24px;
   height: 24px;
   border-radius: 50%;
+  margin-bottom: 2px;
   border: 1.5px solid rgba(255, 255, 255, 0.35);
 }
 
@@ -3042,6 +2971,7 @@ button:active { transform: scale(0.97); }
 .hero-tracker.supporter-foil {
   animation: foilShimmer 4s ease-in-out infinite;
 }
+
 /* =========================================================
    SUPPORTER ENTITLEMENT GATING (HIDDEN UNTIL UNLOCKED)
    ========================================================= */

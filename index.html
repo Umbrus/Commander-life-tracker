@@ -12,13 +12,18 @@
   <link rel="apple-touch-icon" href="images/icon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@700&family=Cinzel:wght@700;800&family=Cormorant+Garamond:wght@700&family=Orbitron:wght@700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script>
     (function() {
       const p = localStorage.getItem("mtg_app_palette");
-      if (p && p !== "crimson") document.documentElement.setAttribute("data-palette", p);
+      const meta = document.querySelector('meta[name="theme-color"]');
+      const colors = { crimson: "#070606", teal: "#03080c", abyssal: "#05040a", fracture: "#060409" };
+      if (p && p !== "crimson") {
+        document.documentElement.setAttribute("data-palette", p);
+        if (meta && colors[p]) meta.setAttribute("content", colors[p]);
+      }
     })();
   </script>
 </head>
@@ -116,10 +121,10 @@
               <button type="button" class="swatch-btn" data-theme="gold" title="Boros Gold"></button>
               <button type="button" class="swatch-btn" data-theme="purple" title="Dimir Violet"></button>
               <button type="button" class="swatch-btn" data-theme="slate" title="Eldrazi Obsidian"></button>
-              <button type="button" class="swatch-btn" data-theme="slate" title="aether"></button>
-              <button type="button" class="swatch-btn" data-theme="slate" title="phyrexian"></button>
-              <button type="button" class="swatch-btn" data-theme="slate" title="ivory"></button>
-              <button type="button" class="swatch-btn" data-theme="slate" title="bronze"></button>
+              <button type="button" class="swatch-btn supporter-only" data-theme="aether" title="Prismatic Aether (Supporter)"></button>
+              <button type="button" class="swatch-btn supporter-only" data-theme="phyrexian" title="Phyrexian Oil (Supporter)"></button>
+              <button type="button" class="swatch-btn supporter-only" data-theme="ivory" title="Celestial Ivory (Supporter)"></button>
+              <button type="button" class="swatch-btn supporter-only" data-theme="fracture" title="Reality Fracture (Supporter)"></button>
             </div>
 
             <div class="menu-divider"></div>
@@ -255,7 +260,7 @@
     </div>
   </div>
 
-  <!-- VISUAL DECK PILOTING PICKER MODAL (Triggers after Create or Join Pod) -->
+  <!-- VISUAL DECK PILOTING PICKER MODAL -->
   <div id="deckSelectModal" class="modal-backdrop hidden">
     <div class="modal-card" style="max-height: 86vh; display: flex; flex-direction: column;">
       <div class="modal-header">
@@ -413,7 +418,7 @@
     <div class="modal-card">
       <div class="modal-header">
         <h2>Start New Game</h2>
-        <button id="closeNewGameModalBtn" class="btn-secondary btn-small">✕</button>
+        <button id="closeNewGameModalBtn" type="button" class="btn-secondary btn-small">✕</button>
       </div>
       <p class="modal-sub">Choose starting life and reset all players, counters, turns, and history:</p>
 
@@ -432,7 +437,7 @@
     <div class="modal-card">
       <div class="modal-header">
         <h2>Optional Deck Counters</h2>
-        <button id="closeCountersModalBtn" class="btn-secondary btn-small">✕</button>
+        <button id="closeCountersModalBtn" type="button" class="btn-secondary btn-small">✕</button>
       </div>
       <p class="modal-sub">Pin counters used by your deck to your main screen:</p>
 
@@ -468,7 +473,7 @@
     <div class="modal-card">
       <div class="modal-header">
         <h2>Pod Life History</h2>
-        <button id="closeHistoryBtn" class="btn-secondary btn-small">✕</button>
+        <button id="closeHistoryBtn" type="button" class="btn-secondary btn-small">✕</button>
       </div>
       <div id="historyList" class="history-list">
         <div class="empty-hint">No life changes recorded yet.</div>
@@ -481,7 +486,7 @@
     <div class="modal-card">
       <div class="modal-header">
         <h2>Dice &amp; Coin Roller</h2>
-        <button id="closeDiceBtn" class="btn-secondary btn-small">✕</button>
+        <button id="closeDiceBtn" type="button" class="btn-secondary btn-small">✕</button>
       </div>
 
       <div class="dice-stage">
@@ -509,7 +514,7 @@
     <div class="modal-card">
       <div class="modal-header">
         <h2 id="modalPlayerName">Player Stats</h2>
-        <button id="closeModalBtn" class="btn-secondary btn-small">✕</button>
+        <button id="closeModalBtn" type="button" class="btn-secondary btn-small">✕</button>
       </div>
 
       <div class="modal-stats-row">
@@ -549,7 +554,7 @@
     <div class="modal-card">
       <div class="modal-header">
         <h2>Turn Order &amp; 1st Player</h2>
-        <button id="closeFirstPlayerBtn" class="btn-secondary btn-small">✕</button>
+        <button id="closeFirstPlayerBtn" type="button" class="btn-secondary btn-small">✕</button>
       </div>
 
       <button id="rollDiceBtn" class="btn-primary">Roll Random First Player</button>
@@ -563,7 +568,7 @@
     </div>
   </div>
 
-  <!-- TABLE MODE QUICK-LOG MODAL (Prompts on Exit if Life Changed) -->
+  <!-- TABLE MODE QUICK-LOG MODAL -->
   <div id="tableQuickLogModal" class="modal-backdrop hidden">
     <div class="modal-card">
       <div class="modal-header">
@@ -594,13 +599,13 @@
     </div>
   </div>
 
-  <!-- FLOATING UNDO TOAST FOR ACCIDENTAL SCOOPS / RESETS -->
+  <!-- FLOATING UNDO TOAST -->
   <div id="undoToast" class="undo-toast hidden" role="status" aria-live="polite">
     <span id="undoToastMsg" class="undo-toast-msg">Action completed</span>
     <button id="undoToastBtn" type="button" class="undo-toast-btn">↺ Undo</button>
   </div>
 
-  <!-- 4-TAB BOTTOM NAVIGATION BAR (Hidden during active Pod or Table Mode) -->
+  <!-- 4-TAB BOTTOM NAVIGATION BAR -->
   <nav id="mainBottomNav" class="bottom-nav" aria-label="Primary Navigation">
     <a href="index.html" class="bottom-nav-item active">
       <span class="cs-icon cs-icon-play"></span>
