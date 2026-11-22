@@ -12,14 +12,14 @@
   <link rel="apple-touch-icon" href="images/icon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@700&family=Cinzel:wght@700;800&family=Cormorant+Garamond:wght@700&family=Orbitron:wght@700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@700&family=Cinzel:wght@700;800&family=Cinzel+Decorative:wght@700;800&family=Cormorant+Garamond:wght@700&family=Orbitron:wght@700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script>
     (function() {
       const p = localStorage.getItem("mtg_app_palette");
       const meta = document.querySelector('meta[name="theme-color"]');
-      const colors = { crimson: "#070606", teal: "#03080c", abyssal: "#05040a", fracture: "#060409", uncommon: "#080c12", rare: "#100b14", common: "#0b0908" };
+      const colors = { crimson: "#070606", chocobo: "#151004", teal: "#03080c", abyssal: "#05040a", fracture: "#060409", uncommon: "#080c12", rare: "#100b14", common: "#0b0908" };
       if (p && p !== "crimson" && colors[p]) {
         document.documentElement.setAttribute("data-palette", p);
         if (meta && colors[p]) meta.setAttribute("content", colors[p]);
@@ -660,6 +660,11 @@
       </div>
       <button id="gotItBtn" type="button" class="btn-primary" style="margin-top: 14px; margin-bottom: 0;">Got It</button>
     </div>
+  </div>
+
+  <div id="powerDimOverlay" class="power-dim-overlay hidden" role="button" tabindex="0" aria-label="Screen dimmed. Tap to wake.">
+    <span>Screen dimmed</span>
+    <small>Tap anywhere to wake</small>
   </div>
 
   <!-- 4-TAB BOTTOM NAVIGATION BAR -->

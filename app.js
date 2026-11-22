@@ -38,6 +38,8 @@ const LOCAL_DECKS_KEY = "mtg_local_deck_locker";
 const LOCAL_MATCHES_KEY = "mtg_local_match_history";
 const FOIL_FRAME_KEY = "mtg_supporter_foil_frame";
 const SUPPORTER_KEY = "mtg_is_supporter";
+const POWER_SAVER_KEY = "mtg_power_saver_enabled";
+const POWER_SAVER_TIMEOUT_KEY = "mtg_power_saver_timeout";
 const APP_PALETTE_KEY = "mtg_app_palette";
 const SESSION_MAX_AGE_MS = 4 * 60 * 60 * 1000;
 
@@ -131,6 +133,8 @@ let deltaClearTimer = null;
 let wakeLock = null;
 let undoTimer = null;
 let pendingUndoCallback = null;
+let powerDimTimer = null;
+let powerScreenDimmed = false;
 
 let pendingHistoryStartLife = null;
 let pendingHistoryNote = "";
@@ -195,10 +199,12 @@ function applyHeroCommanderBackdrop(artUrl) {
 
 function applySupporterFoilFrame() {
   const hero = document.getElementById("heroTracker");
-  if (!hero) return;
   const isSupporter = localStorage.getItem(SUPPORTER_KEY) === "true";
   const isFoil = isSupporter && localStorage.getItem(FOIL_FRAME_KEY) === "true";
-  hero.classList.toggle("supporter-foil", isFoil);
+  if (hero) hero.classList.toggle("supporter-foil", isFoil);
+  document.querySelectorAll(".table-seat").forEach((seat) => {
+    seat.classList.toggle("supporter-foil", isFoil);
+  });
 }
 
 // =========================================================
@@ -1027,24 +1033,97 @@ function clearSession() {
 
 // --- SCREEN WAKE LOCK ---
 async function enableWakeLock() {
+  if (powerScreenDimmed) return;
   if ("wakeLock" in navigator) {
     try {
+      if (wakeLock) return;
       wakeLock = await navigator.wakeLock.request("screen");
       document.getElementById("wakeStatus").textContent = "Screen Wake Lock: Active";
       wakeLock.addEventListener("release", () => {
-        document.getElementById("wakeStatus").textContent = "Screen Wake Lock: Paused";
+        wakeLock = null;
+        if (!powerScreenDimmed) {
+          document.getElementById("wakeStatus").textContent = "Screen Wake Lock: Paused";
+        }
       });
     } catch {
       document.getElementById("wakeStatus").textContent = "Screen Wake Lock: Unavailable";
     }
+  } else {
+    document.getElementById("wakeStatus").textContent = "Screen Wake Lock: Unavailable";
   }
+}
+
+async function releaseWakeLock() {
+  if (!wakeLock) return;
+  try {
+    await wakeLock.release();
+  } catch {}
+  wakeLock = null;
+}
+
+function getPowerSaverTimeoutMs() {
+  const seconds = parseInt(localStorage.getItem(POWER_SAVER_TIMEOUT_KEY) || "300", 10);
+  return (Number.isFinite(seconds) ? seconds : 300) * 1000;
+}
+
+function dimScreenForPowerSaving() {
+  if (powerScreenDimmed) return;
+  powerScreenDimmed = true;
+  const overlay = document.getElementById("powerDimOverlay");
+  if (overlay) overlay.classList.remove("hidden");
+  document.getElementById("wakeStatus").textContent = "Power Saving: Screen Dimmed";
+  releaseWakeLock();
+}
+
+function wakeScreenFromPowerSaving() {
+  powerScreenDimmed = false;
+  const overlay = document.getElementById("powerDimOverlay");
+  if (overlay) overlay.classList.add("hidden");
+  resetPowerSaverTimer();
+  enableWakeLock();
+}
+
+function resetPowerSaverTimer() {
+  if (powerDimTimer) clearTimeout(powerDimTimer);
+  powerDimTimer = null;
+  if (localStorage.getItem(POWER_SAVER_KEY) !== "true") {
+    powerScreenDimmed = false;
+    const overlay = document.getElementById("powerDimOverlay");
+    if (overlay) overlay.classList.add("hidden");
+    return;
+  }
+  if (powerScreenDimmed) return;
+  powerDimTimer = setTimeout(dimScreenForPowerSaving, getPowerSaverTimeoutMs());
 }
 
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && (currentPodCode || !document.getElementById("tableView").classList.contains("hidden"))) {
-    enableWakeLock();
+    if (powerScreenDimmed) wakeScreenFromPowerSaving();
+    else {
+      resetPowerSaverTimer();
+      enableWakeLock();
+    }
   }
 });
+
+const powerDimOverlay = document.getElementById("powerDimOverlay");
+if (powerDimOverlay) {
+  powerDimOverlay.addEventListener("click", wakeScreenFromPowerSaving);
+  powerDimOverlay.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      wakeScreenFromPowerSaving();
+    }
+  });
+}
+
+["pointerdown", "pointermove", "keydown", "touchstart"].forEach((eventName) => {
+  document.addEventListener(eventName, () => {
+    if (powerScreenDimmed) return;
+    resetPowerSaverTimer();
+  }, { passive: true });
+});
+resetPowerSaverTimer();
 
 // --- CHECK URL FOR ?pod=XXXX INVITE ---
 const urlParams = new URLSearchParams(window.location.search);
@@ -1976,6 +2055,7 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
   statusText.textContent = "Pod Network Ready";
   statusBox.className = "conn-pill ok";
   renderInviteQR(code);
+  resetPowerSaverTimer();
   enableWakeLock();
 
   if (!isNew) {
@@ -2418,6 +2498,7 @@ function initTableMode() {
   lobbyView.classList.add("hidden");
   if (mainBottomNav) mainBottomNav.classList.add("hidden");
   tableView.classList.remove("hidden");
+  resetPowerSaverTimer();
   enableWakeLock();
 }
 
@@ -2542,6 +2623,7 @@ function renderTableGrid() {
       openTablePlayerTray(idx);
     };
   });
+  applySupporterFoilFrame();
 }
 
 function checkTableSeatLethal(idx) {

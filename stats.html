@@ -9,12 +9,15 @@
   <link rel="icon" type="image/svg+xml" href="images/icon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800&family=Cinzel+Decorative:wght@700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <script>
   (function() {
     const p = localStorage.getItem("mtg_app_palette");
     if (p && p !== "crimson") document.documentElement.setAttribute("data-palette", p);
+    const meta = document.querySelector('meta[name="theme-color"]');
+    const colors = { crimson: "#070606", chocobo: "#151004", teal: "#03080c", abyssal: "#030b0e", fracture: "#040811", uncommon: "#080c12", rare: "#100b14", common: "#0b0908" };
+    if (meta && p && colors[p]) meta.setAttribute("content", colors[p]);
   })();
 </script>
 </head>

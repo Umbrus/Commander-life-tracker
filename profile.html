@@ -9,13 +9,13 @@
   <link rel="icon" type="image/svg+xml" href="images/icon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@700&family=Cinzel:wght@700;800&family=Cormorant+Garamond:wght@700&family=Orbitron:wght@700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@700&family=Cinzel:wght@700;800&family=Cinzel+Decorative:wght@700;800&family=Cormorant+Garamond:wght@700&family=Orbitron:wght@700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <script>
     (function() {
       const p = localStorage.getItem("mtg_app_palette");
       const meta = document.querySelector('meta[name="theme-color"]');
-      const colors = { crimson: "#070606", teal: "#03080c", abyssal: "#030b0e", fracture: "#040811", uncommon: "#080c12", rare: "#100b14", common: "#0b0908" };
+      const colors = { crimson: "#070606", chocobo: "#151004", teal: "#03080c", abyssal: "#030b0e", fracture: "#040811", uncommon: "#080c12", rare: "#100b14", common: "#0b0908" };
       if (p && p !== "crimson" && colors[p]) {
         document.documentElement.setAttribute("data-palette", p);
         if (meta && colors[p]) meta.setAttribute("content", colors[p]);
@@ -23,7 +23,7 @@
     })();
   </script>
 </head>
-<body>
+<body class="profile-page">
 
   <div class="app-shell">
     <div class="subpage-wrapper">
@@ -78,8 +78,13 @@
               </button>
             </div>
             <details id="moreAppPalettes" class="palette-more supporter-palette-group">
-              <summary>Supporter Set Themes <span>3</span></summary>
+              <summary>Supporter Set Themes <span>4</span></summary>
               <div class="palette-grid palette-group-grid">
+                <button type="button" class="palette-btn supporter-only" data-palette="chocobo" aria-pressed="false">
+                  <span class="palette-dot" style="background:linear-gradient(135deg,#facc15,#f97316,#38bdf8,#166534);"></span>
+                  <span>Chocobo Gold</span>
+                  <small>Final Fantasy — plains &amp; sun</small>
+                </button>
                 <button type="button" class="palette-btn supporter-only" data-palette="teal" aria-pressed="false">
                   <span class="palette-dot" style="background:linear-gradient(135deg,#0d9488,#38bdf8);"></span>
                   <span>Starfleet Teal</span>
@@ -105,6 +110,24 @@
             <span>Supporter Foil Card Frame</span>
             <span id="badgeFoilFrame" class="toggle-state">OFF</span>
           </button>
+        </div>
+
+        <div class="input-group" style="margin-top:12px;">
+          <button type="button" id="togglePowerSaverBtn" class="toggle-counter-row" aria-pressed="false">
+            <span>
+              Power Saving Mode
+              <small style="display:block;margin-top:2px;color:var(--text-muted);font-weight:600;">Dims this screen after inactivity</small>
+            </span>
+            <span id="badgePowerSaver" class="toggle-state">OFF</span>
+          </button>
+          <label for="powerSaverTimeoutSelect" class="input-label" style="margin-top:9px;">Dim After</label>
+          <select id="powerSaverTimeoutSelect" class="deck-select" aria-label="Power saving inactivity timeout">
+            <option value="60">1 minute</option>
+            <option value="120">2 minutes</option>
+            <option value="300" selected>5 minutes</option>
+            <option value="600">10 minutes</option>
+            <option value="900">15 minutes</option>
+          </select>
         </div>
 
         <!-- VIP / BETA TESTER CODE REDEMPTION -->

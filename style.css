@@ -18,7 +18,28 @@
   --card-radius: 20px;
   --bg-glow-top: rgba(185, 28, 28, 0.16);
   --bg-glow-bottom: rgba(127, 29, 29, 0.12);
-  --bg-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cg fill='none' stroke='%23d4af37' stroke-opacity='0.055' stroke-width='1'%3E%3Cg transform='translate(28, 22) rotate(-14)'%3E%3Crect x='0' y='0' width='44' height='62' rx='4'/%3E%3Crect x='4' y='5' width='36' height='24' rx='1.5'/%3E%3Crect x='4' y='33' width='36' height='23' rx='1.5'/%3E%3C/g%3E%3Cg transform='translate(116, 94) rotate(12)'%3E%3Crect x='0' y='0' width='44' height='62' rx='4'/%3E%3Crect x='4' y='5' width='36' height='24' rx='1.5'/%3E%3Crect x='4' y='33' width='36' height='23' rx='1.5'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  --bg-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 260 260'%3E%3Cg fill='none' stroke='%23d4af37' stroke-opacity='0.072' stroke-width='1.15'%3E%3Cg transform='translate(30 30) rotate(-12 58 84)'%3E%3Crect x='0' y='0' width='116' height='168' rx='8' fill='%23be123c' fill-opacity='0.018' stroke='%23fde68a' stroke-opacity='0.09'/%3E%3Crect x='7' y='7' width='102' height='154' rx='5' stroke='%23d4af37' stroke-opacity='0.10'/%3E%3Crect x='14' y='14' width='88' height='18' rx='3' fill='%23fde68a' fill-opacity='0.025'/%3E%3Ccircle cx='94' cy='23' r='4' fill='%23d4af37' fill-opacity='0.09'/%3E%3Crect x='14' y='38' width='88' height='58' rx='2' fill='%23be123c' fill-opacity='0.028'/%3E%3Cpath d='M14 96l88 0M14 104l88 0M14 112l88 0M14 120l88 0M14 128l88 0M14 136l88 0' stroke-opacity='0.055'/%3E%3Cpath d='M24 72l11-16 10 10 14-19 19 25H24ZM14 38h88' stroke='%23fde68a' stroke-opacity='0.06'/%3E%3C/g%3E%3Cg transform='translate(156 82) rotate(15 58 84)'%3E%3Crect x='0' y='0' width='116' height='168' rx='8' fill='%23be123c' fill-opacity='0.016' stroke='%23fde68a' stroke-opacity='0.08'/%3E%3Crect x='7' y='7' width='102' height='154' rx='5' stroke='%23d4af37' stroke-opacity='0.09'/%3E%3Crect x='14' y='14' width='88' height='18' rx='3' fill='%23fde68a' fill-opacity='0.022'/%3E%3Ccircle cx='94' cy='23' r='4' fill='%23d4af37' fill-opacity='0.08'/%3E%3Crect x='14' y='38' width='88' height='58' rx='2' fill='%23be123c' fill-opacity='0.024'/%3E%3Cpath d='M14 96l88 0M14 104l88 0M14 112l88 0M14 120l88 0M14 128l88 0M14 136l88 0' stroke-opacity='0.050'/%3E%3Cpath d='M24 72l11-16 10 10 14-19 19 25H24ZM14 38h88' stroke='%23fde68a' stroke-opacity='0.055'/%3E%3C/g%3E%3C/g%3E%3Cg fill='%23d4af37' fill-opacity='0.035'%3E%3Ccircle cx='125' cy='24' r='2'/%3E%3Ccircle cx='204' cy='54' r='2'/%3E%3Ccircle cx='44' cy='224' r='2'/%3E%3Ccircle cx='236' cy='236' r='2'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* 1. CHOCOBO GOLD — Sunlit yellow, trail green, and sky-blue details */
+:root[data-palette="chocobo"] {
+  --bg-base: #151004;
+  --bg-surface: #211906;
+  --bg-elevated: #35270c;
+  --mythic-primary: #d97706;
+  --mythic-deep: #166534;
+  --mythic-bright: #fde047;
+  --gold-foil: #fef08a;
+  --gold-accent: #facc15;
+  --border-gold: rgba(250, 204, 21, 0.48);
+  --border-gold-bright: rgba(254, 240, 138, 0.82);
+  --text-primary: #fffdf2;
+  --text-secondary: #d8d0a3;
+  --font-display: "Cinzel Decorative", "Cinzel", Georgia, serif;
+  --card-radius: 18px;
+  --bg-glow-top: rgba(250, 204, 21, 0.24);
+  --bg-glow-bottom: rgba(22, 101, 52, 0.22);
+  --bg-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'%3E%3Cg fill='%23facc15' fill-opacity='0.075' stroke='%23facc15' stroke-opacity='0.055' stroke-width='0.8'%3E%3Cg transform='translate(34 34) rotate(-18)'%3E%3Cpath d='M18 30c-7-8-9-16-4-18 5-2 11 5 12 15 2-10 8-17 13-14 5 3 1 12-6 19 8-5 16-5 17 0 1 6-8 10-17 10-12 1-22-5-15-12Z'/%3E%3C/g%3E%3Cg transform='translate(122 68) rotate(22)'%3E%3Cpath d='M18 30c-7-8-9-16-4-18 5-2 11 5 12 15 2-10 8-17 13-14 5 3 1 12-6 19 8-5 16-5 17 0 1 6-8 10-17 10-12 1-22-5-15-12Z'/%3E%3C/g%3E%3Cg transform='translate(78 142) rotate(-8)'%3E%3Cpath d='M18 30c-7-8-9-16-4-18 5-2 11 5 12 15 2-10 8-17 13-14 5 3 1 12-6 19 8-5 16-5 17 0 1 6-8 10-17 10-12 1-22-5-15-12Z'/%3E%3C/g%3E%3Cg transform='translate(166 178) rotate(16)'%3E%3Cpath d='M18 30c-7-8-9-16-4-18 5-2 11 5 12 15 2-10 8-17 13-14 5 3 1 12-6 19 8-5 16-5 17 0 1 6-8 10-17 10-12 1-22-5-15-12Z'/%3E%3C/g%3E%3C/g%3E%3Cg fill='none' stroke='%23166534' stroke-opacity='0.055' stroke-width='1.2'%3E%3Cpath d='M38 70c28 12 54 8 82-12 24-17 43-17 64-7'/%3E%3Cpath d='M82 178c20-18 44-25 72-18'/%3E%3C/g%3E%3C/svg%3E");
 }
 
 /* 1. STARFLEET TEAL — Orbital HUD Typography + Hexagonal Star-Chart Grid + Angular Corners */
@@ -143,6 +164,12 @@
   touch-action: manipulation;
 }
 
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   background-color: var(--bg-base);
@@ -154,6 +181,24 @@ body {
   display: flex;
   justify-content: center;
   min-height: 100vh;
+}
+
+@media (min-width: 461px) {
+  :root:not([data-palette]),
+  :root[data-palette="crimson"] {
+    --bg-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='300' viewBox='0 0 320 300'%3E%3Cg fill='none' stroke='%23d4af37' stroke-opacity='0.072' stroke-width='1.15'%3E%3Cg transform='translate(30 30) rotate(-12 58 84)'%3E%3Crect width='116' height='168' rx='8' fill='%23be123c' fill-opacity='0.018' stroke='%23fde68a' stroke-opacity='0.09'/%3E%3Crect x='7' y='7' width='102' height='154' rx='5' stroke='%23d4af37' stroke-opacity='0.10'/%3E%3Crect x='14' y='14' width='88' height='18' rx='3' fill='%23fde68a' fill-opacity='0.025'/%3E%3Ccircle cx='94' cy='23' r='4' fill='%23d4af37' fill-opacity='0.09'/%3E%3Crect x='14' y='38' width='88' height='58' rx='2' fill='%23be123c' fill-opacity='0.028'/%3E%3Cpath d='M14 96h88M14 104h88M14 112h88M14 120h88M14 128h88M14 136h88' stroke-opacity='0.055'/%3E%3Cpath d='M24 72l11-16 10 10 14-19 19 25H24ZM14 38h88' stroke='%23fde68a' stroke-opacity='0.06'/%3E%3C/g%3E%3Cg transform='translate(156 82) rotate(15 58 84)'%3E%3Crect width='116' height='168' rx='8' fill='%23be123c' fill-opacity='0.016' stroke='%23fde68a' stroke-opacity='0.08'/%3E%3Crect x='7' y='7' width='102' height='154' rx='5' stroke='%23d4af37' stroke-opacity='0.09'/%3E%3Crect x='14' y='14' width='88' height='18' rx='3' fill='%23fde68a' fill-opacity='0.022'/%3E%3Ccircle cx='94' cy='23' r='4' fill='%23d4af37' fill-opacity='0.08'/%3E%3Crect x='14' y='38' width='88' height='58' rx='2' fill='%23be123c' fill-opacity='0.024'/%3E%3Cpath d='M14 96h88M14 104h88M14 112h88M14 120h88M14 128h88M14 136h88' stroke-opacity='0.05'/%3E%3Cpath d='M24 72l11-16 10 10 14-19 19 25H24ZM14 38h88' stroke='%23fde68a' stroke-opacity='0.055'/%3E%3C/g%3E%3C/g%3E%3Cg fill='%23d4af37' fill-opacity='0.035'%3E%3Ccircle cx='125' cy='24' r='2'/%3E%3Ccircle cx='204' cy='54' r='2'/%3E%3Ccircle cx='44' cy='224' r='2'/%3E%3Ccircle cx='236' cy='236' r='2'/%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  body {
+    background-repeat: no-repeat, no-repeat, no-repeat;
+    background-position: center top, right bottom, center 46%;
+    background-size: auto, auto, clamp(520px, 58vw, 820px) clamp(520px, 58vw, 820px);
+  }
+
+  body.profile-page {
+    background-attachment: scroll, scroll, fixed;
+    background-position: center top, right bottom, center center;
+  }
 }
 
 .app-shell {
@@ -3225,13 +3270,98 @@ button:active { transform: scale(0.97); }
 }
 
 @keyframes foilShimmer {
-  0%   { box-shadow: 0 0 18px rgba(253, 230, 138, 0.35), inset 0 0 0 1.5px rgba(253, 230, 138, 0.6); }
-  50%  { box-shadow: 0 0 26px rgba(56, 189, 248, 0.45), inset 0 0 0 1.5px rgba(255, 255, 255, 0.85); }
-  100% { box-shadow: 0 0 18px rgba(253, 230, 138, 0.35), inset 0 0 0 1.5px rgba(253, 230, 138, 0.6); }
+  0%   { background-position: 180% 50%; filter: brightness(1); }
+  50%  { filter: brightness(1.12); }
+  100% { background-position: -80% 50%; filter: brightness(1); }
 }
 
 .hero-tracker.supporter-foil {
-  animation: foilShimmer 4s ease-in-out infinite;
+  position: relative;
+  border-width: 3px;
+  border-color: #fef3c7;
+  box-shadow:
+    0 14px 32px rgba(0, 0, 0, 0.55),
+    0 0 18px rgba(253, 230, 138, 0.42),
+    0 0 24px rgba(56, 189, 248, 0.18),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.38);
+  isolation: isolate;
+}
+.hero-tracker.supporter-foil::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  z-index: 3;
+  border-radius: calc(var(--card-radius) - 7px);
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  background:
+    linear-gradient(115deg,
+      transparent 28%,
+      rgba(255, 255, 255, 0.12) 38%,
+      rgba(125, 211, 252, 0.38) 46%,
+      rgba(244, 114, 182, 0.32) 52%,
+      rgba(253, 230, 138, 0.42) 58%,
+      transparent 68%);
+  background-size: 220% 100%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  animation: foilShimmer 4.5s linear infinite;
+}
+.hero-tracker.supporter-foil::after {
+  content: "SUPPORTER FOIL";
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  z-index: 5;
+  padding: 3px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  border-radius: 999px;
+  background: rgba(7, 6, 6, 0.72);
+  color: #fef3c7;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+.table-seat.supporter-foil {
+  border-width: 3px;
+  border-color: #fef3c7 !important;
+  box-shadow:
+    0 0 16px rgba(253, 230, 138, 0.38),
+    0 0 20px rgba(56, 189, 248, 0.18),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.42);
+}
+
+.power-dim-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: brightness(0.18) blur(2px);
+  color: rgba(255, 255, 255, 0.78);
+  text-align: center;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.power-dim-overlay span {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+.power-dim-overlay small {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-tracker.supporter-foil::before {
+    animation: none;
+  }
 }
 
 /* =========================================================

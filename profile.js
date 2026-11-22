@@ -27,10 +27,13 @@ const LOCAL_MATCHES_KEY = "mtg_local_match_history";
 const APP_PALETTE_KEY = "mtg_app_palette";
 const FOIL_FRAME_KEY = "mtg_supporter_foil_frame";
 const SUPPORTER_KEY = "mtg_is_supporter";
+const POWER_SAVER_KEY = "mtg_power_saver_enabled";
+const POWER_SAVER_TIMEOUT_KEY = "mtg_power_saver_timeout";
 const STANDARD_THEMES = ["blue", "red", "green", "gold", "purple", "slate"];
 const FREE_APP_PALETTES = ["crimson", "rare", "uncommon", "common"];
 const PALETTE_THEME_COLORS = {
   crimson: "#070606",
+  chocobo: "#151004",
   teal: "#03080c",
   abyssal: "#030b0e",
   fracture: "#040811",
@@ -172,6 +175,8 @@ function renderFoilToggleUI() {
   const badge = document.getElementById("badgeFoilFrame");
   if (btn) btn.classList.toggle("pinned", isFoilFrame);
   if (badge) badge.textContent = isFoilFrame ? "ON" : "OFF";
+  const preview = document.getElementById("defaultThemePreview");
+  if (preview) preview.classList.toggle("supporter-foil", isFoilFrame);
 }
 renderFoilToggleUI();
 
@@ -182,6 +187,42 @@ if (foilToggleBtn) {
     isFoilFrame = !isFoilFrame;
     localStorage.setItem(FOIL_FRAME_KEY, String(isFoilFrame));
     renderFoilToggleUI();
+  };
+}
+
+const powerSaverToggle = document.getElementById("togglePowerSaverBtn");
+const powerSaverBadge = document.getElementById("badgePowerSaver");
+const powerSaverTimeoutSelect = document.getElementById("powerSaverTimeoutSelect");
+let powerSaverEnabled = localStorage.getItem(POWER_SAVER_KEY) === "true";
+
+function renderPowerSaverUI() {
+  if (powerSaverToggle) {
+    powerSaverToggle.classList.toggle("pinned", powerSaverEnabled);
+    powerSaverToggle.setAttribute("aria-pressed", String(powerSaverEnabled));
+  }
+  if (powerSaverBadge) powerSaverBadge.textContent = powerSaverEnabled ? "ON" : "OFF";
+  if (powerSaverTimeoutSelect) {
+    const savedTimeout = localStorage.getItem(POWER_SAVER_TIMEOUT_KEY) || "300";
+    const validTimeout = Array.from(powerSaverTimeoutSelect.options).some((option) => option.value === savedTimeout)
+      ? savedTimeout
+      : "300";
+    powerSaverTimeoutSelect.value = validTimeout;
+    localStorage.setItem(POWER_SAVER_TIMEOUT_KEY, validTimeout);
+  }
+}
+renderPowerSaverUI();
+
+if (powerSaverToggle) {
+  powerSaverToggle.onclick = () => {
+    triggerHaptic(12);
+    powerSaverEnabled = !powerSaverEnabled;
+    localStorage.setItem(POWER_SAVER_KEY, String(powerSaverEnabled));
+    renderPowerSaverUI();
+  };
+}
+if (powerSaverTimeoutSelect) {
+  powerSaverTimeoutSelect.onchange = () => {
+    localStorage.setItem(POWER_SAVER_TIMEOUT_KEY, powerSaverTimeoutSelect.value);
   };
 }
 
