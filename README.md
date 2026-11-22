@@ -12,3 +12,11 @@ A mobile-first companion for Magic: The Gathering Commander games. Track life to
 ## Run locally
 
 Serve the repository over HTTP or HTTPS and open `index.html`. There is no build step. Synchronized pods and account backup use Firebase; card lookups use Scryfall.
+
+## Firebase setup
+
+Enable **Anonymous** authentication in Firebase Authentication. Then deploy `database.rules.json` to Realtime Database. With Firebase CLI installed, run:
+
+```sh
+firebase deploy --only database
+```

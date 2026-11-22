@@ -1,0 +1,34 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "pods": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid"
+      }
+    },
+    "supporters": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": false
+      }
+    },
+    "supporterEmails": {
+      "$email": {
+        ".read": "auth != null",
+        ".write": false
+      }
+    },
+    "supporterCodes": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": false
+      }
+    }
+  }
+}

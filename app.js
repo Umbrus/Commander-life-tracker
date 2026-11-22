@@ -95,6 +95,12 @@ let currentPodCode = null;
 let latestPodData = null;
 let inspectedOpponentUid = null;
 let pendingPodLaunch = null;
+let authReadyResolve = null;
+const authReadyPromise = new Promise((resolve) => {
+  authReadyResolve = resolve;
+});
+let authReady = false;
+let authErrorMessage = "";
 
 let selectedLobbyStartingLife = 40;
 let isCustomLobbyLifeSelected = false;
@@ -217,14 +223,44 @@ function saveLocalUserProfile() {
   localStorage.setItem(LOCAL_MATCHES_KEY, JSON.stringify(userMatches));
 }
 
-function launchPodWithDeckSelection(code, isNew) {
+async function waitForAuthenticatedUser() {
+  if (currentUser) return true;
+
+  try {
+    await Promise.race([
+      authReadyPromise,
+      new Promise((resolve) => setTimeout(resolve, 15000))
+    ]);
+  } catch {}
+
+  if (currentUser) return true;
+  setPodJoinStatus(authErrorMessage || "Could not connect to the pod network. Check your connection and try again.", true);
+  return false;
+}
+
+function setPodJoinStatus(message, isError = false) {
+  statusText.textContent = message;
+  statusBox.className = `conn-pill ${isError ? "err" : "ok"}`;
+  lobbyForm.classList.remove("hidden");
+  const joinBtn = document.getElementById("joinPodBtn");
+  joinBtn.disabled = false;
+  joinBtn.textContent = "Join Pod";
+}
+
+async function launchPodWithDeckSelection(code, isNew) {
+  if (!await waitForAuthenticatedUser()) return false;
+
   const deckList = Object.values(userDecks).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   if (deckList.length === 0 || !deckSelectModal) {
-    enterPod(code, isNew);
-    return;
+    return enterPod(code, isNew);
   }
 
   pendingPodLaunch = { code, isNew };
+  const joinBtn = document.getElementById("joinPodBtn");
+  if (!isNew && joinBtn) {
+    joinBtn.disabled = false;
+    joinBtn.textContent = "Join Pod";
+  }
   const grid = document.getElementById("visualDeckPickerGrid");
   grid.innerHTML = "";
 
@@ -1128,15 +1164,28 @@ onAuthStateChanged(auth, async (user) => {
   if (!user) {
     try {
       await signInAnonymously(auth);
-    } catch {
+    } catch (error) {
+      authErrorMessage = "Could not sign in anonymously. Check your connection and try again.";
+      authReady = false;
+      if (authReadyResolve) {
+        authReadyResolve(false);
+        authReadyResolve = null;
+      }
       statusText.textContent = "Offline — Table Mode Ready";
       statusBox.className = "conn-pill err";
       lobbyForm.classList.remove("hidden");
+      console.error("Anonymous authentication failed:", error);
     }
     return;
   }
 
   currentUser = user;
+  authReady = true;
+  authErrorMessage = "";
+  if (authReadyResolve) {
+    authReadyResolve(true);
+    authReadyResolve = null;
+  }
   updateAccountMenuUI(user);
   await verifySupporterInPod(user);
   pruneStalePods();
@@ -1187,8 +1236,19 @@ function renderInviteQR(code) {
   });
 
   const copyBtn = document.getElementById("copyLinkBtn");
-  copyBtn.onclick = () => {
-    navigator.clipboard.writeText(inviteUrl);
+  copyBtn.onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+    } catch {
+      const textArea = document.createElement("textarea");
+      textArea.value = inviteUrl;
+      textArea.style.position = "fixed";
+      textArea.style.opacity = "0";
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      textArea.remove();
+    }
     copyBtn.textContent = "Copied!";
     setTimeout(() => (copyBtn.textContent = "Copy Link"), 2000);
   };
@@ -1801,6 +1861,11 @@ bindLifeTapZone(document.getElementById("plusZone"), 1);
 
 // --- ENTER POD & LISTEN FOR REAL-TIME SYNC ---
 async function enterPod(code, isNew, isAutoRejoin = false) {
+  if (!currentUser) {
+    const authenticated = await waitForAuthenticatedUser();
+    if (!authenticated) return false;
+  }
+
   const name = playerNameInput.value.trim() || "Player";
   const podRef = ref(db, `pods/${code}`);
   const selectedDeckObj = activeDeckId ? userDecks[activeDeckId] : null;
@@ -1814,68 +1879,87 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
   let podStartingLife = selectedLobbyStartingLife;
 
   if (!isNew) {
-    const snap = await get(podRef);
-    if (!snap.exists()) {
-      clearSession();
-      if (!isAutoRejoin) alert("Pod not found! Check the 4-letter code.");
+    try {
+      const snap = await get(podRef);
+      if (!snap.exists()) {
+        clearSession();
+        if (!isAutoRejoin) setPodJoinStatus(`Pod ${code} was not found. Check the 4-letter code.`, true);
+        return false;
+      }
+      podStartingLife = snap.val().startingLife || 40;
+    } catch (error) {
+      console.error("Could not look up pod:", error);
+      if (!isAutoRejoin) setPodJoinStatus("Could not reach the pod network. Check your connection and try again.", true);
       return false;
     }
-    podStartingLife = snap.val().startingLife || 40;
   } else {
-    await set(podRef, {
-      createdAt: Date.now(),
-      hostUid: currentUser.uid,
-      startingLife: selectedLobbyStartingLife,
-      gameNumber: 1
-    });
+    try {
+      await set(podRef, {
+        createdAt: Date.now(),
+        hostUid: currentUser.uid,
+        startingLife: selectedLobbyStartingLife,
+        gameNumber: 1
+      });
+    } catch (error) {
+      console.error("Could not create pod:", error);
+      setPodJoinStatus("Could not create the pod. Check your connection and try again.", true);
+      return false;
+    }
   }
 
   currentPodCode = code;
   const playerRef = ref(db, `pods/${code}/players/${currentUser.uid}`);
 
-  const existingPlayerSnap = await get(playerRef);
-  if (!existingPlayerSnap.exists()) {
-    await set(playerRef, {
-      name: name,
-      deckName: selectedDeckLabel,
-      commander: selectedCommander,
-      artCrop: selectedArtCrop,
-      theme: myTheme,
-      hasPartner: false,
-      eliminated: false,
-      eliminatedTurn: null,
-      online: true,
-      pinnedCounters: [],
-      showManaPool: false,
-      manaPool: { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 },
-      joinedAt: Date.now(),
-      life: podStartingLife,
-      poison: 0,
-      tax: 0,
-      extraCounters: { energy: 0, experience: 0, storm: 0, rad: 0 }
-    });
-  } else {
-    const existing = existingPlayerSnap.val();
-    myCurrentLife = existing.life ?? podStartingLife;
-    myPoison = existing.poison ?? 0;
-    myTax = existing.tax ?? 0;
-    myHasPartner = Boolean(existing.hasPartner);
-    myEliminated = Boolean(existing.eliminated);
-    myCommanderDamage = existing.commanderDamage || {};
-    myExtraCounters = { energy: 0, experience: 0, storm: 0, rad: 0, ...(existing.extraCounters || {}) };
-    myPinnedCounters = Array.isArray(existing.pinnedCounters) ? existing.pinnedCounters : [];
-    myShowManaPool = Boolean(existing.showManaPool);
-    myManaPool = { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0, ...(existing.manaPool || {}) };
-    if (existing.theme) applyMyThemeUI(existing.theme);
-    if (existing.artCrop && !selectedArtCrop) applyHeroCommanderBackdrop(existing.artCrop);
+  try {
+    const existingPlayerSnap = await get(playerRef);
+    if (!existingPlayerSnap.exists()) {
+      await set(playerRef, {
+        name: name,
+        deckName: selectedDeckLabel,
+        commander: selectedCommander,
+        artCrop: selectedArtCrop,
+        theme: myTheme,
+        hasPartner: false,
+        eliminated: false,
+        eliminatedTurn: null,
+        online: true,
+        pinnedCounters: [],
+        showManaPool: false,
+        manaPool: { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 },
+        joinedAt: Date.now(),
+        life: podStartingLife,
+        poison: 0,
+        tax: 0,
+        extraCounters: { energy: 0, experience: 0, storm: 0, rad: 0 }
+      });
+    } else {
+      const existing = existingPlayerSnap.val();
+      myCurrentLife = existing.life ?? podStartingLife;
+      myPoison = existing.poison ?? 0;
+      myTax = existing.tax ?? 0;
+      myHasPartner = Boolean(existing.hasPartner);
+      myEliminated = Boolean(existing.eliminated);
+      myCommanderDamage = existing.commanderDamage || {};
+      myExtraCounters = { energy: 0, experience: 0, storm: 0, rad: 0, ...(existing.extraCounters || {}) };
+      myPinnedCounters = Array.isArray(existing.pinnedCounters) ? existing.pinnedCounters : [];
+      myShowManaPool = Boolean(existing.showManaPool);
+      myManaPool = { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0, ...(existing.manaPool || {}) };
+      if (existing.theme) applyMyThemeUI(existing.theme);
+      if (existing.artCrop && !selectedArtCrop) applyHeroCommanderBackdrop(existing.artCrop);
 
-    const patchUpdates = { online: true };
-    if (existing.deckName !== selectedDeckLabel) {
-      patchUpdates.deckName = selectedDeckLabel;
-      patchUpdates.commander = selectedCommander;
-      patchUpdates.artCrop = selectedArtCrop;
+      const patchUpdates = { online: true };
+      if (existing.deckName !== selectedDeckLabel) {
+        patchUpdates.deckName = selectedDeckLabel;
+        patchUpdates.commander = selectedCommander;
+        patchUpdates.artCrop = selectedArtCrop;
+      }
+      await update(playerRef, patchUpdates);
     }
-    await update(playerRef, patchUpdates);
+  } catch (error) {
+    console.error("Could not join pod:", error);
+    setPodJoinStatus("Could not join the pod. Firebase may be offline or the database rejected access.", true);
+    currentPodCode = null;
+    return false;
   }
 
   const myOnlineRef = ref(db, `pods/${code}/players/${currentUser.uid}/online`);
@@ -1889,6 +1973,8 @@ async function enterPod(code, isNew, isAutoRejoin = false) {
   podView.classList.remove("hidden");
 
   document.getElementById("displayRoomCode").textContent = code;
+  statusText.textContent = "Pod Network Ready";
+  statusBox.className = "conn-pill ok";
   renderInviteQR(code);
   enableWakeLock();
 
@@ -2223,12 +2309,43 @@ customLobbyLifeForm.addEventListener("submit", (event) => {
   launchPodWithDeckSelection(generateCode(), true);
 });
 
-document.getElementById("joinPodBtn").onclick = () => {
+const joinPodBtn = document.getElementById("joinPodBtn");
+
+roomCodeInput.addEventListener("input", () => {
+  roomCodeInput.value = roomCodeInput.value
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 4);
+  roomCodeInput.setCustomValidity("");
+  if (joinPodBtn) joinPodBtn.disabled = false;
+});
+
+joinPodBtn.addEventListener("click", async () => {
   const code = roomCodeInput.value.trim().toUpperCase();
-  if (code.length === 4) {
-    launchPodWithDeckSelection(code, false);
+  if (code.length !== 4) {
+    roomCodeInput.setCustomValidity("Enter the full 4-character pod code.");
+    roomCodeInput.reportValidity();
+    return;
   }
-};
+
+  joinPodBtn.disabled = true;
+  joinPodBtn.textContent = "Joining...";
+  statusText.textContent = "Connecting to pod...";
+  statusBox.className = "conn-pill";
+
+  const joined = await launchPodWithDeckSelection(code, false);
+  if (joined === false) {
+    joinPodBtn.disabled = false;
+    joinPodBtn.textContent = "Join Pod";
+  }
+});
+
+roomCodeInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    joinPodBtn.click();
+  }
+});
 
 // =========================================================
 // TABLE MODE (SINGLE-DEVICE SPLIT-SCREEN + SIDEWAYS ORIENTATION)
