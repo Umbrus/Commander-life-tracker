@@ -2239,6 +2239,7 @@ button:active { transform: scale(0.97); }
   gap: 4px;
   cursor: pointer;
 }
+.cmdr-radar-btn.players-2 { grid-template-columns: 36px; }
 .cmdr-radar-btn:active { transform: scale(0.93); border-color: var(--gold-foil); }
 
 .radar-cell {
@@ -2384,6 +2385,7 @@ button:active { transform: scale(0.97); }
   grid-template-columns: 1fr 1fr;
   gap: 6px;
 }
+.tray-cmdr-matrix.players-2 { grid-template-columns: 1fr; }
 .matrix-tile {
   position: relative;
   border-radius: 12px;

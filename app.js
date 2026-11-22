@@ -2520,6 +2520,25 @@ function getSeatOrientationClass(idx) {
   return idx % 2 === 0 ? "face-left" : "face-right";
 }
 
+function getRadarPlayerOrder(ownerIdx) {
+  const playerIndices = tablePlayers.map((_, idx) => idx);
+  if (tablePlayerCount !== 4) return playerIndices;
+
+  // Counter-rotate the canonical seat map to offset this seat's rotated HUD.
+  const viewTurns = getSeatOrientationClass(ownerIdx) === "face-left" ? 1 : 3;
+  const turns = (4 - viewTurns) % 4;
+  const getSlot = (idx) => {
+    let x = idx % 2;
+    let y = Math.floor(idx / 2);
+    for (let turn = 0; turn < turns; turn += 1) {
+      [x, y] = [1 - y, x];
+    }
+    return y * 2 + x;
+  };
+
+  return playerIndices.sort((a, b) => getSlot(a) - getSlot(b));
+}
+
 function renderTableGrid() {
   tableGrid.className = `table-grid players-${tablePlayerCount}`;
   tableGrid.innerHTML = "";
@@ -2548,8 +2567,9 @@ function renderTableGrid() {
     if (p.energy > 0) statusPills.push(`<span class="seat-mini-badge">E:${p.energy}</span>`);
     if (p.rad > 0) statusPills.push(`<span class="seat-mini-badge">Rad:${p.rad}</span>`);
 
-    const radarCellsHtml = tablePlayers
-      .map((other, otherIdx) => {
+    const radarCellsHtml = getRadarPlayerOrder(idx)
+      .map((otherIdx) => {
+        const other = tablePlayers[otherIdx];
         const spanClass = tablePlayerCount === 3 && otherIdx === 2 ? "span-2" : "";
         if (otherIdx === idx) {
           return `<div class="radar-cell self-cell ${spanClass}">YOU</div>`;
@@ -2583,7 +2603,7 @@ function renderTableGrid() {
 
         <div class="seat-bottom-dock">
           <div class="seat-status-pills">${statusPills.join("")}</div>
-          <button type="button" class="cmdr-radar-btn" id="table-radar-${idx}" aria-label="Open Command Tray">
+          <button type="button" class="cmdr-radar-btn players-${tablePlayerCount}" id="table-radar-${idx}" aria-label="Open Command Tray">
             ${radarCellsHtml}
           </button>
         </div>
@@ -2720,9 +2740,11 @@ function renderTablePlayerTray() {
   document.getElementById("trayVal-rad").textContent = target.rad;
 
   const matrix = document.getElementById("trayCmdrMatrix");
+  matrix.className = `tray-cmdr-matrix players-${tablePlayerCount}`;
   matrix.innerHTML = "";
 
-  tablePlayers.forEach((sourcePlayer, sourceIdx) => {
+  getRadarPlayerOrder(activeTraySeatIdx).forEach((sourceIdx) => {
+    const sourcePlayer = tablePlayers[sourceIdx];
     const tile = document.createElement("div");
     const spanClass = (
       (tablePlayerCount === 3 && sourceIdx === 2) ||
