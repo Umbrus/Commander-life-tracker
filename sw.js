@@ -1,4 +1,4 @@
-const CACHE_NAME = "commander-pod-v46";
+const CACHE_NAME = "commander-pod-v49";
 const ASSETS = [
   "./",
   "./index.html",
@@ -20,9 +20,18 @@ const ASSETS = [
   "./images/icons/glyph-cmdr.svg",
   "./images/icons/glyph-poison.svg",
   "./images/icons/glyph-tax.svg",
+  "./images/icons/glyph-energy.svg",
+  "./images/icons/glyph-experience.svg",
+  "./images/icons/glyph-storm.svg",
+  "./images/icons/glyph-rad.svg",
   "./images/icons/glyph-monarch.svg",
   "./images/icons/glyph-ko.svg",
   "./images/icons/die-d20.svg",
+  "./images/icons/die-d4.svg",
+  "./images/icons/die-d6.svg",
+  "./images/icons/die-d8.svg",
+  "./images/icons/die-d10.svg",
+  "./images/icons/die-d12.svg",
   "./images/icons/die-coin.svg",
   "./images/icons/die-planar.svg"
 ];

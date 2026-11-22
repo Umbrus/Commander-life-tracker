@@ -48,10 +48,10 @@ const VALID_THEMES = ["blue", "red", "green", "gold", "purple", "slate", "aether
 const FREE_APP_PALETTES = ["crimson", "rare", "uncommon", "common"];
 
 const EXTRA_COUNTER_META = {
-  energy: { label: "Energy", icon: "Energy" },
-  experience: { label: "Experience", icon: "XP" },
-  storm: { label: "Storm", icon: "Storm" },
-  rad: { label: "Rad", icon: "Rad" }
+  energy: { label: "Energy", iconClass: "cs-icon-energy" },
+  experience: { label: "Experience", iconClass: "cs-icon-experience" },
+  storm: { label: "Storm", iconClass: "cs-icon-storm" },
+  rad: { label: "Rad", iconClass: "cs-icon-rad" }
 };
 
 const MANA_COLORS = [
@@ -716,7 +716,7 @@ function renderPinnedExtraCounters() {
     const pill = document.createElement("div");
     pill.className = "counter-pill";
     pill.innerHTML = `
-      <div class="counter-title">${meta.label}</div>
+      <div class="counter-title"><span class="cs-icon ${meta.iconClass}" aria-hidden="true"></span> ${meta.label}</div>
       <div class="counter-controls">
         <button type="button" class="mini-btn extra-btn" data-key="${key}" data-delta="-1">−</button>
         <span class="counter-val">${val}</span>
@@ -1661,7 +1661,7 @@ function renderOpponentModal() {
       hasExtraVals = true;
       const chip = document.createElement("span");
       chip.className = "modal-extra-chip";
-      chip.textContent = `${meta.icon}: ${val}`;
+      chip.innerHTML = `<span class="cs-icon ${meta.iconClass}" aria-hidden="true"></span> ${meta.label}: ${val}`;
       extraStrip.appendChild(chip);
     }
   });
@@ -2564,8 +2564,8 @@ function renderTableGrid() {
     const statusPills = [];
     if (p.poison > 0) statusPills.push(`<span class="seat-mini-badge poison"><span class="cs-icon cs-icon-poison"></span>${p.poison}</span>`);
     if (p.tax > 0) statusPills.push(`<span class="seat-mini-badge"><span class="cs-icon cs-icon-tax"></span>+${p.tax}</span>`);
-    if (p.energy > 0) statusPills.push(`<span class="seat-mini-badge">E:${p.energy}</span>`);
-    if (p.rad > 0) statusPills.push(`<span class="seat-mini-badge">Rad:${p.rad}</span>`);
+    if (p.energy > 0) statusPills.push(`<span class="seat-mini-badge"><span class="cs-icon cs-icon-energy" aria-hidden="true"></span>${p.energy}</span>`);
+    if (p.rad > 0) statusPills.push(`<span class="seat-mini-badge"><span class="cs-icon cs-icon-rad" aria-hidden="true"></span>${p.rad}</span>`);
 
     const radarCellsHtml = getRadarPlayerOrder(idx)
       .map((otherIdx) => {
