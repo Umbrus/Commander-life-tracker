@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "989326008841",
+    "firebase_url": "https://commander-life-tracker-6938f-default-rtdb.firebaseio.com",
+    "project_id": "commander-life-tracker-6938f",
+    "storage_bucket": "commander-life-tracker-6938f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:989326008841:android:3fda7887ee19ded5cf0ed8",
+        "android_client_info": {
+          "package_name": "com.commandsync.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "989326008841-l0gfg5jhssul9rqb9b9rdomgtq1jog6f.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.commandsync.app",
+            "certificate_hash": "88c7f4df0b643e3642d45a54bb97e827f596e75a"
+          }
+        },
+        {
+          "client_id": "989326008841-3fjgqti50bko1j8fh993k7i7v9n32d1s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCAHwF0GUMUPMtNbsk_5X0PvkwvchIBNCY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "989326008841-3fjgqti50bko1j8fh993k7i7v9n32d1s.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

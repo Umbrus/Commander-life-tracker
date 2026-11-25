@@ -1,0 +1,35 @@
+{
+  "name": "commander-life-tracker-1",
+  "version": "1.0.0",
+  "description": "A mobile-first companion for Magic: The Gathering Commander games. Track life totals, turns, commander damage, and match results with friends.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Umbrus/Commander-life-tracker.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Umbrus/Commander-life-tracker/issues"
+  },
+  "homepage": "https://github.com/Umbrus/Commander-life-tracker#readme",
+  "dependencies": {
+    "@capacitor-firebase/authentication": "^8.6.0",
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/cli": "^8.6.2",
+    "@capacitor/core": "^8.6.2"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^4.0.0",
+    "esbuild": "^0.28.2"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}

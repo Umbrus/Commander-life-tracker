@@ -4,7 +4,9 @@ import {
   signInAnonymously,
   GoogleAuthProvider,
   linkWithPopup,
+  linkWithCredential,
   signInWithPopup,
+  signInWithCredential,
   signOut,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
@@ -455,13 +457,62 @@ function updateProfileAuthUI(user) {
 document.getElementById("googleAuthBtn").onclick = async () => {
   if (!auth.currentUser) return;
 
+  const nativeFirebaseAuth = window.Capacitor?.Plugins?.FirebaseAuthentication;
+  const isNativeAndroid = Boolean(window.Capacitor?.isNativePlatform?.() && nativeFirebaseAuth);
+
   if (!auth.currentUser.isAnonymous) {
+    if (isNativeAndroid) {
+      try { await nativeFirebaseAuth.signOut(); } catch {}
+    }
     await signOut(auth);
     await signInAnonymously(auth);
     return;
   }
 
   const prevUid = auth.currentUser.uid;
+
+  // Native Android App Sign-In (keeps GitHub Pages website untouched)
+  if (isNativeAndroid) {
+    try {
+      const result = await nativeFirebaseAuth.signInWithGoogle();
+      const idToken = result?.credential?.idToken;
+      if (!idToken) {
+        throw new Error("No Google ID token returned. Verify your SHA-1 fingerprint in Firebase Console.");
+      }
+      const credential = GoogleAuthProvider.credential(idToken);
+      let signedInUser = null;
+
+      try {
+        const linkRes = await linkWithCredential(auth.currentUser, credential);
+        signedInUser = linkRes.user;
+      } catch (linkErr) {
+        if (linkErr.code === "auth/credential-already-in-use" || linkErr.code === "auth/email-already-in-use") {
+          const oldSnap = await get(ref(db, `users/${prevUid}/decks`));
+          const oldDecks = oldSnap.exists() ? oldSnap.val() : {};
+          const signInRes = await signInWithCredential(auth, credential);
+          signedInUser = signInRes.user;
+          const merged = { ...oldDecks, ...JSON.parse(localStorage.getItem(LOCAL_DECKS_KEY) || "{}") };
+          localStorage.setItem(LOCAL_DECKS_KEY, JSON.stringify(merged));
+        } else {
+          throw linkErr;
+        }
+      }
+
+      if (signedInUser) {
+        updateProfileAuthUI(signedInUser);
+        await verifySupporterStatus(signedInUser);
+        const localDecks = JSON.parse(localStorage.getItem(LOCAL_DECKS_KEY) || "{}");
+        if (Object.keys(localDecks).length > 0) {
+          await update(ref(db, `users/${signedInUser.uid}/decks`), localDecks).catch(() => {});
+        }
+      }
+    } catch (err) {
+      alert(`Google Sign-In failed: ${err.message}`);
+    }
+    return;
+  }
+
+  // Standard Web / GitHub Pages Sign-In
   try {
     const res = await linkWithPopup(auth.currentUser, googleProvider);
     updateProfileAuthUI(res.user);

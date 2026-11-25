@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#070606" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>CommandSync — Commander Pod Tracker</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="images/icon.svg" />
+  <link rel="apple-touch-icon" href="images/icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@700&family=Cinzel:wght@700;800&family=Cinzel+Decorative:wght@700;800&family=Cormorant+Garamond:wght@700&family=Orbitron:wght@700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    (function() {
+      const p = localStorage.getItem("mtg_app_palette");
+      const meta = document.querySelector('meta[name="theme-color"]');
+      const colors = { crimson: "#070606", chocobo: "#151004", teal: "#03080c", abyssal: "#05040a", fracture: "#060409", uncommon: "#080c12", rare: "#100b14", common: "#0b0908" };
+      if (p && p !== "crimson" && colors[p]) {
+        document.documentElement.setAttribute("data-palette", p);
+        if (meta && colors[p]) meta.setAttribute("content", colors[p]);
+      }
+    })();
+  </script>
+</head>
+<body>
+
+  <div class="app-shell">
+    <div id="offlineBanner" class="offline-banner hidden">Offline — waiting to reconnect...</div>
+
+    <!-- TOP LOBBY ACTION BAR -->
+    <header id="lobbyTopBar" class="lobby-top-bar">
+      <button id="openGuideBtn" type="button" class="btn-secondary btn-small">Guide</button>
+      <a href="profile.html" class="app-mode-badge" id="lobbyAccountBadge" style="text-decoration:none;color:var(--gold-foil);">
+        Sign In
+      </a>
+    </header>
+
+    <!-- CLEAN LOBBY / JOIN SCREEN -->
+    <div id="lobbyView" class="lobby-wrapper">
+      <div class="lobby-hero">
+        <div class="hero-emblem" aria-hidden="true">
+          <img src="images/icon.svg" alt="CommandSync Emblem" width="78" height="78" />
+        </div>
+        <div class="brand-mark">COMMANDER TABLETOP COMPANION</div>
+        <h1 class="brand-title">CommandSync</h1>
+        <p class="subtitle">Real-time synced life, commander damage &amp; turns across every device in the pod.</p>
+
+        <div id="statusBox" class="conn-pill">
+          <span class="conn-dot"></span>
+          <span id="statusText">Connecting to pod network...</span>
+        </div>
+      </div>
+
+      <div id="lobbyForm" class="lobby-card hidden">
+        <div class="input-group">
+          <label for="playerNameInput" class="input-label">Planeswalker Name</label>
+          <input id="playerNameInput" type="text" maxlength="18" placeholder="e.g. Gideon" autocomplete="off" />
+        </div>
+
+        <div id="standardCreateSection">
+          <div class="input-group">
+            <label class="input-label">Starting Life Total</label>
+            <div id="lobbyLifeSelector" class="life-preset-row">
+              <button type="button" class="preset-btn" data-life="20">20<span>Standard</span></button>
+              <button type="button" class="preset-btn selected" data-life="40">40<span>Commander</span></button>
+              <button type="button" class="preset-btn" data-life="custom">Custom<span>Set total</span></button>
+            </div>
+          </div>
+
+          <button id="createPodBtn" class="btn-primary btn-hero">
+            <span>Host New Pod</span>
+            <small>Get a pod code &amp; QR invite</small>
+          </button>
+
+          <div class="divider"><span>OR JOIN AN ACTIVE POD</span></div>
+        </div>
+
+        <div class="input-group">
+          <label for="roomCodeInput" class="input-label">4-Letter Pod Code</label>
+          <div class="join-row">
+            <input id="roomCodeInput" class="code-input" type="text" maxlength="4" placeholder="SOL9" autocomplete="off" />
+            <button id="joinPodBtn" class="btn-secondary join-submit-btn">Join Pod</button>
+          </div>
+        </div>
+
+        <div class="divider"><span>OR PASS &amp; PLAY</span></div>
+
+        <button id="openTableSetupBtn" type="button" class="btn-secondary table-mode-launch-btn">
+          <span>Table Mode</span>
+          <small>Pass-and-play for 2–4 players</small>
+        </button>
+      </div>
+    </div>
+
+    <!-- ACTIVE TABLE SCREEN (SYNCED POD MODE) -->
+    <div id="podView" class="pod-container hidden">
+      <header class="top-bar">
+        <div class="pod-pill">
+          <span class="pod-dot"></span>
+          <span>POD <strong id="displayRoomCode" class="pod-code-serif">----</strong></span>
+          <span id="hostCrownTag" class="host-tag hidden">HOST</span>
+        </div>
+
+        <div class="menu-wrapper">
+          <button id="menuToggleBtn" class="hamburger-btn" aria-label="Pod Menu">☰</button>
+
+          <div id="podDropdownMenu" class="dropdown-menu hidden">
+            <div class="menu-section-title">Your Card Frame</div>
+            <div id="colorSwatchRow" class="swatch-row">
+              <button type="button" class="swatch-btn" data-theme="blue" title="Azorius Blue" aria-label="Azorius Blue"></button>
+              <button type="button" class="swatch-btn" data-theme="red" title="Rakdos Crimson" aria-label="Rakdos Crimson"></button>
+              <button type="button" class="swatch-btn" data-theme="green" title="Golgari Emerald" aria-label="Golgari Emerald"></button>
+              <button type="button" class="swatch-btn" data-theme="gold" title="Boros Gold" aria-label="Boros Gold"></button>
+              <button type="button" class="swatch-btn" data-theme="purple" title="Dimir Violet" aria-label="Dimir Violet"></button>
+              <button type="button" class="swatch-btn" data-theme="slate" title="Eldrazi Obsidian" aria-label="Eldrazi Obsidian"></button>
+              <button type="button" class="swatch-btn supporter-only" data-theme="aether" title="Prismatic Aether (Supporter)" aria-label="Prismatic Aether, supporter"></button>
+              <button type="button" class="swatch-btn supporter-only" data-theme="phyrexian" title="Phyrexian Oil (Supporter)" aria-label="Phyrexian Oil, supporter"></button>
+              <button type="button" class="swatch-btn supporter-only" data-theme="ivory" title="Celestial Ivory (Supporter)" aria-label="Celestial Ivory, supporter"></button>
+              <button type="button" class="swatch-btn supporter-only" data-theme="fracture" title="Reality Fracture (Supporter)" aria-label="Reality Fracture, supporter"></button>
+            </div>
+            <div id="selectedFrameName" class="selected-frame-name" aria-live="polite">Selected: Azorius Blue</div>
+
+            <div class="menu-divider"></div>
+            <div class="menu-section-title">Tools</div>
+            <button id="openOracleLookupBtn" class="menu-item">Card &amp; Oracle Lookup</button>
+            <button id="openCountersBtn" class="menu-item">Extra Counters &amp; Mana</button>
+            <button id="openDiceRollerBtn" class="menu-item">Dice &amp; Coin Roller</button>
+            <button id="openHistoryBtn" class="menu-item">Life History Log</button>
+
+            <div class="menu-divider"></div>
+            <div class="menu-section-title">Pod Actions</div>
+            <button id="togglePartnerBtn" class="menu-item">Partner Commander: OFF</button>
+            <button id="becomeMonarchBtn" class="menu-item">Claim the Monarch</button>
+            <button id="toggleEliminatedBtn" class="menu-item">Scoop / Knocked Out</button>
+            <button id="toggleQrBtn" class="menu-item">Hide QR Invite</button>
+            <button id="openFirstPlayerBtn" class="menu-item hidden">Turn Order &amp; 1st Player</button>
+            <button id="newGameBtn" class="menu-item warning hidden">Start New Game</button>
+            <div class="menu-divider"></div>
+            <button id="leavePodBtn" class="menu-item danger">Leave Pod</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Collapsible QR Invite Drawer -->
+      <div id="qrDrawer" class="qr-drawer">
+        <div id="qrBox" class="qr-wrapper"></div>
+        <div class="invite-hint">Scan with any phone camera to join this pod</div>
+        <div style="display: flex; justify-content: center; gap: 8px;">
+          <button id="copyLinkBtn" class="btn-secondary btn-small">Copy Link</button>
+          <button id="inlineHideQrBtn" class="btn-secondary btn-small">Hide QR</button>
+        </div>
+      </div>
+
+      <!-- POD WINNER BANNER + QUICK REMATCH -->
+      <div id="podWinnerBanner" class="winner-banner hidden">
+        <div id="podWinnerText">Player Wins the Pod!</div>
+        <div id="podWinnerDeckNote" class="winner-sub-note hidden"></div>
+        <button id="bannerRematchBtn" type="button" class="btn-primary btn-small hidden" style="margin-top: 8px;">Quick Rematch</button>
+      </div>
+
+      <!-- HOST PRE-GAME TURN ORDER SETUP CARD -->
+      <div id="hostStartBanner" class="host-start-card hidden">
+        <div class="host-start-text">
+          <div class="host-start-title">Ready to Begin?</div>
+          <div class="host-start-sub">Roll randomly or arrange clockwise table seating</div>
+        </div>
+        <div class="host-start-actions">
+          <button id="quickRollStartBtn" type="button" class="btn-primary btn-small">Roll 1st</button>
+          <button id="quickSeatOrderBtn" type="button" class="btn-secondary btn-small">Seat Order</button>
+        </div>
+      </div>
+
+      <!-- Turn Tracker Banner + Clockwise Seat Order Strip -->
+      <div id="turnBanner" class="turn-banner hidden">
+        <div class="turn-top-row">
+          <div class="turn-info">
+            <span id="turnNumberLabel" class="turn-pill">TURN 1</span>
+            <span id="activePlayerLabel" class="active-turn-name">Your Turn</span>
+          </div>
+          <button id="passTurnBtn" class="btn-primary btn-small hidden">Pass Turn →</button>
+        </div>
+        <div id="turnOrderStrip" class="turn-order-strip"></div>
+      </div>
+
+      <!-- Live Opponents Row -->
+      <div id="opponentsSection" class="opponents-section">
+        <div id="opponentsGrid" class="opponents-grid"></div>
+      </div>
+
+      <!-- Your Hero Life Counter -->
+      <div id="heroTracker" class="hero-tracker theme-blue">
+        <div id="heroArtBackdrop" class="hero-art-backdrop"></div>
+        <div class="hero-inner-frame"></div>
+        <div id="heroPlayerName" class="hero-label">You</div>
+        <div id="heroDeckTag" class="hero-deck-tag hidden"></div>
+        <div id="heroLifeDisplay" class="hero-life-display">40</div>
+        <div id="deltaBadge" class="delta-badge"></div>
+
+        <!-- Knocked Out Overlay -->
+        <div id="heroEliminatedOverlay" class="hero-eliminated-overlay hidden">
+          <div class="eliminated-skull">- OUT -</div>
+          <div class="eliminated-sub">Skipped in turn rotation</div>
+          <button id="reviveSelfBtn" type="button" class="btn-secondary btn-small">Revive / Still Alive</button>
+        </div>
+
+        <div class="tap-zones">
+          <div id="minusZone" class="tap-zone left" role="button" tabindex="0" aria-label="Decrease life total. Hold for larger changes.">−</div>
+          <div id="plusZone" class="tap-zone right" role="button" tabindex="0" aria-label="Increase life total. Hold for larger changes.">+</div>
+        </div>
+      </div>
+
+      <!-- Primary Personal Counters: Poison & Commander Tax -->
+      <div class="counters-row">
+        <div id="poisonBox" class="counter-pill">
+          <div class="counter-title"><span class="cs-icon cs-icon-poison"></span> Poison</div>
+          <div class="counter-controls">
+            <button id="poisonMinusBtn" class="mini-btn">−</button>
+            <span id="poisonDisplay" class="counter-val">0</span>
+            <button id="poisonPlusBtn" class="mini-btn">+</button>
+          </div>
+        </div>
+
+        <div class="counter-pill">
+          <div class="counter-title"><span class="cs-icon cs-icon-tax"></span> Cmdr Tax</div>
+          <div class="counter-controls">
+            <button id="taxMinusBtn" class="mini-btn">−</button>
+            <span id="taxDisplay" class="counter-val">+0</span>
+            <button id="taxPlusBtn" class="mini-btn">+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- OPTIONAL FLOATING MANA POOL BAR (W U B R G C) -->
+      <div id="floatingManaStrip" class="floating-mana-card hidden">
+        <div class="mana-strip-header">
+          <span>Floating Mana <small>(Tap +1 • Hold −1)</small></span>
+          <button id="clearManaPoolBtn" type="button" class="chip-action-btn">Empty</button>
+        </div>
+        <div id="manaPillsRow" class="mana-pills-row"></div>
+      </div>
+
+      <!-- Pinned Optional Deck Counters -->
+      <div id="extraCountersGrid" class="extra-counters-grid hidden"></div>
+
+      <!-- Commander Damage Taken From Each Opponent -->
+      <div class="cmdr-dmg-section">
+        <div class="section-header-row">
+          <div class="section-label" style="margin:0;"><span class="cs-icon cs-icon-cmdr"></span> Commander Damage Taken</div>
+          <button id="quickCountersBtn" type="button" class="chip-action-btn">+ Counters</button>
+        </div>
+        <div class="cmdr-damage-hint">21 combat damage from one commander is lethal.</div>
+        <div id="cmdrDamageList" class="cmdr-dmg-list">
+          <div class="empty-hint">Waiting for opponents to join...</div>
+        </div>
+      </div>
+
+      <div id="wakeStatus" class="wake-status">Screen Wake Lock: Checking...</div>
+    </div>
+  </div>
+
+  <!-- VISUAL DECK PILOTING PICKER MODAL -->
+  <div id="deckSelectModal" class="modal-backdrop hidden">
+    <div class="modal-card" style="max-height: 86vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <h2>Select Your Deck</h2>
+        <button id="closeDeckSelectModalBtn" type="button" class="btn-secondary btn-small">✕</button>
+      </div>
+      <p class="modal-sub">Choose which Commander deck you are piloting in this pod:</p>
+
+      <div id="visualDeckPickerGrid" class="visual-deck-picker-grid"></div>
+    </div>
+  </div>
+
+  <!-- TABLE MODE SETUP MODAL -->
+  <div id="tableSetupModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Table Mode Setup</h2>
+        <button id="closeTableSetupBtn" class="btn-secondary btn-small">✕</button>
+      </div>
+      <p class="modal-sub">Place one phone or tablet flat on the table for everyone to tap:</p>
+
+      <div class="input-group">
+        <label class="input-label">Number of Players</label>
+        <div id="tablePlayersSelector" class="life-preset-row">
+          <button type="button" class="preset-btn" data-players="2">2<span>1v1 Duel</span></button>
+          <button type="button" class="preset-btn" data-players="3">3<span>3-Pod</span></button>
+          <button type="button" class="preset-btn selected" data-players="4">4<span>4-Pod</span></button>
+        </div>
+      </div>
+
+      <div class="input-group" style="margin-top: 12px;">
+        <label class="input-label">Starting Life Total</label>
+        <div id="tableLifeSelector" class="life-preset-row">
+          <button type="button" class="preset-btn" data-life="20">20<span>Standard</span></button>
+          <button type="button" class="preset-btn" data-life="30">30<span>Brawl / 2HG</span></button>
+          <button type="button" class="preset-btn selected" data-life="40">40<span>Commander</span></button>
+        </div>
+      </div>
+
+      <button id="startTableGameBtn" type="button" class="btn-primary" style="margin-top: 16px; margin-bottom: 0;">
+        Launch Table Mode
+      </button>
+    </div>
+  </div>
+
+  <!-- FULL-SCREEN SINGLE-DEVICE TABLE MODE VIEW -->
+  <div id="tableView" class="table-view hidden">
+    <div id="tableGrid" class="table-grid players-4"></div>
+
+    <div class="table-center-hub">
+      <button id="tableHubBtn" type="button" class="hub-orb-btn" aria-label="Table Menu">✦</button>
+      <div id="tableHubMenu" class="table-hub-menu hidden">
+        <button id="tableRollFirstBtn" type="button" class="hub-action-btn">Roll 1st Player</button>
+        <button id="tableDiceBtn" type="button" class="hub-action-btn">Dice &amp; Coin</button>
+        <button id="tableResetBtn" type="button" class="hub-action-btn">Reset Life</button>
+        <button id="tableSetupAgainBtn" type="button" class="hub-action-btn">Players / Life</button>
+        <button id="tableExitBtn" type="button" class="hub-action-btn danger">Exit to Lobby</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE MODE PLAYER COMMAND TRAY -->
+  <div id="tablePlayerModal" class="modal-backdrop hidden">
+    <div class="modal-card table-tray-card">
+      <div class="modal-header">
+        <div class="tray-name-edit-row">
+          <input id="trayPlayerNameInput" type="text" maxlength="16" class="tray-name-input" aria-label="Edit Player Name" />
+          <span class="tray-subtitle-tag">Tray</span>
+        </div>
+        <button id="closeTableTrayBtn" type="button" class="btn-secondary btn-small">✕</button>
+      </div>
+
+      <div class="tray-section-label">Table Status &amp; Counters</div>
+      <div class="tray-counters-grid">
+        <button id="trayMonarchBtn" type="button" class="tray-monarch-pill">
+          <span><span class="cs-icon cs-icon-monarch"></span> Monarch</span>
+          <strong id="trayMonarchState">OFF</strong>
+        </button>
+
+        <button id="trayEliminatedBtn" type="button" class="tray-monarch-pill">
+          <span><span class="cs-icon cs-icon-ko"></span> Knocked Out</span>
+          <strong id="trayEliminatedState">NO</strong>
+        </button>
+
+        <div class="tray-counter-box">
+          <span class="tray-counter-name"><span class="cs-icon cs-icon-poison"></span> Poison</span>
+          <div class="tray-stepper">
+            <button type="button" class="tray-step-btn" data-counter="poison" data-delta="-1">−</button>
+            <strong id="trayVal-poison">0</strong>
+            <button type="button" class="tray-step-btn" data-counter="poison" data-delta="1">+</button>
+          </div>
+        </div>
+
+        <div class="tray-counter-box">
+          <span class="tray-counter-name"><span class="cs-icon cs-icon-tax"></span> Cmdr Tax</span>
+          <div class="tray-stepper">
+            <button type="button" class="tray-step-btn" data-counter="tax" data-delta="-2">−</button>
+            <strong id="trayVal-tax">+0</strong>
+            <button type="button" class="tray-step-btn" data-counter="tax" data-delta="2">+</button>
+          </div>
+        </div>
+
+        <div class="tray-counter-box">
+          <span class="tray-counter-name"><span class="cs-icon cs-icon-energy" aria-hidden="true"></span> Energy</span>
+          <div class="tray-stepper">
+            <button type="button" class="tray-step-btn" data-counter="energy" data-delta="-1">−</button>
+            <strong id="trayVal-energy">0</strong>
+            <button type="button" class="tray-step-btn" data-counter="energy" data-delta="1">+</button>
+          </div>
+        </div>
+
+        <div class="tray-counter-box">
+          <span class="tray-counter-name"><span class="cs-icon cs-icon-rad" aria-hidden="true"></span> Rad</span>
+          <div class="tray-stepper">
+            <button type="button" class="tray-step-btn" data-counter="rad" data-delta="-1">−</button>
+            <strong id="trayVal-rad">0</strong>
+            <button type="button" class="tray-step-btn" data-counter="rad" data-delta="1">+</button>
+          </div>
+        </div>
+
+        <button id="trayPartnerToggleBtn" type="button" class="tray-partner-pill" style="grid-column: 1 / span 2;">
+          <span>Partner Commander (Two Commanders)</span>
+          <strong id="trayPartnerState">OFF</strong>
+        </button>
+      </div>
+
+      <div class="tray-section-label" style="margin-top: 12px;">
+        Commander Damage Taken <small>Use +/− controls; 21 combat damage from one commander is lethal.</small>
+      </div>
+      <div id="trayCmdrMatrix" class="tray-cmdr-matrix"></div>
+    </div>
+  </div>
+
+  <!-- IN-POD SCRYFALL ORACLE & RULINGS LOOKUP MODAL -->
+  <div id="oracleLookupModal" class="modal-backdrop hidden">
+    <div class="modal-card" style="max-height: 86vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <h2>Card &amp; Oracle Lookup</h2>
+        <button id="closeOracleLookupBtn" type="button" class="btn-secondary btn-small">✕</button>
+      </div>
+
+      <div class="join-row" style="grid-template-columns: 1fr auto; margin-bottom: 10px;">
+        <input id="podOracleInput" type="text" placeholder="e.g. Blood Moon or Humility" style="text-align: left; font-size: 0.9rem; padding: 10px 12px;" />
+        <button id="podOracleSearchBtn" type="button" class="btn-primary btn-small" style="padding: 0 14px;">Search</button>
+      </div>
+
+      <div id="podOracleResults" class="oracle-results-scroll">
+        <div class="empty-hint">Search any Magic card to read its official Oracle text, Commander legality, and Gatherer rulings.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOM POD STARTING LIFE MODAL -->
+  <div id="customLobbyLifeModal" class="modal-backdrop hidden">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="customLobbyLifeTitle">
+      <div class="modal-header">
+        <h2 id="customLobbyLifeTitle">Custom Starting Life</h2>
+      </div>
+      <p class="modal-sub">Choose a whole number above 0.</p>
+      <form id="customLobbyLifeForm">
+        <div class="input-group">
+          <label for="customLobbyLifeInput" class="input-label">Starting Life Total</label>
+          <input id="customLobbyLifeInput" type="number" min="1" step="1" inputmode="numeric" placeholder="e.g. 25" required />
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;">
+          <button id="cancelCustomLobbyLifeBtn" type="button" class="btn-secondary">Cancel</button>
+          <button type="submit" class="btn-primary" style="margin-bottom:0;">Continue</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- NEW GAME & STARTING LIFE MODAL -->
+  <div id="newGameModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Start New Game</h2>
+        <button id="closeNewGameModalBtn" type="button" class="btn-secondary btn-small">✕</button>
+      </div>
+      <p class="modal-sub">Choose starting life and reset all players, counters, turns, and history:</p>
+
+      <div id="newGameLifeSelector" class="life-preset-row" style="margin-bottom: 16px;">
+        <button type="button" class="preset-btn" data-life="20">20<span>Standard</span></button>
+        <button type="button" class="preset-btn" data-life="30">30<span>Brawl / 2HG</span></button>
+        <button type="button" class="preset-btn selected" data-life="40">40<span>Commander</span></button>
+      </div>
+
+      <button id="confirmNewGameBtn" class="btn-primary" style="margin-bottom: 0;">Reset Table &amp; Start</button>
+    </div>
+  </div>
+
+  <!-- EXTRA COUNTERS & FLOATING MANA PICKER MODAL -->
+  <div id="extraCountersModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Optional Deck Counters</h2>
+        <button id="closeCountersModalBtn" type="button" class="btn-secondary btn-small">✕</button>
+      </div>
+      <p class="modal-sub">Pin counters used by your deck to your main screen:</p>
+
+      <div class="counter-toggle-list">
+        <button type="button" class="toggle-counter-row" data-counter="mana">
+          <span>Floating Mana (W U B R G C)</span>
+          <span id="badge-mana" class="toggle-state">OFF</span>
+        </button>
+        <button type="button" class="toggle-counter-row" data-counter="energy">
+          <span><span class="cs-icon cs-icon-energy" aria-hidden="true"></span> Energy Counters</span>
+          <span id="badge-energy" class="toggle-state">OFF</span>
+        </button>
+        <button type="button" class="toggle-counter-row" data-counter="experience">
+          <span><span class="cs-icon cs-icon-experience" aria-hidden="true"></span> Experience Counters</span>
+          <span id="badge-experience" class="toggle-state">OFF</span>
+        </button>
+        <button type="button" class="toggle-counter-row" data-counter="storm">
+          <span><span class="cs-icon cs-icon-storm" aria-hidden="true"></span> Storm Count</span>
+          <span id="badge-storm" class="toggle-state">OFF</span>
+        </button>
+        <button type="button" class="toggle-counter-row" data-counter="rad">
+          <span><span class="cs-icon cs-icon-rad" aria-hidden="true"></span> Rad Counters</span>
+          <span id="badge-rad" class="toggle-state">OFF</span>
+        </button>
+      </div>
+
+      <button id="doneCountersBtn" class="btn-primary" style="margin-top: 14px; margin-bottom: 0;">Done</button>
+    </div>
+  </div>
+
+  <!-- LIFE HISTORY LOG MODAL -->
+  <div id="historyModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Pod Life History</h2>
+        <button id="closeHistoryBtn" type="button" class="btn-secondary btn-small">✕</button>
+      </div>
+      <div id="historyList" class="history-list">
+        <div class="empty-hint">No life changes recorded yet.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DICE & COIN ROLLER MODAL -->
+  <div id="diceModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Dice &amp; Coin Roller</h2>
+        <button id="closeDiceBtn" type="button" class="btn-secondary btn-small">✕</button>
+      </div>
+
+      <div class="dice-stage">
+        <div id="diceTypeLabel" class="dice-type-label">Tap a die or coin below</div>
+        <div id="diceBigResult" class="dice-big-result">—</div>
+      </div>
+
+      <div class="dice-grid">
+        <button type="button" class="die-btn" data-die="coin"><span class="cs-icon cs-icon-coin"></span> Coin</button>
+        <button type="button" class="die-btn" data-die="4"><span class="cs-icon cs-icon-d4"></span> d4</button>
+        <button type="button" class="die-btn" data-die="6"><span class="cs-icon cs-icon-d6"></span> d6</button>
+        <button type="button" class="die-btn" data-die="8"><span class="cs-icon cs-icon-d8"></span> d8</button>
+        <button type="button" class="die-btn" data-die="10"><span class="cs-icon cs-icon-d10"></span> d10</button>
+        <button type="button" class="die-btn" data-die="12"><span class="cs-icon cs-icon-d12"></span> d12</button>
+        <button type="button" class="die-btn" data-die="20"><span class="cs-icon cs-icon-d20"></span> d20</button>
+        <button type="button" class="die-btn" data-die="planar"><span class="cs-icon cs-icon-planar"></span> Planar</button>
+      </div>
+
+      <div id="recentRollsBar" class="recent-rolls-bar"></div>
+    </div>
+  </div>
+
+  <!-- OPPONENT INSPECTOR MODAL -->
+  <div id="inspectModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="modalPlayerName">Player Stats</h2>
+        <button id="closeModalBtn" type="button" class="btn-secondary btn-small">✕</button>
+      </div>
+
+      <div class="modal-stats-row">
+        <div class="modal-stat-box">
+          <div class="counter-title">Life</div>
+          <div id="modalLifeVal" class="modal-big-num">40</div>
+        </div>
+        <div class="modal-stat-box">
+          <div class="counter-title">Poison</div>
+          <div id="modalPoisonVal" class="modal-big-num">0</div>
+        </div>
+        <div class="modal-stat-box">
+          <div class="counter-title">Tax</div>
+          <div id="modalTaxVal" class="modal-big-num">+0</div>
+        </div>
+      </div>
+
+      <div id="modalExtraCounters" class="modal-extra-strip hidden"></div>
+
+      <div class="section-label" style="margin-top: 14px;">Commander Damage Taken</div>
+      <div id="modalCmdrList" class="cmdr-dmg-list"></div>
+
+      <button id="modalMakeMonarchBtn" class="btn-monarch" style="margin-top: 14px; margin-bottom: 0;">
+        Give Monarch to Player
+      </button>
+      <button id="modalToggleEliminateBtn" class="btn-secondary" style="margin-top: 8px; margin-bottom: 0;">
+        Mark Knocked Out
+      </button>
+      <button id="modalTransferHostBtn" class="btn-secondary hidden" style="margin-top: 8px; margin-bottom: 0;">
+        Make Pod Owner
+      </button>
+    </div>
+  </div>
+
+  <!-- HOST TURN ORDER & FIRST PLAYER MODAL -->
+  <div id="firstPlayerModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Turn Order &amp; 1st Player</h2>
+        <button id="closeFirstPlayerBtn" type="button" class="btn-secondary btn-small">✕</button>
+      </div>
+
+      <button id="rollDiceBtn" class="btn-primary">Roll Random First Player</button>
+      <div id="diceResultBox" class="dice-result hidden"></div>
+
+      <div class="section-label" style="margin-top: 14px;">
+        1. Arrange Clockwise Seating (↑ / ↓)<br/>
+        2. Tap "Starts" for Who Goes First
+      </div>
+      <div id="manualFirstPlayerList" class="manual-pick-list"></div>
+    </div>
+  </div>
+
+  <!-- TABLE MODE QUICK-LOG MODAL -->
+  <div id="tableQuickLogModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Log Table Mode Game?</h2>
+        <button id="skipTableLogBtn" type="button" class="btn-secondary btn-small">Skip</button>
+      </div>
+      <p class="modal-sub">Record this game to your Stats &amp; Deck Locker before returning to the lobby:</p>
+
+      <div class="input-group">
+        <label for="tableLogDeckSelect" class="input-label">Deck You Piloted</label>
+        <select id="tableLogDeckSelect" class="deck-select"></select>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">Your Result</label>
+        <div class="outcome-toggle-grid">
+          <button type="button" id="tableLogWinBtn" class="outcome-btn selected-win">Win</button>
+          <button type="button" id="tableLogLossBtn" class="outcome-btn">Loss</button>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label for="tableLogTurnsInput" class="input-label">Approximate Final Turn (Optional)</label>
+        <input id="tableLogTurnsInput" type="number" min="1" max="99" placeholder="e.g. 9" />
+      </div>
+
+      <button id="saveTableLogBtn" type="button" class="btn-primary" style="margin-bottom:0;">Save to Stats</button>
+    </div>
+  </div>
+
+  <!-- FLOATING UNDO TOAST -->
+  <div id="undoToast" class="undo-toast hidden" role="status" aria-live="polite">
+    <span id="undoToastMsg" class="undo-toast-msg">Action completed</span>
+    <button id="undoToastBtn" type="button" class="undo-toast-btn">↺ Undo</button>
+  </div>
+
+  <!-- HOW IT WORKS GUIDE MODAL -->
+  <div id="howItWorksModal" class="modal-backdrop hidden">
+    <div class="modal-card guide-modal">
+      <div class="modal-header">
+        <h2>How CommandSync Works</h2>
+        <button id="closeHowItWorksBtn" type="button" class="btn-secondary btn-small">✕</button>
+      </div>
+      <div class="guide-steps">
+        <div class="guide-step">
+          <div class="step-badge">1</div>
+          <div class="step-body">
+            <h3>Start or Scan Into a Pod</h3>
+            <p>Choose <strong>20-life Standard</strong>, <strong>40-life Commander</strong>, or a custom starting total on the <strong>Play</strong> tab, then tap <strong>Host New Pod</strong> to select your deck and generate a pod code &amp; QR invite.</p>
+          </div>
+        </div>
+        <div class="guide-step">
+          <div class="step-badge">2</div>
+          <div class="step-body">
+            <h3>Track Life, Eliminations &amp; Turns</h3>
+            <p>Tap left/right for <strong>−1 / +1</strong>, or <strong>press &amp; hold</strong> to accelerate through <strong>±5</strong> and <strong>±10</strong>. Reaching 0 life, 10 poison, or 21 Commander damage automatically marks a player knocked out and skips their turn.</p>
+          </div>
+        </div>
+        <div class="guide-step">
+          <div class="step-badge">3</div>
+          <div class="step-body">
+            <h3>Deck Locker &amp; Match Analytics</h3>
+            <p>Use the <strong>Decks</strong> tab to import Archidekt/Moxfield lists and customize Secret Lair art, and check <strong>Stats</strong> to view monthly, quarterly, and yearly win rates.</p>
+          </div>
+        </div>
+      </div>
+      <button id="gotItBtn" type="button" class="btn-primary" style="margin-top: 14px; margin-bottom: 0;">Got It</button>
+    </div>
+  </div>
+
+  <div id="powerDimOverlay" class="power-dim-overlay hidden" role="button" tabindex="0" aria-label="Screen dimmed. Tap to wake.">
+    <span>Screen dimmed</span>
+    <small>Tap anywhere to wake</small>
+  </div>
+
+  <!-- 4-TAB BOTTOM NAVIGATION BAR -->
+  <nav id="mainBottomNav" class="bottom-nav" aria-label="Primary Navigation">
+    <a href="index.html" class="bottom-nav-item active">
+      <span class="cs-icon cs-icon-play"></span>
+      <span class="nav-label">Play</span>
+    </a>
+    <a href="decks.html" class="bottom-nav-item">
+      <span class="cs-icon cs-icon-decks"></span>
+      <span class="nav-label">Decks</span>
+    </a>
+    <a href="stats.html" class="bottom-nav-item">
+      <span class="cs-icon cs-icon-stats"></span>
+      <span class="nav-label">Stats</span>
+    </a>
+    <a href="profile.html" class="bottom-nav-item">
+      <span class="cs-icon cs-icon-profile"></span>
+      <span class="nav-label">Profile</span>
+    </a>
+  </nav>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

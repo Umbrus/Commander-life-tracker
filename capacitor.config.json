@@ -1,0 +1,12 @@
+{
+  "appId": "com.commandsync.app",
+  "appName": "CommandSync",
+  "webDir": "www",
+  "plugins": {
+    "FirebaseAuthentication": {
+      "skipNativeAuth": true,
+      "providers": ["google.com"],
+      "serverClientId": "989326008841-3fjgqti50bko1j8fh993k7i7v9n32d1s.apps.googleusercontent.com"
+    }
+  }
+}

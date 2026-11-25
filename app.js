@@ -1301,7 +1301,10 @@ function generateCode() {
 }
 
 function renderInviteQR(code) {
-  const baseUrl = window.location.origin + window.location.pathname;
+  const isNative = Boolean(window.Capacitor?.isNativePlatform?.());
+  const baseUrl = isNative
+    ? "https://YOUR-GITHUB-USERNAME.github.io/Commander-life-tracker-1/"
+    : window.location.origin + window.location.pathname;
   const inviteUrl = `${baseUrl}?pod=${code}`;
 
   const qrBox = document.getElementById("qrBox");
@@ -2524,7 +2527,6 @@ function getRadarPlayerOrder(ownerIdx) {
   const playerIndices = tablePlayers.map((_, idx) => idx);
   if (tablePlayerCount !== 4) return playerIndices;
 
-  // Counter-rotate the canonical seat map to offset this seat's rotated HUD.
   const viewTurns = getSeatOrientationClass(ownerIdx) === "face-left" ? 1 : 3;
   const turns = (4 - viewTurns) % 4;
   const getSlot = (idx) => {
@@ -3063,3 +3065,14 @@ function updateNetworkBanner() {
 window.addEventListener("online", updateNetworkBanner);
 window.addEventListener("offline", updateNetworkBanner);
 updateNetworkBanner();
+
+// Route incoming Android App Links (?pod=XXXX) into the app
+window.Capacitor?.Plugins?.App?.addListener("appUrlOpen", (event) => {
+  if (!event?.url) return;
+  try {
+    const incoming = new URL(event.url);
+    if (incoming.search && window.location.search !== incoming.search) {
+      window.location.search = incoming.search;
+    }
+  } catch {}
+});

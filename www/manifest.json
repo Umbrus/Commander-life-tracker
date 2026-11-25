@@ -1,0 +1,25 @@
+{
+  "name": "CommandSync — Commander Pod Tracker",
+  "short_name": "CommandSync",
+  "description": "Real-time synced MTG Commander life, commander damage, and turn tracker.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#070606",
+  "theme_color": "#070606",
+  "icons": [
+    {
+      "src": "./images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./images/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
